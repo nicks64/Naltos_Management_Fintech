@@ -653,6 +653,231 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Crypto Wallet Routes (Business) ============
+  app.get("/api/crypto/wallets", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId!;
+      
+      // Mock crypto wallet data for demo
+      const wallets = [
+        {
+          coin: "USDC",
+          balance: 125000.50,
+          usdValue: 125000.50,
+          depositAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7",
+          price: 1.00,
+        },
+        {
+          coin: "USDT",
+          balance: 85000.25,
+          usdValue: 85000.25,
+          depositAddress: "0xE3a5B4d7f79d64088C8d4ef153A7DDe2D2e0c08f",
+          price: 1.00,
+        },
+        {
+          coin: "DAI",
+          balance: 42500.75,
+          usdValue: 42500.75,
+          depositAddress: "0x9C8EB2F46a2F4dCf4D0b6aE50fE3b5c8D7e4A9c2",
+          price: 1.00,
+        },
+      ];
+      
+      const totalUsdValue = wallets.reduce((sum, w) => sum + w.usdValue, 0);
+      
+      res.json({ wallets, totalUsdValue });
+    } catch (error: any) {
+      console.error("Crypto wallets error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/crypto/convert", requireAuth, async (req, res) => {
+    try {
+      const { fromCoin, toCoin, amount } = req.body;
+      
+      // Mock conversion rates (all 1:1 for stablecoins)
+      const exchangeRate = 1.0;
+      const convertedAmount = amount * exchangeRate;
+      const fee = amount * 0.001; // 0.1% fee
+      
+      res.json({
+        success: true,
+        fromCoin,
+        toCoin,
+        fromAmount: amount,
+        toAmount: convertedAmount,
+        exchangeRate,
+        fee,
+        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+      });
+    } catch (error: any) {
+      console.error("Crypto convert error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/crypto/to-usd", requireAuth, async (req, res) => {
+    try {
+      const { coin, amount } = req.body;
+      
+      // Mock conversion to USD (1:1 for stablecoins)
+      const usdAmount = amount;
+      const fee = amount * 0.002; // 0.2% fee
+      
+      res.json({
+        success: true,
+        coin,
+        cryptoAmount: amount,
+        usdAmount: usdAmount - fee,
+        exchangeRate: 1.0,
+        fee,
+      });
+    } catch (error: any) {
+      console.error("Crypto to USD error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/crypto/transactions", requireAuth, async (req, res) => {
+    try {
+      // Mock transaction history
+      const transactions = [
+        {
+          id: "tx-1",
+          type: "deposit",
+          coin: "USDC",
+          amount: 50000,
+          usdValue: 50000,
+          status: "completed",
+          txHash: "0x1234...5678",
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: "tx-2",
+          type: "conversion",
+          fromCoin: "USDT",
+          toCoin: "USDC",
+          amount: 25000,
+          usdValue: 25000,
+          status: "completed",
+          txHash: "0xabcd...efgh",
+          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: "tx-3",
+          type: "deposit",
+          coin: "DAI",
+          amount: 30000,
+          usdValue: 30000,
+          status: "completed",
+          txHash: "0x9876...4321",
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+      
+      res.json({ transactions });
+    } catch (error: any) {
+      console.error("Crypto transactions error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Crypto Wallet Routes (Tenant) ============
+  app.get("/api/tenant/crypto/wallets", requireRole("Tenant"), async (req, res) => {
+    try {
+      // Mock tenant crypto wallet data
+      const wallets = [
+        {
+          coin: "USDC",
+          balance: 1250.50,
+          usdValue: 1250.50,
+          depositAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7",
+          price: 1.00,
+        },
+        {
+          coin: "USDT",
+          balance: 850.25,
+          usdValue: 850.25,
+          depositAddress: "0xE3a5B4d7f79d64088C8d4ef153A7DDe2D2e0c08f",
+          price: 1.00,
+        },
+        {
+          coin: "DAI",
+          balance: 425.75,
+          usdValue: 425.75,
+          depositAddress: "0x9C8EB2F46a2F4dCf4D0b6aE50fE3b5c8D7e4A9c2",
+          price: 1.00,
+        },
+      ];
+      
+      const totalUsdValue = wallets.reduce((sum, w) => sum + w.usdValue, 0);
+      
+      res.json({ wallets, totalUsdValue });
+    } catch (error: any) {
+      console.error("Tenant crypto wallets error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/crypto/convert", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { fromCoin, toCoin, amount } = req.body;
+      
+      // Mock conversion rates (all 1:1 for stablecoins)
+      const exchangeRate = 1.0;
+      const convertedAmount = amount * exchangeRate;
+      const fee = amount * 0.001; // 0.1% fee
+      
+      res.json({
+        success: true,
+        fromCoin,
+        toCoin,
+        fromAmount: amount,
+        toAmount: convertedAmount,
+        exchangeRate,
+        fee,
+        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+      });
+    } catch (error: any) {
+      console.error("Tenant crypto convert error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/crypto/transactions", requireRole("Tenant"), async (req, res) => {
+    try {
+      // Mock tenant transaction history
+      const transactions = [
+        {
+          id: "tx-1",
+          type: "deposit",
+          coin: "USDC",
+          amount: 500,
+          usdValue: 500,
+          status: "completed",
+          txHash: "0x1234...5678",
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: "tx-2",
+          type: "rent_payment",
+          coin: "USDT",
+          amount: 2500,
+          usdValue: 2500,
+          status: "completed",
+          txHash: "0xabcd...efgh",
+          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+      
+      res.json({ transactions });
+    } catch (error: any) {
+      console.error("Tenant crypto transactions error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Admin Routes ============
   // Only Admin can reset demo
   app.post("/api/admin/reset", requireRole("Admin"), async (req, res) => {

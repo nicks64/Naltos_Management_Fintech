@@ -16,6 +16,7 @@ import Dashboard from "@/pages/dashboard";
 import Collections from "@/pages/collections";
 import Reconciliation from "@/pages/reconciliation";
 import Treasury from "@/pages/treasury";
+import CryptoTreasury from "@/pages/crypto-treasury";
 import Reports from "@/pages/reports";
 import Agent from "@/pages/agent";
 import Settings from "@/pages/settings";
@@ -113,6 +114,9 @@ function AppContent() {
                 </Route>
                 <Route path="/treasury">
                   {() => <ProtectedRoute component={Treasury} path="/treasury" />}
+                </Route>
+                <Route path="/crypto-treasury">
+                  {() => <ProtectedRoute component={CryptoTreasury} path="/crypto-treasury" />}
                 </Route>
                 <Route path="/reports">
                   {() => <ProtectedRoute component={Reports} path="/reports" />}

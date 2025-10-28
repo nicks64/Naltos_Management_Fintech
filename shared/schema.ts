@@ -10,6 +10,8 @@ export const paymentMethodEnum = pgEnum("payment_method", ["ACH", "Card", "Check
 export const pmsProviderEnum = pgEnum("pms_provider", ["AppFolio", "Yardi", "Buildium"]);
 export const treasuryProductTypeEnum = pgEnum("treasury_product_type", ["NRF", "NRK", "NRC"]);
 export const complianceModeEnum = pgEnum("compliance_mode", ["indirect_only", "accredited_access"]);
+export const cryptoCoinEnum = pgEnum("crypto_coin", ["USDC", "USDT", "DAI"]);
+export const cryptoTransactionTypeEnum = pgEnum("crypto_transaction_type", ["deposit", "withdrawal", "conversion", "rent_payment"]);
 
 // Organizations table
 export const organizations = pgTable("organizations", {
@@ -180,6 +182,32 @@ export const tenantPaymentMethods = pgTable("tenant_payment_methods", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Crypto Wallets - for both business and tenant stablecoin management
+export const cryptoWallets = pgTable("crypto_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+  coin: cryptoCoinEnum("coin").notNull(),
+  balance: decimal("balance", { precision: 18, scale: 8 }).notNull().default("0"),
+  depositAddress: text("deposit_address"), // Mock address for demo
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Crypto Transactions - transaction history for crypto operations
+export const cryptoTransactions = pgTable("crypto_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: varchar("wallet_id").notNull().references(() => cryptoWallets.id, { onDelete: "cascade" }),
+  transactionType: cryptoTransactionTypeEnum("transaction_type").notNull(),
+  fromCoin: cryptoCoinEnum("from_coin"),
+  toCoin: cryptoCoinEnum("to_coin"),
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  usdValue: decimal("usd_value", { precision: 12, scale: 2 }),
+  exchangeRate: decimal("exchange_rate", { precision: 12, scale: 6 }),
+  status: text("status").notNull().default("completed"), // completed, pending, failed
+  txHash: text("tx_hash"), // Mock transaction hash
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),
@@ -190,6 +218,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   treasurySubscriptions: many(treasurySubscriptions),
   auditLogs: many(auditLogs),
   settings: many(organizationSettings),
+  cryptoWallets: many(cryptoWallets),
 }));
 
 export const usersRelations = relations(users, ({ one }) => ({
@@ -227,6 +256,7 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   leases: many(leases),
   wallet: one(tenantWallets),
   paymentMethods: many(tenantPaymentMethods),
+  cryptoWallets: many(cryptoWallets),
 }));
 
 export const leasesRelations = relations(leases, ({ one, many }) => ({
@@ -296,6 +326,25 @@ export const tenantPaymentMethodsRelations = relations(tenantPaymentMethods, ({ 
   }),
 }));
 
+export const cryptoWalletsRelations = relations(cryptoWallets, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [cryptoWallets.organizationId],
+    references: [organizations.id],
+  }),
+  tenant: one(tenants, {
+    fields: [cryptoWallets.tenantId],
+    references: [tenants.id],
+  }),
+  transactions: many(cryptoTransactions),
+}));
+
+export const cryptoTransactionsRelations = relations(cryptoTransactions, ({ one }) => ({
+  wallet: one(cryptoWallets, {
+    fields: [cryptoTransactions.walletId],
+    references: [cryptoWallets.id],
+  }),
+}));
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
@@ -314,6 +363,8 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: tru
 export const insertOrganizationSettingsSchema = createInsertSchema(organizationSettings).omit({ id: true });
 export const insertTenantWalletSchema = createInsertSchema(tenantWallets).omit({ id: true, createdAt: true });
 export const insertTenantPaymentMethodSchema = createInsertSchema(tenantPaymentMethods).omit({ id: true, createdAt: true });
+export const insertCryptoWalletSchema = createInsertSchema(cryptoWallets).omit({ id: true, createdAt: true });
+export const insertCryptoTransactionSchema = createInsertSchema(cryptoTransactions).omit({ id: true, createdAt: true });
 
 // Types
 export type Organization = typeof organizations.$inferSelect;
@@ -350,6 +401,10 @@ export type TenantWallet = typeof tenantWallets.$inferSelect;
 export type InsertTenantWallet = z.infer<typeof insertTenantWalletSchema>;
 export type TenantPaymentMethod = typeof tenantPaymentMethods.$inferSelect;
 export type InsertTenantPaymentMethod = z.infer<typeof insertTenantPaymentMethodSchema>;
+export type CryptoWallet = typeof cryptoWallets.$inferSelect;
+export type InsertCryptoWallet = z.infer<typeof insertCryptoWalletSchema>;
+export type CryptoTransaction = typeof cryptoTransactions.$inferSelect;
+export type InsertCryptoTransaction = z.infer<typeof insertCryptoTransactionSchema>;
 
 // Additional types for frontend
 export type UserRole = "Admin" | "PropertyManager" | "CFO" | "Analyst" | "Tenant";
@@ -358,3 +413,5 @@ export type PaymentMethod = "ACH" | "Card" | "Check" | "Wire";
 export type PMSProvider = "AppFolio" | "Yardi" | "Buildium";
 export type TreasuryProductType = "NRF" | "NRK" | "NRC";
 export type ComplianceMode = "indirect_only" | "accredited_access";
+export type CryptoCoin = "USDC" | "USDT" | "DAI";
+export type CryptoTransactionType = "deposit" | "withdrawal" | "conversion" | "rent_payment";

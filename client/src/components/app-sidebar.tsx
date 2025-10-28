@@ -24,6 +24,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useRBAC } from "@/lib/rbac";
 import type { UserRole } from "@shared/schema";
 
+import { Coins } from "lucide-react";
+
 const menuItems = [
   {
     title: "Overview",
@@ -47,6 +49,12 @@ const menuItems = [
     title: "Treasury",
     url: "/treasury",
     icon: Landmark,
+    roles: ["Admin", "CFO"] as UserRole[],
+  },
+  {
+    title: "Crypto Treasury",
+    url: "/crypto-treasury",
+    icon: Coins,
     roles: ["Admin", "CFO"] as UserRole[],
   },
   {
