@@ -14,40 +14,89 @@ import {
   organizationSettings,
   magicCodes,
 } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export async function seedDatabase() {
   console.log("Seeding database...");
 
-  // Clear existing data (in reverse dependency order)
-  await db.delete(treasurySubscriptions);
-  await db.delete(treasuryProducts);
-  await db.delete(bankLedger);
-  await db.delete(payments);
-  await db.delete(invoices);
-  await db.delete(leases);
-  await db.delete(tenants);
-  await db.delete(units);
-  await db.delete(properties);
-  await db.delete(organizationSettings);
-  await db.delete(magicCodes);
-  await db.delete(users);
-  await db.delete(organizations);
+  // Get or create demo organization FIRST before deleting anything
+  let demoOrg = (await db.select().from(organizations).where(eq(organizations.name, "Naltos Demo Properties")))[0];
+  if (!demoOrg) {
+    [demoOrg] = await db.insert(organizations).values({
+      name: "Naltos Demo Properties",
+    }).returning();
+  }
 
-  // Create demo organization
-  const [demoOrg] = await db.insert(organizations).values({
-    name: "Naltos Demo Properties",
-  }).returning();
-
-  // Create demo user
+  // Get or create demo user and ensure it's linked to demo org
   const hashedPassword = await bcrypt.hash("demo123", 10);
-  const [demoUser] = await db.insert(users).values({
-    email: "demo@naltos.com",
-    password: hashedPassword,
-    organizationId: demoOrg.id,
-    role: "Admin",
-  }).returning();
+  let existingUser = (await db.select().from(users).where(eq(users.email, "demo@naltos.com")))[0];
+  let demoUser;
+  if (existingUser) {
+    // Update existing user to point to demo org
+    [demoUser] = await db.update(users)
+      .set({ organizationId: demoOrg.id })
+      .where(eq(users.email, "demo@naltos.com"))
+      .returning();
+  } else {
+    [demoUser] = await db.insert(users).values({
+      email: "demo@naltos.com",
+      password: hashedPassword,
+      organizationId: demoOrg.id,
+      role: "Admin",
+    }).returning();
+  }
+
+  // NOW delete existing data ONLY for this organization (in correct dependency order)
+  // This preserves other organizations and their data
+  
+  // Delete bank ledger FIRST (it references payments via matchedPaymentId)
+  await db.delete(bankLedger).where(eq(bankLedger.organizationId, demoOrg.id));
+  
+  // Delete treasury data (subscriptions only - products are global shared catalog)
+  await db.delete(treasurySubscriptions).where(eq(treasurySubscriptions.organizationId, demoOrg.id));
+  await db.delete(organizationSettings).where(eq(organizationSettings.organizationId, demoOrg.id));
+  
+  // Treasury products are global catalog - NEVER delete them
+  // Just check if they exist and create if needed
+  const existingProducts = await db.select().from(treasuryProducts);
+  let productsExist = existingProducts.length > 0;
+  
+  // Delete property-related data in correct order
+  const orgProps = await db.select().from(properties).where(eq(properties.organizationId, demoOrg.id));
+  const propIds = orgProps.map(p => p.id);
+  
+  if (propIds.length > 0) {
+    const orgUnits = await db.select().from(units).where(inArray(units.propertyId, propIds));
+    const unitIds = orgUnits.map(u => u.id);
+    
+    if (unitIds.length > 0) {
+      const orgLeases = await db.select().from(leases).where(inArray(leases.unitId, unitIds));
+      const leaseIds = orgLeases.map(l => l.id);
+      
+      if (leaseIds.length > 0) {
+        const orgInvoices = await db.select().from(invoices).where(inArray(invoices.leaseId, leaseIds));
+        const invoiceIds = orgInvoices.map(i => i.id);
+        
+        if (invoiceIds.length > 0) {
+          await db.delete(payments).where(inArray(payments.invoiceId, invoiceIds));
+        }
+        await db.delete(invoices).where(inArray(invoices.leaseId, leaseIds));
+      }
+      await db.delete(leases).where(inArray(leases.unitId, unitIds));
+      
+      // Get tenants from leases to delete them
+      const tenantIds = [...new Set(orgLeases.map(l => l.tenantId))];
+      if (tenantIds.length > 0) {
+        await db.delete(tenants).where(inArray(tenants.id, tenantIds));
+      }
+    }
+    await db.delete(units).where(inArray(units.propertyId, propIds));
+  }
+  await db.delete(properties).where(eq(properties.organizationId, demoOrg.id));
+  
+  // Delete magic codes for demo user only
+  await db.delete(magicCodes).where(eq(magicCodes.email, "demo@naltos.com"));
 
   // Create magic code for demo
   await db.insert(magicCodes).values({
@@ -218,40 +267,50 @@ export async function seedDatabase() {
     });
   }
 
-  // Create treasury products
-  const [nrfProduct] = await db.insert(treasuryProducts).values({
-    productType: "NRF",
-    name: "Naltos Reserve Fund",
-    description: "Short-term government T-Bill fund with capital preservation focus",
-    currentYield: "5.10",
-    wam: 45,
-    targetDuration: 30,
-    managementFee: "0.15",
-    platformFee: "0.10",
-  }).returning();
+  // Create or retrieve treasury products (global catalog)
+  let nrfProduct, nrkProduct, nrcProduct;
+  
+  if (!productsExist) {
+    // Products don't exist, create them
+    [nrfProduct] = await db.insert(treasuryProducts).values({
+      productType: "NRF",
+      name: "Naltos Reserve Fund",
+      description: "Short-term government T-Bill fund with capital preservation focus",
+      currentYield: "5.10",
+      wam: 45,
+      targetDuration: 30,
+      managementFee: "0.15",
+      platformFee: "0.10",
+    }).returning();
 
-  const [nrkProduct] = await db.insert(treasuryProducts).values({
-    productType: "NRK",
-    name: "Naltos Reserve T-Bill Token",
-    description: "Tokenized T-Bills with 30-day rolling maturity",
-    currentYield: "5.20",
-    wam: 30,
-    targetDuration: 30,
-    managementFee: "0.20",
-    platformFee: "0.10",
-  }).returning();
+    [nrkProduct] = await db.insert(treasuryProducts).values({
+      productType: "NRK",
+      name: "Naltos Reserve T-Bill Token",
+      description: "Tokenized T-Bills with 30-day rolling maturity",
+      currentYield: "5.20",
+      wam: 30,
+      targetDuration: 30,
+      managementFee: "0.20",
+      platformFee: "0.10",
+    }).returning();
 
-  const [nrcProduct] = await db.insert(treasuryProducts).values({
-    productType: "NRC",
-    name: "Naltos Reserve Cash+",
-    description: "Dual-collateral enhanced yield product with delta-hedged BTC exposure",
-    currentYield: "5.80",
-    wam: 35,
-    targetDuration: 30,
-    managementFee: "0.50",
-    platformFee: "0.15",
-    ocRatio: "1.42",
-  }).returning();
+    [nrcProduct] = await db.insert(treasuryProducts).values({
+      productType: "NRC",
+      name: "Naltos Reserve Cash+",
+      description: "Dual-collateral enhanced yield product with delta-hedged BTC exposure",
+      currentYield: "5.80",
+      wam: 35,
+      targetDuration: 30,
+      managementFee: "0.50",
+      platformFee: "0.15",
+      ocRatio: "1.42",
+    }).returning();
+  } else {
+    // Products exist, use them
+    nrfProduct = existingProducts.find(p => p.productType === "NRF")!;
+    nrkProduct = existingProducts.find(p => p.productType === "NRK")!;
+    nrcProduct = existingProducts.find(p => p.productType === "NRC")!;
+  }
 
   // Create treasury subscriptions for demo org
   await db.insert(treasurySubscriptions).values({

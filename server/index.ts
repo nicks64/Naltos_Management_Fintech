@@ -84,6 +84,65 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Ensure demo credentials exist on startup
+  try {
+    const { db } = await import("./db");
+    const { users, magicCodes, organizations } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    const bcrypt = await import("bcrypt");
+
+    // Check if demo organization exists
+    let [demoOrg] = await db.select().from(organizations).where(eq(organizations.name, "Naltos Demo Properties"));
+    if (!demoOrg) {
+      [demoOrg] = await db.insert(organizations).values({
+        name: "Naltos Demo Properties",
+      }).returning();
+    }
+
+    // Check if demo user exists
+    let [demoUser] = await db.select().from(users).where(eq(users.email, "demo@naltos.com"));
+    if (!demoUser) {
+      const hashedPassword = await bcrypt.hash("demo123", 10);
+      [demoUser] = await db.insert(users).values({
+        email: "demo@naltos.com",
+        password: hashedPassword,
+        organizationId: demoOrg.id,
+        role: "Admin",
+      }).returning();
+    } else if (demoUser.organizationId !== demoOrg.id) {
+      [demoUser] = await db.update(users)
+        .set({ organizationId: demoOrg.id })
+        .where(eq(users.email, "demo@naltos.com"))
+        .returning();
+    }
+
+    // Ensure demo magic code exists and is not marked as used
+    const existingCodes = await db.select().from(magicCodes)
+      .where(eq(magicCodes.email, "demo@naltos.com"));
+    
+    if (existingCodes.length === 0) {
+      // Create new magic code
+      await db.insert(magicCodes).values({
+        email: "demo@naltos.com",
+        code: "000000",
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        used: false,
+      });
+    } else {
+      // Reset existing code to unused
+      await db.update(magicCodes)
+        .set({ 
+          used: false,
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // Extend expiry
+        })
+        .where(eq(magicCodes.email, "demo@naltos.com"));
+    }
+
+    log("Demo setup complete");
+  } catch (error) {
+    console.error("Failed to ensure demo setup:", error);
+  }
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

@@ -1,9 +1,11 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Mail, MessageSquare, Loader2 } from "lucide-react";
+import { Mail, MessageSquare, Loader2, Database, AlertCircle } from "lucide-react";
+import { Link } from "wouter";
 import {
   Table,
   TableBody,
@@ -92,8 +94,29 @@ export default function Collections() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : collections && collections.length > 0 ? (
-              collections.map((item) => (
+            ) : !collections || collections.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-64">
+                  <Card className="border-0 shadow-none">
+                    <CardContent className="flex flex-col items-center justify-center text-center py-12">
+                      <div className="p-4 bg-muted rounded-full mb-4">
+                        <AlertCircle className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <CardTitle className="mb-2">No Collections Data</CardTitle>
+                      <CardDescription className="mb-6 max-w-sm">
+                        Load sample data to see collections, tenant payments, and automated outreach features in action.
+                      </CardDescription>
+                      <Link href="/settings">
+                        <Button data-testid="button-load-data-prompt">
+                          <Database className="mr-2 h-4 w-4" />
+                          Go to Settings to Load Sample Data
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </TableCell>
+              </TableRow>
+            ) : collections.map((item) => (
                 <TableRow 
                   key={item.id} 
                   className="hover-elevate"
@@ -146,14 +169,7 @@ export default function Collections() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                  No collections items found
-                </TableCell>
-              </TableRow>
-            )}
+              ))}
           </TableBody>
         </Table>
       </div>

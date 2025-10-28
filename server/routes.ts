@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import bcrypt from "bcrypt";
 import OpenAI from "openai";
-import { requireRole, extractOrganizationId } from "./middleware";
+import { requireAuth, requireRole, extractOrganizationId } from "./middleware";
 
 // Reference: blueprint:javascript_openai_ai_integrations
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
@@ -16,6 +16,25 @@ const openai = new OpenAI({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply organization ID extraction middleware globally
   app.use("/api", extractOrganizationId);
+
+  // ============ Seed Route (Demo Only - Admin Access Required) ============
+  app.post("/api/seed", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      // Only allow seeding for demo organization
+      const orgId = req.organizationId!;
+      const org = await storage.getOrganization(orgId);
+      
+      if (!org || org.name !== "Naltos Demo Properties") {
+        return res.status(403).json({ error: "Seeding is only available for demo organization" });
+      }
+      
+      await seedDatabase();
+      res.json({ success: true, message: "Database seeded successfully" });
+    } catch (error: any) {
+      console.error("Seed error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // ============ Auth Routes ============
   app.post("/api/auth/signup", async (req, res) => {
@@ -102,8 +121,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Magic code expired" });
       }
 
-      // Mark as used
-      await storage.markMagicCodeUsed(magicCode.id);
+      // Mark as used (except for demo account to allow reuse)
+      if (email !== "demo@naltos.com") {
+        await storage.markMagicCodeUsed(magicCode.id);
+      }
 
       // Get or create user
       let user = await storage.getUserByEmail(email);

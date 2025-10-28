@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Building2, Users, Link as LinkIcon, Shield, RotateCcw } from "lucide-react";
+import { Building2, Users, Link as LinkIcon, Shield, RotateCcw, Database, Loader2 } from "lucide-react";
 import type { OrganizationSettings, User } from "@shared/schema";
 
 export default function Settings() {
@@ -68,6 +68,19 @@ export default function Settings() {
         title: "PMS Sync Started",
         description: "Data is being imported from your PMS provider.",
       });
+    },
+  });
+
+  const loadSampleDataMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/seed", {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast({
+        title: "Sample Data Loaded",
+        description: "Demo properties, tenants, invoices, and treasury data have been loaded.",
+      });
+      // Reload page to show new data
+      setTimeout(() => window.location.reload(), 1500);
     },
   });
 
@@ -136,15 +149,29 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button
-                variant="destructive"
-                onClick={() => resetDemoMutation.mutate()}
-                disabled={resetDemoMutation.isPending}
-                data-testid="button-reset-demo"
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Reset Demo Data
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => loadSampleDataMutation.mutate()}
+                  disabled={loadSampleDataMutation.isPending}
+                  data-testid="button-load-sample-data"
+                >
+                  {loadSampleDataMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Database className="mr-2 h-4 w-4" />
+                  )}
+                  Load Sample Data
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => resetDemoMutation.mutate()}
+                  disabled={resetDemoMutation.isPending}
+                  data-testid="button-reset-demo"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset Demo Data
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

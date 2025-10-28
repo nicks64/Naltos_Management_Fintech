@@ -126,19 +126,23 @@ export default function Reconciliation() {
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        variant="default"
+                        variant="outline"
                         size="sm"
-                        onClick={() => approveMatchMutation.mutate({
-                          bankEntryId: suggestion.bankEntryId,
-                          paymentId: suggestion.paymentId,
+                        onClick={() => approveMatchMutation.mutate({ 
+                          bankEntryId: suggestion.bankEntryId, 
+                          paymentId: suggestion.paymentId 
                         })}
                         disabled={approveMatchMutation.isPending}
                         data-testid={`button-approve-${idx}`}
                       >
                         <Check className="mr-2 h-4 w-4" />
-                        Approve Match
+                        Approve
                       </Button>
-                      <Button variant="ghost" size="sm" data-testid={`button-reject-${idx}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        data-testid={`button-reject-${idx}`}
+                      >
                         <X className="mr-2 h-4 w-4" />
                         Reject
                       </Button>
@@ -151,9 +155,9 @@ export default function Reconciliation() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Bank/PMS Ledger</h2>
+      <div className="grid lg:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          <h2 className="text-lg font-semibold">Bank Ledger</h2>
           <div className="border rounded-lg">
             <Table>
               <TableHeader>
@@ -202,8 +206,8 @@ export default function Reconciliation() {
           </div>
         </div>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Tenant Ledger</h2>
+        <div className="space-y-6">
+          <h2 className="text-lg font-semibold">Payment Ledger</h2>
           <div className="border rounded-lg">
             <Table>
               <TableHeader>

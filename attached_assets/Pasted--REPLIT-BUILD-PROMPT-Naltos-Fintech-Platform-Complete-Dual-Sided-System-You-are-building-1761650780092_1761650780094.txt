@@ -1,0 +1,201 @@
+⸻
+
+🚀 REPLIT BUILD PROMPT — “Naltos Fintech Platform” (Complete Dual-Sided System)
+
+You are building a production-quality fintech platform called Naltos, designed for the multifamily real estate sector.
+The platform has two fully separate experiences:
+    1.    Business Side (Property Managers / Owners)
+    2.    Consumer Side (Tenants / Residents)
+
+Both sides connect to Naltos’ AI-driven Treasury system, which allocates platform float and deposits into short-duration, dual-collateral instruments (similar to STRK/STRF/STRC) to generate returns for both parties.
+
+⸻
+
+🏗️ 0. Tech Foundation
+    •    Stack: TypeScript, Next.js 14, Tailwind CSS, Prisma + SQLite (mock DB), Node/Express or Next API Routes.
+    •    Include authentication with Login / Signup / Logout and role-based access (tenant, PM, admin, CFO).
+    •    All data sources are mocked but consistent (fixtures and generated values).
+    •    Include a dark/light mode, audit logs, and a Reset Demo button.
+
+⸻
+
+🧭 1. Platform Overview
+
+Naltos is a fintech infrastructure platform for multifamily operators that:
+    •    Automates rent collection, reconciliation, liquidity management, and financial reporting.
+    •    Uses agentic AI to analyze data, converse with users, and automate decisions.
+    •    Generates returns from idle balances and float via Naltos Reserve Instruments:
+    •    NRF (Reserve Fund) → short-term Treasury-backed.
+    •    NRK (Reserve Token) → tokenized T-Bills.
+    •    NRC (Reserve Cash+) → dual-collateral (BTC + Treasuries), AI-managed, delta-hedged.
+
+⸻
+
+👤 2. Authentication & Role Management
+    •    Users can sign up as either a Tenant or a Business (Property Manager/Owner).
+    •    Admins can impersonate either side for demo purposes.
+    •    OAuth2-based magic-link login (demo code: 000000).
+    •    RBAC middleware: Tenant, PM, CFO, Admin.
+
+⸻
+
+🏢 3. Business Dashboard (Property Managers / Owners)
+
+Professional-grade dashboard for real estate operators.
+
+Pages:
+    1.    Overview – KPIs and summaries
+    •    Metrics: On-Time %, DSO, Delinquent $, Treasury AUM, Average Yield.
+    •    Graphs: NOI trend, delinquency heatmap, liquidity projection.
+    2.    Collections – rent payment tracking, delinquency automation.
+    •    Table: Tenant | Unit | Amount | Due | Status | Suggested Action.
+    •    Buttons: Send Paylink, Auto-Nudge, Schedule Reminder.
+    •    AI Agent integration: “Predict who’s most likely to pay this week.”
+    3.    Reconciliation – auto-matching and anomaly detection.
+    •    2-pane ledger: PMS vs. Naltos Treasury.
+    •    One-click Approve Matches + “Hours Saved” metric.
+    4.    Treasury – manage idle funds via Naltos Reserve.
+    •    Product cards: NRF, NRK, NRC (STRF/STRK/STRC analogs).
+    •    Show AUM, Yield %, OC%, Duration, Liquidity.
+    •    Actions: Subscribe, Redeem, Auto-Roll, View Fact Sheet.
+    5.    Reports – full analytics suite.
+    •    NOI reports, delinquency trends, yield breakdowns, property-level returns.
+    •    Export: CSV, PDF.
+    6.    Agent – conversational AI copilot.
+    •    Prompts: “Summarize this month’s rent performance,” “Forecast next quarter liquidity,” “Optimize reserve allocation.”
+    7.    Settings – org details, PMS integration, compliance options.
+
+⸻
+
+🧍‍♂️ 4. Consumer Dashboard (Tenants / Residents)
+
+A simple, mobile-friendly interface for rent payments, communication, and financial participation.
+
+Pages:
+    1.    Home – summary of upcoming rent, balances, and payment history.
+    •    Card: “Rent due Nov 1 – $1,895” → “Pay Now” button.
+    •    Payment options: ACH, debit, Pay by Text, Apple Pay (mocked).
+    2.    Wallet / Deposits – tenant’s digital balance.
+    •    Shows current USD balance and optional yield account.
+    •    If opted-in: “Your balance earns 5.25% APY through Naltos Reserve.”
+    3.    Agent – tenant-facing AI assistant.
+    •    Prompts: “Set payment reminders,” “Split rent with roommate,” “Request maintenance.”
+    4.    Reports / Receipts – auto-generated monthly statements, year-end summaries.
+    5.    Settings – account info, linked payment method, preferences.
+
+⸻
+
+💰 5. Treasury & Instruments (Shared Layer)
+
+The Naltos Treasury is a unified back-end engine managing all float and reserve balances.
+
+Product    Analog    Collateral    Target Yield    Access
+NRF (Reserve Fund)    STRF    100% U.S. T-Bills / repos    5.0%    Default float
+NRK (Reserve Token)    STRK    Tokenized T-Bill exposure    5.2%    Treasury clients
+NRC (Reserve Cash+)    STRC    70–80% T-Bills + 20–30% BTC (hedged)    5.8–6.2%    Accredited / Business clients
+
+Treasury Console:
+    •    Graphs: Yield, OC%, AUM over time.
+    •    Controls: Rebalance, Hedge, Stress Test, Optimize Yield.
+    •    AI prompts:
+    •    “Optimize carry while maintaining OC ≥ 1.35x.”
+    •    “Stress test: -20% BTC, show liquidity coverage.”
+
+⸻
+
+🧠 6. Agentic AI Layer (Both Sides)
+
+A unified AI system that operates contextually across the app:
+    •    Business Side (PM/CFO):
+Predict delinquency, summarize financials, auto-generate reports.
+    •    Consumer Side (Tenant):
+Provide support, payment reminders, and personal insights.
+    •    Treasury Side:
+Suggest yield optimizations and manage rebalancing simulations.
+
+Include a conversational panel with:
+    •    Streaming token responses.
+    •    Tabs for “Operations”, “Collections”, “Treasury”, “Reports.”
+    •    Natural-language-to-action mapping (e.g., “Generate variance report” opens Reports view).
+
+⸻
+
+📊 7. Data Intelligence & Reporting
+    •    Every key page includes an “Insights” drawer showing AI-generated insights:
+    •    “Collections improved 4% week-over-week due to payment nudges.”
+    •    “NRC yield contribution offset 28% of Opex this quarter.”
+    •    Reports should be print- and export-ready for CFOs and investors.
+    •    Include audit trails, versioned reports, and a Regulation Mode toggle:
+    •    “Internal Use (Demo)”
+    •    “Reg D Institutional (Restricted Access)”
+
+⸻
+
+🔐 8. Compliance & Roles
+
+Role    Access    Capabilities
+Tenant    Consumer UI    Payments, yield wallet, chat agent.
+Property Manager    Business UI    Collections, recon, treasury actions.
+CFO / Owner    Business UI + Treasury    Access all financial products, reporting.
+Admin    Both sides    Demo controls, seed data reset, analytics.
+
+
+⸻
+
+🎨 9. Visual Design
+    •    Brand Feel: Institutional Fintech → BlackRock × Stripe × Apple Card aesthetic.
+    •    Color palette: Navy, slate, and minimal accents.
+    •    Typography: Inter or Work Sans.
+    •    Dashboard UI: glassy cards, subtle shadows, data-rich yet minimal.
+    •    Animations: Smooth page transitions, loading skeletons, KPI sparkline reveals.
+
+⸻
+
+🧩 10. Workflow (Login → Logout)
+
+Login Flow
+    •    Landing Page → Role selector (Tenant / Business) → Login/Signup form.
+    •    Once logged in, redirect to appropriate dashboard.
+
+In-App Flow
+    •    All nav items visible depending on role.
+    •    Agentic AI accessible via floating “Ask Naltos” button everywhere.
+    •    Treasury yields update dynamically (mocked with random variance).
+    •    Reports auto-refresh when new PMS data “syncs.”
+
+Logout Flow
+    •    Clear JWT/session, redirect to landing page with tagline:
+“Naltos — Where Real Estate Finance Meets Intelligent Treasury.”
+
+⸻
+
+🧾 11. Seed Data
+    •    Properties: 3 sample properties, 200 units, 100 active tenants.
+    •    Invoices: 300 due invoices with mixed statuses.
+    •    Ledger: 50 transactions (some unmatched).
+    •    Treasury: NRF $1.2M, NRK $800K, NRC $400K (yield 5.2%, 5.4%, 5.8%).
+    •    Tenant Balances: 30 active balances (some opted-in to yield).
+    •    AI fixtures: Example chat prompts and summarized insights.
+
+⸻
+
+✅ 12. Demo & Presentation
+    •    Include a “Demo Mode” with one-click “Sign in as Tenant” or “Sign in as Property Manager.”
+    •    Add guided tooltips: “Step 1: Check collections,” “Step 2: View Treasury performance,” etc.
+    •    Include toast notifications for all successful actions.
+    •    Maintain data persistence during session only.
+
+⸻
+
+🧱 13. Output Requirements
+    •    Full frontend + backend generated.
+    •    Professional, production-looking app — not a toy mockup.
+    •    README explaining:
+    •    Architecture (consumer + business split).
+    •    How returns are generated from float (NRF/NRK/NRC).
+    •    Sample conversation prompts for each agentic use case.
+    •    Demo credentials and walkthrough.
+
+⸻
+
+End of improved build prompt.
