@@ -21,6 +21,14 @@ import Agent from "@/pages/agent";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
+// Tenant pages
+import TenantHome from "@/pages/tenant/home";
+import TenantWallet from "@/pages/tenant/wallet";
+import TenantAgent from "@/pages/tenant/agent";
+import TenantReports from "@/pages/tenant/reports";
+import TenantSettings from "@/pages/tenant/settings";
+import { TenantSidebar } from "@/components/tenant-sidebar";
+
 function ProtectedRoute({ component: Component, path }: { component: () => JSX.Element; path: string }) {
   const { user } = useAuth();
   const { canAccessPage } = useRBAC();
@@ -58,9 +66,10 @@ function AppContent() {
     setLocation("/");
   };
 
-  // Redirect to dashboard if user is logged in and on login page
+  // Redirect based on user role
   if (user && location === "/") {
-    return <Redirect to="/dashboard" />;
+    const redirectPath = user.role === "Tenant" ? "/tenant/home" : "/dashboard";
+    return <Redirect to={redirectPath} />;
   }
 
   // Show login page if not authenticated
@@ -73,10 +82,12 @@ function AppContent() {
     "--sidebar-width-icon": "4rem",
   };
 
+  const isTenant = user.role === "Tenant";
+
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        <AppSidebar />
+        {isTenant ? <TenantSidebar /> : <AppSidebar />}
         <div className="flex flex-col flex-1 overflow-hidden">
           <header className="flex items-center justify-between px-8 py-4 border-b">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
@@ -88,8 +99,9 @@ function AppContent() {
             </div>
           </header>
           <main className="flex-1 overflow-auto">
-            <div className="max-w-[1600px] mx-auto px-8 py-6">
+            <div className={isTenant ? "px-8 py-6" : "max-w-[1600px] mx-auto px-8 py-6"}>
               <Switch>
+                {/* Business routes */}
                 <Route path="/dashboard">
                   {() => <ProtectedRoute component={Dashboard} path="/dashboard" />}
                 </Route>
@@ -111,6 +123,24 @@ function AppContent() {
                 <Route path="/settings">
                   {() => <ProtectedRoute component={Settings} path="/settings" />}
                 </Route>
+                
+                {/* Tenant routes */}
+                <Route path="/tenant/home">
+                  {() => <ProtectedRoute component={TenantHome} path="/tenant/home" />}
+                </Route>
+                <Route path="/tenant/wallet">
+                  {() => <ProtectedRoute component={TenantWallet} path="/tenant/wallet" />}
+                </Route>
+                <Route path="/tenant/agent">
+                  {() => <ProtectedRoute component={TenantAgent} path="/tenant/agent" />}
+                </Route>
+                <Route path="/tenant/reports">
+                  {() => <ProtectedRoute component={TenantReports} path="/tenant/reports" />}
+                </Route>
+                <Route path="/tenant/settings">
+                  {() => <ProtectedRoute component={TenantSettings} path="/tenant/settings" />}
+                </Route>
+                
                 <Route component={NotFound} />
               </Switch>
             </div>
