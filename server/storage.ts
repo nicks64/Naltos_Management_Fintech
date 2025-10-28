@@ -219,11 +219,15 @@ export class DatabaseStorage implements IStorage {
     const propIds = orgProps.map(p => p.id);
 
     // Get units
-    const orgUnits = await db.select().from(units).where(sql`${units.propertyId} IN ${propIds}`);
+    const orgUnits = propIds.length > 0
+      ? await db.select().from(units).where(inArray(units.propertyId, propIds))
+      : [];
     const unitIds = orgUnits.map(u => u.id);
 
     // Get leases
-    const orgLeases = await db.select().from(leases).where(sql`${leases.unitId} IN ${unitIds}`);
+    const orgLeases = unitIds.length > 0
+      ? await db.select().from(leases).where(inArray(leases.unitId, unitIds))
+      : [];
     const leaseIds = orgLeases.map(l => l.id);
 
     // Get tenants
@@ -231,11 +235,13 @@ export class DatabaseStorage implements IStorage {
 
     // Get overdue and upcoming invoices
     const now = new Date();
-    const collections = await db
-      .select()
-      .from(invoices)
-      .where(and(sql`${invoices.leaseId} IN ${leaseIds}`, sql`${invoices.status} != 'paid'`))
-      .orderBy(invoices.dueDate);
+    const collections = leaseIds.length > 0
+      ? await db
+          .select()
+          .from(invoices)
+          .where(and(inArray(invoices.leaseId, leaseIds), sql`${invoices.status} != 'paid'`))
+          .orderBy(invoices.dueDate)
+      : [];
 
     // Map to collection items
     const items = await Promise.all(collections.map(async (invoice) => {
@@ -272,18 +278,26 @@ export class DatabaseStorage implements IStorage {
     // Get payments for this org
     const orgProps = await db.select().from(properties).where(eq(properties.organizationId, organizationId));
     const propIds = orgProps.map(p => p.id);
-    const orgUnits = await db.select().from(units).where(sql`${units.propertyId} IN ${propIds}`);
+    const orgUnits = propIds.length > 0
+      ? await db.select().from(units).where(inArray(units.propertyId, propIds))
+      : [];
     const unitIds = orgUnits.map(u => u.id);
-    const orgLeases = await db.select().from(leases).where(sql`${leases.unitId} IN ${unitIds}`);
+    const orgLeases = unitIds.length > 0
+      ? await db.select().from(leases).where(inArray(leases.unitId, unitIds))
+      : [];
     const leaseIds = orgLeases.map(l => l.id);
-    const orgInvoices = await db.select().from(invoices).where(sql`${invoices.leaseId} IN ${leaseIds}`);
+    const orgInvoices = leaseIds.length > 0
+      ? await db.select().from(invoices).where(inArray(invoices.leaseId, leaseIds))
+      : [];
     const invoiceIds = orgInvoices.map(i => i.id);
 
-    const paymentEntries = await db
-      .select()
-      .from(payments)
-      .where(sql`${payments.invoiceId} IN ${invoiceIds}`)
-      .orderBy(desc(payments.paymentDate));
+    const paymentEntries = invoiceIds.length > 0
+      ? await db
+          .select()
+          .from(payments)
+          .where(inArray(payments.invoiceId, invoiceIds))
+          .orderBy(desc(payments.paymentDate))
+      : [];
 
     // Generate match suggestions (simple algorithm)
     const unmatchedBank = bankEntries.filter(b => !b.matched);

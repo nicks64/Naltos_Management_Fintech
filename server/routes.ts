@@ -44,6 +44,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: "Admin",
       });
 
+      // Regenerate session to prevent fixation attacks
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      // Store user info in session for secure authentication
+      req.session.userId = user.id;
+      req.session.userRole = user.role;
+      req.session.organizationId = user.organizationId;
+
       res.json({ user, organization });
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -118,6 +131,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get organization
       const organization = await storage.getOrganization(user.organizationId);
 
+      // Regenerate session to prevent fixation attacks
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      // Store user info in session for secure authentication
+      req.session.userId = user.id;
+      req.session.userRole = user.role;
+      req.session.organizationId = user.organizationId;
+
       res.json({ user, organization });
     } catch (error: any) {
       console.error("Login error:", error);
@@ -125,12 +151,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.json({ success: true });
+    });
+  });
+
   // ============ KPI Routes ============
   // All roles can access KPIs
   app.get("/api/kpis", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
     try {
-      // Get org ID from header (in production would use session)
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      // Get org ID from session (set by requireRole middleware)
+      const orgId = req.organizationId!;
 
       const kpis = await storage.getKPIs(orgId);
       res.json(kpis);
@@ -144,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin, PropertyManager, CFO can access collections
   app.get("/api/collections", requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
     try {
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       const collections = await storage.getCollections(orgId);
       res.json(collections);
@@ -178,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin, PropertyManager, CFO can access reconciliation
   app.get("/api/recon", requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
     try {
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       const recon = await storage.getReconciliation(orgId);
       res.json(recon);
@@ -213,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Only Admin and CFO can access treasury
   app.get("/api/treasury/products", requireRole("Admin", "CFO"), async (req, res) => {
     try {
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       const products = await storage.getTreasuryProducts();
       const subscriptions = await storage.getTreasurySubscriptions(orgId);
@@ -237,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/treasury/subscribe", requireRole("Admin", "CFO"), async (req, res) => {
     try {
       const { productId, amount } = req.body;
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       const subscription = await storage.createOrUpdateSubscription({
         organizationId: orgId,
@@ -256,9 +291,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/treasury/redeem", requireRole("Admin", "CFO"), async (req, res) => {
     try {
       const { subscriptionId, amount } = req.body;
+      const orgId = req.organizationId!;
 
       // Get current subscription
-      const subs = await storage.getTreasurySubscriptions("demo-org");
+      const subs = await storage.getTreasurySubscriptions(orgId);
       const subscription = subs.find(s => s.id === subscriptionId);
       if (!subscription) {
         return res.status(404).json({ error: "Subscription not found" });
@@ -334,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // All roles can access reports
   app.get("/api/reports", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
     try {
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       const reports = await storage.getReports(orgId);
       res.json(reports);
@@ -348,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Only Admin can access settings
   app.get("/api/settings", requireRole("Admin"), async (req, res) => {
     try {
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       const settings = await storage.getSettings(orgId);
       res.json(settings);
@@ -361,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/settings/organization", requireRole("Admin"), async (req, res) => {
     try {
       const { name } = req.body;
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       await storage.updateOrganization(orgId, name);
       res.json({ success: true });
@@ -374,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/settings/update", requireRole("Admin"), async (req, res) => {
     try {
       const updates = req.body;
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       await storage.updateSettings(orgId, updates);
       res.json({ success: true });
@@ -386,7 +422,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/settings/users", requireRole("Admin"), async (req, res) => {
     try {
-      const orgId = req.headers["x-organization-id"] as string || "demo-org";
+      const orgId = req.organizationId!;
 
       const users = await storage.getOrgUsers(orgId);
       res.json(users);

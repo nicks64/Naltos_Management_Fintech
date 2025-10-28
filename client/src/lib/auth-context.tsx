@@ -35,11 +35,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setOrganization(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("organization");
+  const logout = async () => {
+    try {
+      // Call server logout to destroy session
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear client state regardless of server response
+      setUser(null);
+      setOrganization(null);
+      localStorage.removeItem("user");
+      localStorage.removeItem("organization");
+    }
   };
 
   return (

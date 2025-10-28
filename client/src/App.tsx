@@ -24,9 +24,11 @@ import NotFound from "@/pages/not-found";
 function ProtectedRoute({ component: Component, path }: { component: () => JSX.Element; path: string }) {
   const { user } = useAuth();
   const { canAccessPage } = useRBAC();
+  const [, setLocation] = useLocation();
   
   if (!user) {
-    return <Redirect to="/" />;
+    setLocation("/");
+    return null;
   }
 
   if (!canAccessPage(path)) {
@@ -47,47 +49,6 @@ function ProtectedRoute({ component: Component, path }: { component: () => JSX.E
   return <Component />;
 }
 
-function Router() {
-  const { user } = useAuth();
-  const [location] = useLocation();
-
-  if (!user && location !== "/") {
-    return <Redirect to="/" />;
-  }
-
-  if (user && location === "/") {
-    return <Redirect to="/dashboard" />;
-  }
-
-  return (
-    <Switch>
-      <Route path="/" component={Login} />
-      <Route path="/dashboard">
-        {() => <ProtectedRoute component={Dashboard} path="/dashboard" />}
-      </Route>
-      <Route path="/collections">
-        {() => <ProtectedRoute component={Collections} path="/collections" />}
-      </Route>
-      <Route path="/reconciliation">
-        {() => <ProtectedRoute component={Reconciliation} path="/reconciliation" />}
-      </Route>
-      <Route path="/treasury">
-        {() => <ProtectedRoute component={Treasury} path="/treasury" />}
-      </Route>
-      <Route path="/reports">
-        {() => <ProtectedRoute component={Reports} path="/reports" />}
-      </Route>
-      <Route path="/agent">
-        {() => <ProtectedRoute component={Agent} path="/agent" />}
-      </Route>
-      <Route path="/settings">
-        {() => <ProtectedRoute component={Settings} path="/settings" />}
-      </Route>
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
 function AppContent() {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -97,8 +58,14 @@ function AppContent() {
     setLocation("/");
   };
 
+  // Redirect to dashboard if user is logged in and on login page
+  if (user && location === "/") {
+    return <Redirect to="/dashboard" />;
+  }
+
+  // Show login page if not authenticated
   if (!user) {
-    return <Router />;
+    return <Login />;
   }
 
   const style = {
@@ -122,7 +89,30 @@ function AppContent() {
           </header>
           <main className="flex-1 overflow-auto">
             <div className="max-w-[1600px] mx-auto px-8 py-6">
-              <Router />
+              <Switch>
+                <Route path="/dashboard">
+                  {() => <ProtectedRoute component={Dashboard} path="/dashboard" />}
+                </Route>
+                <Route path="/collections">
+                  {() => <ProtectedRoute component={Collections} path="/collections" />}
+                </Route>
+                <Route path="/reconciliation">
+                  {() => <ProtectedRoute component={Reconciliation} path="/reconciliation" />}
+                </Route>
+                <Route path="/treasury">
+                  {() => <ProtectedRoute component={Treasury} path="/treasury" />}
+                </Route>
+                <Route path="/reports">
+                  {() => <ProtectedRoute component={Reports} path="/reports" />}
+                </Route>
+                <Route path="/agent">
+                  {() => <ProtectedRoute component={Agent} path="/agent" />}
+                </Route>
+                <Route path="/settings">
+                  {() => <ProtectedRoute component={Settings} path="/settings" />}
+                </Route>
+                <Route component={NotFound} />
+              </Switch>
             </div>
           </main>
         </div>

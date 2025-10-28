@@ -1,12 +1,47 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+const PgSession = connectPgSimple(session);
+
+// Trust proxy for secure cookies behind TLS termination (e.g., Replit, AWS ELB)
+app.set("trust proxy", 1);
+
+// Session configuration
+app.use(
+  session({
+    store: new PgSession({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || "naltos-dev-secret-change-in-prod",
+    resave: false,
+    saveUninitialized: false,
+    name: "naltos.sid", // Custom session cookie name
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "lax", // Important for modern browsers
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: "/", // Ensure cookie is sent for all paths
+    },
+  })
+);
 
 declare module 'http' {
   interface IncomingMessage {
     rawBody: unknown
+  }
+}
+
+declare module 'express-session' {
+  interface SessionData {
+    userId: string;
+    userRole: string;
+    organizationId: string;
   }
 }
 app.use(express.json({
