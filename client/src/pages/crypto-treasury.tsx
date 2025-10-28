@@ -76,6 +76,7 @@ export default function CryptoTreasury() {
       apiRequest("POST", "/api/crypto/to-usd", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crypto/wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crypto/transactions"] });
       setConvertToUsdOpen(false);
       setConvertAmount("");
       toast({
