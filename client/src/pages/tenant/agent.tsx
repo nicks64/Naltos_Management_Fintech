@@ -145,12 +145,12 @@ export default function TenantAgent() {
                           key={idx}
                           variant="outline"
                           size="sm"
-                          className="w-full justify-start text-left h-auto py-2 px-3"
+                          className="w-full justify-start text-left h-auto py-2 px-3 whitespace-normal"
                           onClick={() => sendMessage(prompt)}
                           disabled={isStreaming}
                           data-testid={`button-preset-${prompt.slice(0, 20)}`}
                         >
-                          <span className="text-xs">{prompt}</span>
+                          <span className="text-xs break-words">{prompt}</span>
                         </Button>
                       ))}
                     </div>

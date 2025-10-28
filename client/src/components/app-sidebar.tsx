@@ -19,7 +19,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useRBAC } from "@/lib/rbac";
 import type { UserRole } from "@shared/schema";
@@ -107,10 +107,10 @@ export function AppSidebar() {
                         className={isActive ? "bg-sidebar-accent" : ""}
                         data-testid={`link-${item.title.toLowerCase()}`}
                       >
-                        <a href={item.url}>
+                        <Link href={item.url}>
                           <item.icon className="w-5 h-5" />
                           <span>{item.title}</span>
-                        </a>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );

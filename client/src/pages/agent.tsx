@@ -185,13 +185,13 @@ export default function Agent() {
                       <Button
                         key={prompt}
                         variant="outline"
-                        className="w-full text-left justify-start h-auto py-3 px-4 hover-elevate"
+                        className="w-full text-left justify-start h-auto py-3 px-4 hover-elevate whitespace-normal"
                         onClick={() => sendMessage(prompt)}
                         disabled={isStreaming}
                         data-testid={`button-preset-${prompt.substring(0, 20)}`}
                       >
-                        <Sparkles className="mr-2 h-3.5 w-3.5 flex-shrink-0 text-primary" />
-                        <span className="text-sm">{prompt}</span>
+                        <Sparkles className="mr-2 h-3.5 w-3.5 flex-shrink-0 text-primary mt-0.5" />
+                        <span className="text-sm break-words">{prompt}</span>
                       </Button>
                     ))}
                   </div>
