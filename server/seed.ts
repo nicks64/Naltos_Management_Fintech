@@ -98,9 +98,36 @@ export async function seedDatabase() {
   // Delete magic codes for demo user only
   await db.delete(magicCodes).where(eq(magicCodes.email, "demo@naltos.com"));
 
-  // Create magic code for demo
+  // Create magic code for demo business user
   await db.insert(magicCodes).values({
     email: "demo@naltos.com",
+    code: "000000",
+    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+    used: false,
+  });
+
+  // Create tenant demo user
+  let tenantUser = (await db.select().from(users).where(eq(users.email, "tenant@demo.com")))[0];
+  if (tenantUser) {
+    [tenantUser] = await db.update(users)
+      .set({ organizationId: demoOrg.id, role: "Tenant" })
+      .where(eq(users.email, "tenant@demo.com"))
+      .returning();
+  } else {
+    [tenantUser] = await db.insert(users).values({
+      email: "tenant@demo.com",
+      password: hashedPassword,
+      organizationId: demoOrg.id,
+      role: "Tenant",
+    }).returning();
+  }
+
+  // Delete magic codes for tenant user
+  await db.delete(magicCodes).where(eq(magicCodes.email, "tenant@demo.com"));
+
+  // Create magic code for tenant demo user
+  await db.insert(magicCodes).values({
+    email: "tenant@demo.com",
     code: "000000",
     expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
     used: false,
