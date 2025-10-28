@@ -52,11 +52,11 @@ export default function TenantReports() {
   }
 
   return (
-    <div className="space-y-6" data-testid="page-tenant-reports">
+    <div className="space-y-8" data-testid="page-tenant-reports">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-semibold tracking-tight mb-2">Reports & Receipts</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-5xl font-bold tracking-tight mb-2" style={{ color: "hsl(var(--tenant-foreground))" }}>Reports & Receipts</h1>
+          <p className="text-lg" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
             View and download your payment history
           </p>
         </div>
