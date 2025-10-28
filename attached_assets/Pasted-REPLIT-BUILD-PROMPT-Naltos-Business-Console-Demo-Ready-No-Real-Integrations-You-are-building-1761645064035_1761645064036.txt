@@ -1,0 +1,93 @@
+REPLIT BUILD PROMPT — “Naltos Business Console” (Demo-Ready, No Real Integrations)
+
+You are building a production-looking multitenant web app called Naltos Business Console. It must include Login & Signup, role-based access, and a business dashboard that integrates (mocked) with PMS platforms (e.g., AppFolio/Yardi/Buildium). It also includes a Treasury module with tokenized, short-duration products inspired by STRF/STRK/STRC (name ours Naltos Reserve line). Use modern UI with clean typography and KPI cards. Generate everything (frontend, backend, mock DB, API routes, tests, and seed data). Do not require real keys; all external services are mocked.
+
+0) Tech & Project Setup
+    •    Stack: TypeScript, React (Next.js or Remix), Tailwind CSS, Node/Express (or Next API routes), SQLite/Prisma (or Supabase local), Zod for validation, JWT for auth, Playwright for smoke tests, and MSW for API mocking.
+    •    Monorepo style OK. Include a one-click seed script and “Reset Demo” button in the UI.
+    •    Provide a README with run commands, admin test creds, and demo script.
+
+1) Auth & Multitenancy
+    •    Signup/Login/Logout flows with email + magic code (demo: code = 000000).
+    •    Tenants: each signup creates an Organization (e.g., “Acme Properties”). Users can be invited via email (mocked).
+    •    Roles: Admin, PropertyManager, CFO, Analyst.
+    •    RBAC middleware; protect routes. Add “Impersonate Demo Org” button for quick access.
+
+2) Navigation & Pages
+    •    Global sidebar/topbar with sections: Overview, Collections, Reconciliation, Treasury, Reports, Agent, Settings.
+    •    Overview: KPI cards (On-Time %, DSO, Delinquent $, Opex/Unit, Treasury AUM, Current Yield). 30-day sparklines (mock).
+    •    Collections: Table of tenants with due amounts, due dates, suggested actions. Buttons: “Send Paylink (SMS/email)”, “Schedule Nudge” (mocked toasts).
+    •    Reconciliation: Two-pane view (Bank/PMS ledger vs Tenant ledger) with AI “Auto-Match” suggestions, one-click Approve Matches, and an Hours Saved counter.
+    •    Treasury: See Naltos Reserve products (below), balances, yield, OC% (over-collateralization). Actions: Subscribe, Redeem, Auto-Roll (mock).
+    •    Reports: Delinquency aging, NOI trend, Opex/unit, Treasury yield contribution; Export CSV/PDF.
+    •    Agent: Chat-like panel with prebuilt prompts; stream responses from a mocked /api/agent endpoint.
+    •    Settings: Org profile, users/roles, PMS connector config, compliance toggles.
+
+3) PMS Integration (Mocked)
+    •    Simulate connectors for AppFolio/Yardi/Buildium via /api/pms/sync and scheduled jobs.
+    •    Data model (unified): Property, Unit, Tenant, Lease, Invoice, Payment, BankLedger, PMSImportJob.
+    •    Include seed data: 3 properties (200 units total), ~120 active leases, invoices due next 30 days, mixed payment statuses, ledger entries.
+    •    Provide a “Run Sync Now” button that updates UI from fixtures and shows a toast (no real API).
+
+4) Treasury Products (STRF/STRK/STRC-inspired → “Naltos Reserve”)
+
+Create three internal products users can view and subscribe to (all mocked, no custody):
+    •    NRF (Naltos Reserve Fund) — analog to STRF (short-term gov’t/T-Bill fund). Stable yield, 100% T-Bills/Repos.
+    •    NRK (Naltos Reserve T-Bill Token) — analog to STRK (tokenized T-Bills; 30-day rolling).
+    •    NRC (Naltos Reserve Cash+) — analog to STRC; dual-collateral (e.g., 70–80% T-Bills, 20–30% BTC hedged to delta-neutral) targeting T-Bill + 200–500 bps.
+    •    Show for each: AUM, WAM, Current Yield, OC Ratio (for NRC), Target Duration, Fees (Mgmt + Platform), Monthly Roll Date, Fact Sheet modal.
+    •    Actions: Subscribe (enter $), Redeem, Auto-Roll toggle. Update balances instantly in demo.
+    •    Risk badges: “Capital preservation”, “Delta-hedged”, “Short duration”, “Accredited only” (toggle).
+
+5) Metrics & Finance Logic (Mocked but Consistent)
+    •    Overview KPIs compute from seed data:
+    •    On-Time % = paid invoices / total due (last 30 days).
+    •    DSO = weighted avg days from due to paid.
+    •    Delinquent $ = sum of overdue invoices.
+    •    Opex/Unit = use seed property costs / unit count.
+    •    Treasury AUM = sum of NRF/NRK/NRC balances.
+    •    Current Yield per product: NRF≈T-Bill rate, NRK≈T-Bill ± small bp, NRC≈T-Bill + basis spread (display e.g., 5.6–6.2%).
+    •    Reconciliation Auto-Match: match ledger entries to tenant payments by amount ± tolerance and date proximity; show “AI Suggested” tags.
+
+6) Agent (Mock AI)
+    •    Single endpoint /api/agent that streams pre-canned text by role and prompt.
+    •    Prebuilt prompt buttons:
+    •    Collections: “Rank tenants by likelihood to pay this week”, “Draft SMS+email for top 10 accounts.”
+    •    Reconciliation: “Explain today’s unmatched items and generate a variance report.”
+    •    Treasury: “Target 550 bps over SOFR with OC ≥ 1.35; show expected yield and breach probability”, “Stress −20% BTC; show OC% path.”
+    •    The agent never claims to trade; it generates action plans and numbers pulled from fixtures.
+
+7) Compliance & Controls (UI-Level Only)
+    •    Compliance mode toggle in Settings: “Indirect exposure only” vs “Accredited access (Reg D)” which gates NRC subscribe/redeem to Admin/CFO roles.
+    •    Disclaimers on Treasury pages: “Demo only. No real custody. Not investment advice.”
+    •    Audit log table for key actions: sync runs, approve matches, subscribe/redeem, role changes.
+
+8) Demo UX Requirements
+    •    Login/Signup first screen; include “Use Demo Org” button (auto-fills).
+    •    All async actions show optimistic UI + success toasts.
+    •    Reset Demo button wipes local DB and reseeds.
+    •    Performance: fast, snappy nav; mobile-responsive.
+
+9) API Routes (examples, mocked)
+    •    POST /api/auth/signup, POST /api/auth/login, POST /api/auth/magic-code
+    •    POST /api/pms/sync, GET /api/properties/:id/metrics
+    •    GET /api/collections, POST /api/collections/nudge
+    •    GET /api/recon, POST /api/recon/approve
+    •    GET /api/treasury/products, POST /api/treasury/subscribe, POST /api/treasury/redeem, POST /api/treasury/autoroll
+    •    POST /api/agent (streams)
+    •    POST /api/admin/reset
+
+10) Seed Data (minimum)
+    •    3 properties (IDs, addresses), 200 units, 120 active leases.
+    •    300 invoices (due/past due/mixed), 220 payments (ACH/Card), 40 delinquent.
+    •    30 bank ledger items (some unmatched).
+    •    Treasury: NRF AUM $1.2M, NRK $0.8M, NRC $0.3M; yields: 5.1%, 5.2%, 5.8%; NRC OC 1.42x.
+
+11) Visual Design
+    •    Tailwind with subtle glass cards, rounded-xl, soft shadows.
+    •    KPI cards with icons; Recharts sparklines.
+    •    Treasury pages have product cards with pills for WAM, Yield, OC%, Fees.
+
+12) Tests & Readme
+    •    Playwright smoke tests: login, view KPIs, send nudge, approve matches, subscribe to NRC.
+    •    README: quickstart, demo creds, “What’s mocked vs real”, 5-minute demo script.
