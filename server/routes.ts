@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import bcrypt from "bcrypt";
 import OpenAI from "openai";
+import { requireRole, extractOrganizationId } from "./middleware";
 
 // Reference: blueprint:javascript_openai_ai_integrations
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
@@ -13,6 +14,9 @@ const openai = new OpenAI({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Apply organization ID extraction middleware globally
+  app.use("/api", extractOrganizationId);
+
   // ============ Auth Routes ============
   app.post("/api/auth/signup", async (req, res) => {
     try {
@@ -122,7 +126,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ KPI Routes ============
-  app.get("/api/kpis", async (req, res) => {
+  // All roles can access KPIs
+  app.get("/api/kpis", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
     try {
       // Get org ID from header (in production would use session)
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
@@ -136,7 +141,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ Collections Routes ============
-  app.get("/api/collections", async (req, res) => {
+  // Admin, PropertyManager, CFO can access collections
+  app.get("/api/collections", requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
     try {
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
 
@@ -148,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/collections/:id/paylink", async (req, res) => {
+  app.post("/api/collections/:id/paylink", requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
     try {
       // Mock: In production, would send SMS/email
       res.json({ success: true });
@@ -158,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/collections/:id/nudge", async (req, res) => {
+  app.post("/api/collections/:id/nudge", requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
     try {
       // Mock: In production, would schedule reminder
       res.json({ success: true });
@@ -169,7 +175,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ Reconciliation Routes ============
-  app.get("/api/recon", async (req, res) => {
+  // Admin, PropertyManager, CFO can access reconciliation
+  app.get("/api/recon", requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
     try {
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
 
@@ -181,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/recon/auto-match", async (req, res) => {
+  app.post("/api/recon/auto-match", requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
     try {
       // Mock: In production, would run AI matching algorithm
       res.json({ success: true });
@@ -191,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/recon/approve", async (req, res) => {
+  app.post("/api/recon/approve", requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
     try {
       const { bankEntryId, paymentId } = req.body;
       await storage.approveMatch(bankEntryId, paymentId);
@@ -203,7 +210,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ Treasury Routes ============
-  app.get("/api/treasury/products", async (req, res) => {
+  // Only Admin and CFO can access treasury
+  app.get("/api/treasury/products", requireRole("Admin", "CFO"), async (req, res) => {
     try {
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
 
@@ -226,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/treasury/subscribe", async (req, res) => {
+  app.post("/api/treasury/subscribe", requireRole("Admin", "CFO"), async (req, res) => {
     try {
       const { productId, amount } = req.body;
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
@@ -245,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/treasury/redeem", async (req, res) => {
+  app.post("/api/treasury/redeem", requireRole("Admin", "CFO"), async (req, res) => {
     try {
       const { subscriptionId, amount } = req.body;
 
@@ -268,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/treasury/autoroll", async (req, res) => {
+  app.post("/api/treasury/autoroll", requireRole("Admin", "CFO"), async (req, res) => {
     try {
       const { subscriptionId, autoRoll } = req.body;
 
@@ -282,7 +290,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ Agent Routes ============
-  app.post("/api/agent", async (req, res) => {
+  // All roles can access agent
+  app.post("/api/agent", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
     try {
       const { prompt } = req.body;
 
@@ -322,7 +331,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ Reports Routes ============
-  app.get("/api/reports", async (req, res) => {
+  // All roles can access reports
+  app.get("/api/reports", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
     try {
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
 
@@ -335,7 +345,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ Settings Routes ============
-  app.get("/api/settings", async (req, res) => {
+  // Only Admin can access settings
+  app.get("/api/settings", requireRole("Admin"), async (req, res) => {
     try {
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
 
@@ -347,7 +358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/settings/organization", async (req, res) => {
+  app.post("/api/settings/organization", requireRole("Admin"), async (req, res) => {
     try {
       const { name } = req.body;
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
@@ -360,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/settings/update", async (req, res) => {
+  app.post("/api/settings/update", requireRole("Admin"), async (req, res) => {
     try {
       const updates = req.body;
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
@@ -373,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/settings/users", async (req, res) => {
+  app.get("/api/settings/users", requireRole("Admin"), async (req, res) => {
     try {
       const orgId = req.headers["x-organization-id"] as string || "demo-org";
 
@@ -386,7 +397,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ Admin Routes ============
-  app.post("/api/admin/reset", async (req, res) => {
+  // Only Admin can reset demo
+  app.post("/api/admin/reset", requireRole("Admin"), async (req, res) => {
     try {
       await seedDatabase();
       res.json({ success: true });
@@ -396,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/pms/sync", async (req, res) => {
+  app.post("/api/pms/sync", requireRole("Admin", "PropertyManager"), async (req, res) => {
     try {
       // Mock: In production, would sync with PMS API
       res.json({ success: true });

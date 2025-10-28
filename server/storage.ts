@@ -34,7 +34,7 @@ import {
   type InsertMagicCode,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, lt, gte, sql, sum } from "drizzle-orm";
+import { eq, and, desc, lt, gte, sql, sum, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -131,18 +131,24 @@ export class DatabaseStorage implements IStorage {
     const propIds = orgProps.map(p => p.id);
 
     // Get units for these properties
-    const orgUnits = await db.select().from(units).where(sql`${units.propertyId} IN ${propIds}`);
+    const orgUnits = propIds.length > 0 
+      ? await db.select().from(units).where(inArray(units.propertyId, propIds))
+      : [];
     const unitIds = orgUnits.map(u => u.id);
 
     // Get leases for these units
-    const orgLeases = await db.select().from(leases).where(sql`${leases.unitId} IN ${unitIds}`);
+    const orgLeases = unitIds.length > 0
+      ? await db.select().from(leases).where(inArray(leases.unitId, unitIds))
+      : [];
     const leaseIds = orgLeases.map(l => l.id);
 
     // Get invoices for these leases in the last 30 days
-    const recentInvoices = await db
-      .select()
-      .from(invoices)
-      .where(and(sql`${invoices.leaseId} IN ${leaseIds}`, gte(invoices.dueDate, thirtyDaysAgo)));
+    const recentInvoices = leaseIds.length > 0
+      ? await db
+          .select()
+          .from(invoices)
+          .where(and(inArray(invoices.leaseId, leaseIds), gte(invoices.dueDate, thirtyDaysAgo)))
+      : [];
 
     // Calculate On-Time %
     const paidOnTime = recentInvoices.filter(inv => inv.status === "paid" && inv.paidDate && inv.paidDate <= inv.dueDate).length;
@@ -161,10 +167,12 @@ export class DatabaseStorage implements IStorage {
     const dso = paidInvoices.length > 0 ? totalDays / paidInvoices.length : 0;
 
     // Calculate Delinquent Amount
-    const overdueInvoices = await db
-      .select()
-      .from(invoices)
-      .where(and(sql`${invoices.leaseId} IN ${leaseIds}`, eq(invoices.status, "overdue")));
+    const overdueInvoices = leaseIds.length > 0
+      ? await db
+          .select()
+          .from(invoices)
+          .where(and(inArray(invoices.leaseId, leaseIds), eq(invoices.status, "overdue")))
+      : [];
     const delinquentAmount = overdueInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
 
     // Calculate Opex/Unit

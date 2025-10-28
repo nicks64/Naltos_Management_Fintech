@@ -12,12 +12,16 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<any> {
-  // Get organization ID from localStorage
+  // Get organization ID and user role from localStorage
   const orgData = localStorage.getItem("organization");
   const orgId = orgData ? JSON.parse(orgData).id : "demo-org";
+  
+  const userData = localStorage.getItem("user");
+  const userRole = userData ? JSON.parse(userData).role : "Admin";
 
   const headers: Record<string, string> = {
     "x-organization-id": orgId,
+    "x-user-role": userRole,
   };
   if (data) {
     headers["Content-Type"] = "application/json";
@@ -40,14 +44,18 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // Get organization ID from localStorage
+    // Get organization ID and user role from localStorage
     const orgData = localStorage.getItem("organization");
     const orgId = orgData ? JSON.parse(orgData).id : "demo-org";
+    
+    const userData = localStorage.getItem("user");
+    const userRole = userData ? JSON.parse(userData).role : "Admin";
 
     const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
       headers: {
         "x-organization-id": orgId,
+        "x-user-role": userRole,
       },
     });
 

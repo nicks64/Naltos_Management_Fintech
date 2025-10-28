@@ -15,7 +15,8 @@ declare global {
 // RBAC middleware to check if user has required role
 export function requireRole(...allowedRoles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const userRole = req.userRole;
+    // For demo app, get user role from header (in production, would use session)
+    const userRole = req.headers["x-user-role"] as UserRole;
 
     if (!userRole) {
       return res.status(401).json({ error: "Authentication required" });
@@ -28,6 +29,7 @@ export function requireRole(...allowedRoles: UserRole[]) {
       });
     }
 
+    req.userRole = userRole;
     next();
   };
 }

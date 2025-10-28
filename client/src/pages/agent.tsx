@@ -57,15 +57,19 @@ export default function Agent() {
     setIsStreaming(true);
 
     try {
-      // Get organization ID from localStorage for multitenant isolation
+      // Get organization ID and user role from localStorage for multitenant isolation
       const orgData = localStorage.getItem("organization");
       const orgId = orgData ? JSON.parse(orgData).id : "demo-org";
+      
+      const userData = localStorage.getItem("user");
+      const userRole = userData ? JSON.parse(userData).role : "Admin";
 
       const response = await fetch("/api/agent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-organization-id": orgId,
+          "x-user-role": userRole,
         },
         body: JSON.stringify({ prompt: content }),
       });
