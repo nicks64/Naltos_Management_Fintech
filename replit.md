@@ -1,7 +1,9 @@
-# Naltos Business Console - Project Documentation
+# Naltos Platform - Project Documentation
 
 ## Project Overview
-Naltos Business Console is a sophisticated multitenant property management platform with integrated treasury solutions. Built as a production-quality demo showcasing enterprise SaaS capabilities including AI-powered reconciliation, financial analytics, and institutional-grade treasury products.
+Naltos is a sophisticated dual-sided property management platform with integrated treasury solutions. Built as a production-quality demo showcasing enterprise SaaS capabilities including:
+- **Business Console**: For property managers/owners with AI-powered reconciliation, financial analytics, and institutional-grade treasury products
+- **Tenant Portal**: Consumer-facing mobile-first interface for residents with rent payments, yield wallet, and AI assistant
 
 ## Architecture
 
@@ -13,11 +15,12 @@ Naltos Business Console is a sophisticated multitenant property management platf
 - **Charts**: Recharts for data visualization
 
 ### Key Features
-1. **Multi-tenancy**: Organization-based isolation with RBAC
-2. **Treasury Products**: NRF, NRK, NRC products inspired by institutional money market funds
-3. **AI Reconciliation**: Automated ledger matching with confidence scoring
-4. **Real-time Analytics**: KPI dashboard with sparklines
-5. **Role-Based Access**: Admin, PropertyManager, CFO, Analyst roles
+1. **Dual-Sided Platform**: Separate UIs for business users and tenants with role-based routing
+2. **Multi-tenancy**: Organization-based isolation with RBAC
+3. **Treasury Products**: NRF, NRK, NRC products for business; yield wallet for tenants
+4. **AI Agents**: Business intelligence assistant + tenant support assistant
+5. **Real-time Analytics**: KPI dashboard with sparklines
+6. **Role-Based Access**: Admin, PropertyManager, CFO, Analyst, Tenant roles
 
 ## Database Schema
 
@@ -48,10 +51,23 @@ Naltos Business Console is a sophisticated multitenant property management platf
 ## API Routes
 
 ### Authentication (`/api/auth/*`)
-- `POST /api/auth/signup` - Create org + user
-- `POST /api/auth/login` - Magic code login
+- `POST /api/auth/signup` - Create org + user (Business only)
+- `POST /api/auth/login` - Magic code login (both Business and Tenant)
 - `POST /api/auth/send-code` - Send magic code
 - `POST /api/auth/logout` - End session
+
+### Tenant Routes (`/api/tenant/*`)
+- `GET /api/tenant/rent-summary` - Get upcoming rent and payment history
+- `POST /api/tenant/pay-rent` - Process rent payment (mocked)
+- `GET /api/tenant/wallet` - Get wallet balance and yield info
+- `POST /api/tenant/wallet/deposit` - Deposit funds to wallet
+- `POST /api/tenant/wallet/withdraw` - Withdraw funds from wallet
+- `POST /api/tenant/wallet/yield-opt-in` - Toggle yield earnings
+- `GET /api/tenant/reports` - Get payment receipts and YTD summary
+- `GET /api/tenant/settings` - Get tenant profile and preferences
+- `POST /api/tenant/settings/profile` - Update contact information
+- `POST /api/tenant/settings/payment-method` - Add payment method
+- `POST /api/tenant/agent` - AI assistant for tenants (streaming)
 
 ### Dashboard (`/api/kpis`)
 - `GET /api/kpis` - Fetch all KPI metrics
@@ -92,18 +108,26 @@ Naltos Business Console is a sophisticated multitenant property management platf
 ## Frontend Components
 
 ### Layout Components
-- `AppSidebar` - Navigation sidebar with org switcher
+- `AppSidebar` - Business navigation sidebar with org switcher
+- `TenantSidebar` - Tenant navigation sidebar (Home, Wallet, Assistant, Reports, Settings)
 - `ThemeToggle` - Dark mode toggle
 
-### Page Components
-- `Login` - Auth with magic code or signup
+### Business Page Components
+- `Login` - Auth with role selector, magic code, or signup
 - `Dashboard` - KPI cards with sparklines
 - `Collections` - Payment management table
 - `Reconciliation` - Two-pane ledger matching
 - `Treasury` - Product cards with subscribe/redeem
 - `Reports` - Charts and analytics
-- `Agent` - AI chat with streaming
+- `Agent` - AI business intelligence chat
 - `Settings` - Org/user/PMS/compliance config
+
+### Tenant Page Components (all in `/pages/tenant/`)
+- `TenantHome` - Rent due card, payment history, quick actions
+- `TenantWallet` - Balance, yield toggle, deposit/withdraw
+- `TenantAgent` - AI assistant with quick prompts
+- `TenantReports` - Payment receipts, year-end summary
+- `TenantSettings` - Profile, payment methods, notifications
 
 ### Shared Components
 All using Shadcn UI: Button, Card, Table, Dialog, Select, Badge, Input, etc.
@@ -154,10 +178,18 @@ All using Shadcn UI: Button, Card, Table, Dialog, Select, Badge, Input, etc.
 
 ## Seed Data Strategy
 
-### Demo Organization
+### Demo Accounts
+**Business User:**
 - Email: demo@naltos.com
 - Org: Naltos Demo Properties
 - Role: Admin
+- Access: Full business console features
+
+**Tenant User:**
+- Email: tenant@demo.com
+- Org: Naltos Demo Properties (linked as resident)
+- Role: Tenant
+- Access: Tenant portal only (rent, wallet, reports)
 
 ### Properties (3)
 1. Sunset Gardens (80 units)

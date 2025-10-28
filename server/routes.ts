@@ -121,8 +121,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Magic code expired" });
       }
 
-      // Mark as used (except for demo account to allow reuse)
-      if (email !== "demo@naltos.com") {
+      // Mark as used (except for demo accounts to allow reuse)
+      if (email !== "demo@naltos.com" && email !== "tenant@demo.com") {
         await storage.markMagicCodeUsed(magicCode.id);
       }
 
