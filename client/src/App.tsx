@@ -86,7 +86,7 @@ function AppContent() {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className={`flex h-screen w-full ${isTenant ? "tenant-portal" : ""}`}>
         {isTenant ? <TenantSidebar /> : <AppSidebar />}
         <div className="flex flex-col flex-1 overflow-hidden">
           <header className="flex items-center justify-between px-8 py-4 border-b">
@@ -99,7 +99,7 @@ function AppContent() {
             </div>
           </header>
           <main className="flex-1 overflow-auto">
-            <div className={isTenant ? "px-8 py-6" : "max-w-[1600px] mx-auto px-8 py-6"}>
+            <div className={isTenant ? "px-8 py-6 max-w-[1400px] mx-auto" : "max-w-[1600px] mx-auto px-8 py-6"}>
               <Switch>
                 {/* Business routes */}
                 <Route path="/dashboard">

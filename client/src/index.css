@@ -234,6 +234,88 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* ========================================
+   TENANT PORTAL - Apple Card Inspired Theme
+   ======================================== */
+.tenant-portal {
+  /* Gradient definitions for Apple Card style */
+  --tenant-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --tenant-gradient-success: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  --tenant-gradient-wallet: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --tenant-gradient-premium: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  
+  /* Softer, consumer-friendly color palette */
+  --tenant-background: 0 0% 100%;
+  --tenant-foreground: 220 9% 20%;
+  
+  --tenant-card: 0 0% 100%;
+  --tenant-card-foreground: 220 9% 20%;
+  --tenant-card-border: 220 13% 91%;
+  
+  --tenant-sidebar: 240 10% 98%;
+  --tenant-sidebar-foreground: 220 9% 25%;
+  --tenant-sidebar-border: 220 13% 93%;
+  --tenant-sidebar-accent: 240 20% 95%;
+  --tenant-sidebar-accent-foreground: 220 9% 30%;
+  
+  --tenant-primary: 250 84% 64%;
+  --tenant-primary-foreground: 0 0% 100%;
+  
+  --tenant-secondary: 220 13% 94%;
+  --tenant-secondary-foreground: 220 9% 30%;
+  
+  --tenant-muted: 220 13% 95%;
+  --tenant-muted-foreground: 220 9% 45%;
+  
+  --tenant-accent: 204 94% 64%;
+  --tenant-accent-foreground: 0 0% 100%;
+  
+  /* Softer shadows for premium feel */
+  --tenant-shadow: 0px 4px 24px 0px rgba(149, 157, 165, 0.12);
+  --tenant-shadow-lg: 0px 8px 32px 0px rgba(149, 157, 165, 0.18);
+  --tenant-shadow-xl: 0px 16px 48px 0px rgba(149, 157, 165, 0.24);
+  
+  /* Larger border radius for friendlier feel */
+  --tenant-radius: 1rem;
+  --tenant-radius-lg: 1.5rem;
+}
+
+.dark .tenant-portal {
+  --tenant-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --tenant-gradient-success: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  --tenant-gradient-wallet: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --tenant-gradient-premium: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  
+  --tenant-background: 220 15% 7%;
+  --tenant-foreground: 220 8% 88%;
+  
+  --tenant-card: 220 13% 10%;
+  --tenant-card-foreground: 220 8% 86%;
+  --tenant-card-border: 220 13% 18%;
+  
+  --tenant-sidebar: 220 14% 12%;
+  --tenant-sidebar-foreground: 220 8% 84%;
+  --tenant-sidebar-border: 220 13% 20%;
+  --tenant-sidebar-accent: 220 13% 18%;
+  --tenant-sidebar-accent-foreground: 220 8% 82%;
+  
+  --tenant-primary: 250 84% 68%;
+  --tenant-primary-foreground: 220 15% 10%;
+  
+  --tenant-secondary: 220 13% 18%;
+  --tenant-secondary-foreground: 220 8% 80%;
+  
+  --tenant-muted: 220 13% 16%;
+  --tenant-muted-foreground: 220 8% 55%;
+  
+  --tenant-accent: 204 94% 68%;
+  --tenant-accent-foreground: 220 15% 10%;
+  
+  --tenant-shadow: 0px 4px 24px 0px rgba(0, 0, 0, 0.40);
+  --tenant-shadow-lg: 0px 8px 32px 0px rgba(0, 0, 0, 0.50);
+  --tenant-shadow-xl: 0px 16px 48px 0px rgba(0, 0, 0, 0.60);
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -43,30 +43,40 @@ export function TenantSidebar() {
   const [location] = useLocation();
 
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
+    <Sidebar className="border-r" style={{ backgroundColor: "hsl(var(--tenant-sidebar))", borderColor: "hsl(var(--tenant-sidebar-border))" }}>
+      <SidebarHeader className="border-b px-6 py-6" style={{ borderColor: "hsl(var(--tenant-sidebar-border))" }}>
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary">
-            <Building2 className="w-5 h-5 text-primary-foreground" />
+          <div className="p-2.5 rounded-xl" style={{ background: "var(--tenant-gradient-primary)" }}>
+            <Building2 className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="font-semibold text-lg">Naltos</h2>
-            <p className="text-xs text-muted-foreground">Resident Portal</p>
+            <h2 className="font-semibold text-lg" style={{ color: "hsl(var(--tenant-foreground))" }}>Naltos</h2>
+            <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Resident Portal</p>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-4 py-6">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-2">
               {tenantNavItems.map((item) => {
                 const isActive = location === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive}
+                      className="rounded-xl py-3 px-4 hover-elevate active-elevate-2"
+                      style={isActive ? {
+                        background: "var(--tenant-gradient-primary)",
+                        color: "white",
+                      } : {
+                        color: "hsl(var(--tenant-sidebar-foreground))"
+                      }}
+                    >
                       <Link href={item.url} data-testid={`nav-${item.title.toLowerCase()}`}>
-                        <item.icon />
-                        <span>{item.title}</span>
+                        <item.icon className="w-5 h-5" />
+                        <span className="font-medium">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
