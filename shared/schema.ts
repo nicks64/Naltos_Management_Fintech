@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["Admin", "PropertyManager", "CFO", "Analyst"]);
+export const userRoleEnum = pgEnum("user_role", ["Admin", "PropertyManager", "CFO", "Analyst", "Tenant"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["pending", "paid", "overdue", "partial"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["ACH", "Card", "Check", "Wire"]);
 export const pmsProviderEnum = pgEnum("pms_provider", ["AppFolio", "Yardi", "Buildium"]);
@@ -25,6 +25,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   role: userRoleEnum("role").notNull().default("Analyst"),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "set null" }), // Link tenant-role users to tenant records
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -159,6 +160,26 @@ export const organizationSettings = pgTable("organization_settings", {
   pmsApiKey: text("pms_api_key"),
 });
 
+// Tenant Wallets - for consumer-side balance and yield accounts
+export const tenantWallets = pgTable("tenant_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().unique().references(() => tenants.id, { onDelete: "cascade" }),
+  balance: decimal("balance", { precision: 12, scale: 2 }).notNull().default("0"),
+  yieldOptIn: boolean("yield_opt_in").default(false).notNull(),
+  yieldBalance: decimal("yield_balance", { precision: 12, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Tenant Payment Methods
+export const tenantPaymentMethods = pgTable("tenant_payment_methods", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  method: paymentMethodEnum("method").notNull(),
+  lastFourDigits: text("last_four_digits"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),
@@ -175,6 +196,10 @@ export const usersRelations = relations(users, ({ one }) => ({
   organization: one(organizations, {
     fields: [users.organizationId],
     references: [organizations.id],
+  }),
+  tenant: one(tenants, {
+    fields: [users.tenantId],
+    references: [tenants.id],
   }),
 }));
 
@@ -200,6 +225,8 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
     references: [organizations.id],
   }),
   leases: many(leases),
+  wallet: one(tenantWallets),
+  paymentMethods: many(tenantPaymentMethods),
 }));
 
 export const leasesRelations = relations(leases, ({ one, many }) => ({
@@ -255,6 +282,20 @@ export const treasurySubscriptionsRelations = relations(treasurySubscriptions, (
   }),
 }));
 
+export const tenantWalletsRelations = relations(tenantWallets, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [tenantWallets.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const tenantPaymentMethodsRelations = relations(tenantPaymentMethods, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [tenantPaymentMethods.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
@@ -271,6 +312,8 @@ export const insertTreasuryProductSchema = createInsertSchema(treasuryProducts).
 export const insertTreasurySubscriptionSchema = createInsertSchema(treasurySubscriptions).omit({ id: true, subscribedAt: true });
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
 export const insertOrganizationSettingsSchema = createInsertSchema(organizationSettings).omit({ id: true });
+export const insertTenantWalletSchema = createInsertSchema(tenantWallets).omit({ id: true, createdAt: true });
+export const insertTenantPaymentMethodSchema = createInsertSchema(tenantPaymentMethods).omit({ id: true, createdAt: true });
 
 // Types
 export type Organization = typeof organizations.$inferSelect;
@@ -303,9 +346,13 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type OrganizationSettings = typeof organizationSettings.$inferSelect;
 export type InsertOrganizationSettings = z.infer<typeof insertOrganizationSettingsSchema>;
+export type TenantWallet = typeof tenantWallets.$inferSelect;
+export type InsertTenantWallet = z.infer<typeof insertTenantWalletSchema>;
+export type TenantPaymentMethod = typeof tenantPaymentMethods.$inferSelect;
+export type InsertTenantPaymentMethod = z.infer<typeof insertTenantPaymentMethodSchema>;
 
 // Additional types for frontend
-export type UserRole = "Admin" | "PropertyManager" | "CFO" | "Analyst";
+export type UserRole = "Admin" | "PropertyManager" | "CFO" | "Analyst" | "Tenant";
 export type InvoiceStatus = "pending" | "paid" | "overdue" | "partial";
 export type PaymentMethod = "ACH" | "Card" | "Check" | "Wire";
 export type PMSProvider = "AppFolio" | "Yardi" | "Buildium";

@@ -3,6 +3,7 @@ import { useAuth } from "./auth-context";
 
 // Define page access rules by role
 const pageAccessRules: Record<string, UserRole[]> = {
+  // Business Side (Property Managers / Owners)
   "/dashboard": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/collections": ["Admin", "PropertyManager", "CFO"],
   "/reconciliation": ["Admin", "PropertyManager", "CFO"],
@@ -10,6 +11,13 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/reports": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/agent": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/settings": ["Admin"],
+  
+  // Consumer Side (Tenants / Residents)
+  "/tenant/home": ["Tenant"],
+  "/tenant/wallet": ["Tenant"],
+  "/tenant/agent": ["Tenant"],
+  "/tenant/reports": ["Tenant"],
+  "/tenant/settings": ["Tenant"],
 };
 
 export function useRBAC() {
