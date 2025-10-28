@@ -15,6 +15,7 @@ export default function Login() {
   const { setAuth } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [userType, setUserType] = useState<"business" | "tenant">("business");
 
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
@@ -29,17 +30,19 @@ export default function Login() {
   const handleUseDemoOrg = async () => {
     setLoading(true);
     try {
+      const email = userType === "tenant" ? "tenant@demo.com" : "demo@naltos.com";
       const response = await apiRequest("POST", "/api/auth/login", {
-        email: "demo@naltos.com",
+        email,
         code: "000000",
       });
       
       setAuth(response.user, response.organization);
+      const redirectPath = userType === "tenant" ? "/tenant/home" : "/dashboard";
       toast({
         title: "Welcome to Naltos Demo",
-        description: "You're logged in as a demo user.",
+        description: `You're logged in as a demo ${userType} user.`,
       });
-      setLocation("/dashboard");
+      setLocation(redirectPath);
     } catch (error: any) {
       toast({
         title: "Demo Login Failed",
@@ -98,11 +101,12 @@ export default function Login() {
       });
       
       setAuth(response.user, response.organization);
+      const redirectPath = response.user.role === "Tenant" ? "/tenant/home" : "/dashboard";
       toast({
         title: "Welcome Back",
         description: `Logged in as ${response.user.email}`,
       });
-      setLocation("/dashboard");
+      setLocation(redirectPath);
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -157,13 +161,41 @@ export default function Login() {
             <Building2 className="w-10 h-10 text-primary-foreground" />
           </div>
           <h1 className="text-4xl font-semibold tracking-tight mb-2">Naltos</h1>
-          <p className="text-muted-foreground">Business Console for Property Management</p>
+          <p className="text-muted-foreground">
+            {userType === "business" ? "Business Console for Property Management" : "Resident Portal"}
+          </p>
         </div>
+
+        {/* User Type Selector */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant={userType === "business" ? "default" : "outline"}
+                onClick={() => setUserType("business")}
+                className="flex-1"
+                data-testid="button-select-business"
+              >
+                Business
+              </Button>
+              <Button
+                variant={userType === "tenant" ? "default" : "outline"}
+                onClick={() => setUserType("tenant")}
+                className="flex-1"
+                data-testid="button-select-tenant"
+              >
+                Tenant
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
-            <TabsTrigger value="signup" data-testid="tab-signup">Sign Up</TabsTrigger>
+            <TabsTrigger value="signup" data-testid="tab-signup" disabled={userType === "tenant"}>
+              Sign Up
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="login">
