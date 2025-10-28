@@ -453,6 +453,206 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Tenant Routes ============
+  app.get("/api/tenant/rent-summary", requireRole("Tenant"), async (req, res) => {
+    try {
+      // Mock data for tenant rent summary
+      const summary = {
+        upcomingRent: {
+          amount: 2500,
+          dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+          unit: "Unit 402",
+        },
+        pastDueRent: null,
+        recentPayments: [
+          {
+            id: "pmt-1",
+            amount: 2500,
+            date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            status: "Paid",
+          },
+          {
+            id: "pmt-2",
+            amount: 2500,
+            date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+            status: "Paid",
+          },
+        ],
+      };
+      res.json(summary);
+    } catch (error: any) {
+      console.error("Rent summary error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/pay-rent", requireRole("Tenant"), async (req, res) => {
+    try {
+      // Mock rent payment
+      res.json({ success: true, confirmationNumber: `PAY-${Date.now()}` });
+    } catch (error: any) {
+      console.error("Pay rent error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/wallet", requireRole("Tenant"), async (req, res) => {
+    try {
+      const walletData = {
+        balance: 5000,
+        yieldOptIn: true,
+        yieldBalance: 5000,
+        currentYield: 5.1,
+      };
+      res.json(walletData);
+    } catch (error: any) {
+      console.error("Wallet error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/wallet/deposit", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { amount } = req.body;
+      res.json({ success: true, amount });
+    } catch (error: any) {
+      console.error("Deposit error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/wallet/withdraw", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { amount } = req.body;
+      res.json({ success: true, amount });
+    } catch (error: any) {
+      console.error("Withdraw error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/wallet/yield-opt-in", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { optIn } = req.body;
+      res.json({ success: true, optIn });
+    } catch (error: any) {
+      console.error("Yield opt-in error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/reports", requireRole("Tenant"), async (req, res) => {
+    try {
+      const reports = {
+        receipts: [
+          {
+            id: "rec-1",
+            date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            amount: 2500,
+            unit: "Unit 402",
+            paymentMethod: "ACH",
+            confirmationNumber: "CONF-12345",
+          },
+          {
+            id: "rec-2",
+            date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+            amount: 2500,
+            unit: "Unit 402",
+            paymentMethod: "Debit Card",
+            confirmationNumber: "CONF-12346",
+          },
+        ],
+        yearToDateTotal: 30000,
+        yearToDatePayments: 12,
+      };
+      res.json(reports);
+    } catch (error: any) {
+      console.error("Reports error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/settings", requireRole("Tenant"), async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      
+      const settings = {
+        email: user?.email || "",
+        phone: "",
+        unit: "Unit 402",
+        leaseEndDate: "December 31, 2025",
+        paymentMethods: [
+          {
+            id: "pm-1",
+            method: "Bank Account",
+            lastFourDigits: "4242",
+            isDefault: true,
+          },
+        ],
+      };
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Settings error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/settings/profile", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { email, phone } = req.body;
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Update profile error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/settings/payment-method", requireRole("Tenant"), async (req, res) => {
+    try {
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Add payment method error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/agent", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { prompt } = req.body;
+
+      const stream = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful AI assistant for a property management tenant portal. Help users with questions about rent payments, account settings, and general inquiries. Be concise and friendly."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        stream: true,
+      });
+
+      res.setHeader("Content-Type", "text/plain");
+      res.setHeader("Transfer-Encoding", "chunked");
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          res.write(content);
+        }
+      }
+
+      res.end();
+    } catch (error: any) {
+      console.error("Tenant agent error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Admin Routes ============
   // Only Admin can reset demo
   app.post("/api/admin/reset", requireRole("Admin"), async (req, res) => {
