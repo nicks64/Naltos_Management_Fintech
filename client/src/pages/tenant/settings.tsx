@@ -62,10 +62,10 @@ export default function TenantSettings() {
   };
 
   return (
-    <div className="space-y-8" data-testid="page-tenant-settings">
+    <div className="space-y-6" data-testid="page-tenant-settings">
       <div>
-        <h1 className="text-5xl font-bold tracking-tight mb-2" style={{ color: "hsl(var(--tenant-foreground))" }}>Settings</h1>
-        <p className="text-lg" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+        <h1 className="text-3xl font-bold tracking-tight mb-1" style={{ color: "hsl(var(--tenant-foreground))" }}>Settings</h1>
+        <p className="text-base" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
           Manage your account and preferences
         </p>
       </div>

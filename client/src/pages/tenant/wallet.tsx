@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Wallet, TrendingUp, ArrowUpRight, ArrowDownLeft, Shield, Sparkles } from "lucide-react";
+import { Wallet, TrendingUp, ArrowUpRight, ArrowDownLeft, Shield } from "lucide-react";
 
 interface WalletData {
   balance: number;
@@ -83,76 +83,88 @@ export default function TenantWallet() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8" data-testid="page-tenant-wallet">
-        <div className="h-12 w-64 bg-muted animate-pulse rounded-xl" style={{ backgroundColor: "hsl(var(--tenant-muted))" }} />
-        <div className="h-80 bg-muted animate-pulse rounded-3xl" style={{ backgroundColor: "hsl(var(--tenant-muted))" }} />
+      <div className="space-y-6" data-testid="page-tenant-wallet">
+        <div className="h-8 w-48 bg-muted animate-pulse rounded" style={{ backgroundColor: "hsl(var(--tenant-muted))" }} />
+        <div className="h-64 bg-muted animate-pulse rounded-lg" style={{ backgroundColor: "hsl(var(--tenant-muted))" }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8" data-testid="page-tenant-wallet">
+    <div className="space-y-6" data-testid="page-tenant-wallet">
       <div>
-        <h1 className="text-5xl font-bold tracking-tight mb-2" style={{ color: "hsl(var(--tenant-foreground))" }}>Wallet</h1>
-        <p className="text-lg" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-          Manage your balance and grow your savings
+        <h1 className="text-3xl font-bold tracking-tight mb-1" style={{ color: "hsl(var(--tenant-foreground))" }}>
+          Wallet
+        </h1>
+        <p className="text-base" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+          Manage your balance and transactions
         </p>
       </div>
 
-      {/* Hero Balance Card with Gradient */}
+      {/* Balance Card - PayPal Style */}
       <Card 
-        className="border-0 overflow-hidden"
+        className="border overflow-hidden"
         style={{
-          background: "var(--tenant-gradient-wallet)",
-          boxShadow: "var(--tenant-shadow-lg)",
+          backgroundColor: "hsl(var(--tenant-card))",
+          borderColor: "hsl(var(--tenant-card-border))",
           borderRadius: "var(--tenant-radius-lg)",
+          boxShadow: "var(--tenant-shadow-md)",
         }}
       >
-        <CardContent className="p-8 text-white">
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <p className="text-sm font-medium opacity-90 mb-1">AVAILABLE BALANCE</p>
-              <h2 className="text-6xl font-bold tabular-nums" data-testid="wallet-balance">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="w-5 h-5" style={{ color: "hsl(var(--tenant-primary))" }} />
+                <p className="text-sm font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                  Available Balance
+                </p>
+              </div>
+              <h2 className="text-4xl font-bold tabular-nums mb-1" data-testid="wallet-balance" style={{ color: "hsl(var(--tenant-foreground))" }}>
                 ${wallet?.balance.toLocaleString() || "0"}
               </h2>
               {wallet?.yieldOptIn && (
-                <div className="flex items-center gap-2 mt-3">
-                  <Sparkles className="w-4 h-4" />
-                  <p className="text-sm font-medium opacity-90">
-                    Earning {wallet.currentYield}% APY
-                  </p>
-                </div>
+                <p className="text-sm" style={{ color: "hsl(var(--tenant-success))" }}>
+                  Earning {wallet.currentYield}% APY
+                </p>
               )}
-            </div>
-            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm">
-              <Wallet className="w-8 h-8" />
             </div>
           </div>
           
           <div className="flex gap-3">
             <Button 
               size="lg"
-              className="flex-1 h-14 text-base font-semibold rounded-xl bg-white text-pink-700 hover:bg-white/90 active-elevate-2"
+              variant="outline"
+              className="flex-1 h-11 font-semibold rounded-lg border-2"
               onClick={() => setDepositOpen(true)}
               data-testid="button-deposit"
+              style={{
+                borderColor: "hsl(var(--tenant-primary))",
+                color: "hsl(var(--tenant-primary))",
+              }}
             >
-              <ArrowDownLeft className="mr-2 h-5 w-5" />
-              Deposit
+              <ArrowDownLeft className="mr-2 h-4 w-4" />
+              Add Funds
             </Button>
             <Button 
               size="lg"
-              className="flex-1 h-14 text-base font-semibold rounded-xl bg-white text-pink-700 hover:bg-white/90 active-elevate-2"
+              variant="outline"
+              className="flex-1 h-11 font-semibold rounded-lg border-2"
               onClick={() => setWithdrawOpen(true)}
               data-testid="button-withdraw"
+              style={{
+                borderColor: "hsl(var(--tenant-card-border))",
+                color: "hsl(var(--tenant-foreground))",
+              }}
             >
-              <ArrowUpRight className="mr-2 h-5 w-5" />
+              <ArrowUpRight className="mr-2 h-4 w-4" />
               Withdraw
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Yield Earnings Card */}
+      {/* Yield Earnings */}
       {wallet?.yieldOptIn && (
         <Card 
           className="border overflow-hidden"
@@ -160,39 +172,35 @@ export default function TenantWallet() {
             backgroundColor: "hsl(var(--tenant-card))",
             borderColor: "hsl(var(--tenant-card-border))",
             borderRadius: "var(--tenant-radius-lg)",
-            boxShadow: "var(--tenant-shadow)",
+            boxShadow: "var(--tenant-shadow-md)",
           }}
         >
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl" style={{ background: "var(--tenant-gradient-premium)" }}>
-                <TrendingUp className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl" style={{ color: "hsl(var(--tenant-foreground))" }}>
-                  Yield Earnings
-                </CardTitle>
-                <CardDescription className="text-base" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                  Powered by Naltos Reserve
-                </CardDescription>
-              </div>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" style={{ color: "hsl(var(--tenant-success))" }} />
+              <CardTitle className="text-lg" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                Yield Earnings
+              </CardTitle>
             </div>
+            <CardDescription className="text-sm" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+              Powered by Naltos Reserve
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="p-5 rounded-2xl" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
-                <p className="text-sm font-medium mb-1" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+                <p className="text-xs font-medium mb-1" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
                   Total Earned
                 </p>
-                <p className="text-3xl font-bold tabular-nums" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                <p className="text-2xl font-bold tabular-nums" style={{ color: "hsl(var(--tenant-foreground))" }}>
                   ${wallet.yieldBalance.toFixed(2)}
                 </p>
               </div>
-              <div className="p-5 rounded-2xl" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
-                <p className="text-sm font-medium mb-1" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+              <div className="p-4 rounded-lg" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+                <p className="text-xs font-medium mb-1" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
                   Current APY
                 </p>
-                <p className="text-3xl font-bold tabular-nums" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                <p className="text-2xl font-bold tabular-nums" style={{ color: "hsl(var(--tenant-success))" }}>
                   {wallet.currentYield}%
                 </p>
               </div>
@@ -208,32 +216,28 @@ export default function TenantWallet() {
           backgroundColor: "hsl(var(--tenant-card))",
           borderColor: "hsl(var(--tenant-card-border))",
           borderRadius: "var(--tenant-radius-lg)",
-          boxShadow: "var(--tenant-shadow)",
+          boxShadow: "var(--tenant-shadow-md)",
         }}
       >
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
-              <Shield className="w-5 h-5" style={{ color: "hsl(var(--tenant-foreground))" }} />
-            </div>
-            <div>
-              <CardTitle className="text-2xl" style={{ color: "hsl(var(--tenant-foreground))" }}>
-                Yield Settings
-              </CardTitle>
-              <CardDescription className="text-base" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                Grow your balance automatically
-              </CardDescription>
-            </div>
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5" style={{ color: "hsl(var(--tenant-muted-foreground))" }} />
+            <CardTitle className="text-lg" style={{ color: "hsl(var(--tenant-foreground))" }}>
+              Earn Interest
+            </CardTitle>
           </div>
+          <CardDescription className="text-sm" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+            Turn on to earn {wallet?.currentYield || "5.2"}% APY on your balance
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between p-5 rounded-2xl" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+          <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
             <div className="flex-1">
-              <Label htmlFor="yield-toggle" className="text-base font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>
-                Enable Yield Earnings
+              <Label htmlFor="yield-toggle" className="text-sm font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                Interest Earnings
               </Label>
-              <p className="text-sm mt-1" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                Earn {wallet?.currentYield || "5.2"}% APY on your balance via institutional treasury products
+              <p className="text-xs mt-0.5" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                Earn automatically on your available balance
               </p>
             </div>
             <Switch
@@ -249,42 +253,44 @@ export default function TenantWallet() {
 
       {/* Deposit Dialog */}
       <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-2xl">Deposit Funds</DialogTitle>
-            <DialogDescription className="text-base">
-              Add money to your Naltos wallet
+            <DialogTitle>Add Funds</DialogTitle>
+            <DialogDescription>
+              Transfer money to your Naltos wallet
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
               <Label htmlFor="deposit-amount" className="text-sm font-medium mb-2">Amount</Label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-semibold" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>$</span>
                 <Input
                   id="deposit-amount"
                   type="number"
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="pl-8 h-14 text-xl font-semibold rounded-xl"
+                  className="pl-8 h-12 text-lg font-semibold"
                   data-testid="input-deposit-amount"
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDepositOpen(false)} className="rounded-xl">
+            <Button variant="outline" onClick={() => setDepositOpen(false)}>
               Cancel
             </Button>
             <Button 
               onClick={handleDeposit} 
               disabled={depositMutation.isPending || !amount}
-              className="rounded-xl"
-              style={{ background: "var(--tenant-gradient-wallet)", color: "white" }}
+              style={{
+                backgroundColor: "hsl(var(--tenant-primary))",
+                color: "hsl(var(--tenant-primary-foreground))",
+              }}
               data-testid="button-confirm-deposit"
             >
-              {depositMutation.isPending ? "Processing..." : "Deposit"}
+              {depositMutation.isPending ? "Processing..." : "Add Funds"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -292,10 +298,10 @@ export default function TenantWallet() {
 
       {/* Withdraw Dialog */}
       <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-2xl">Withdraw Funds</DialogTitle>
-            <DialogDescription className="text-base">
+            <DialogTitle>Withdraw Funds</DialogTitle>
+            <DialogDescription>
               Transfer money to your bank account
             </DialogDescription>
           </DialogHeader>
@@ -303,32 +309,34 @@ export default function TenantWallet() {
             <div>
               <Label htmlFor="withdraw-amount" className="text-sm font-medium mb-2">Amount</Label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-semibold" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>$</span>
                 <Input
                   id="withdraw-amount"
                   type="number"
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="pl-8 h-14 text-xl font-semibold rounded-xl"
+                  className="pl-8 h-12 text-lg font-semibold"
                   max={wallet?.balance}
                   data-testid="input-withdraw-amount"
                 />
               </div>
-              <p className="text-sm mt-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+              <p className="text-xs mt-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
                 Available: ${wallet?.balance.toLocaleString() || "0"}
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setWithdrawOpen(false)} className="rounded-xl">
+            <Button variant="outline" onClick={() => setWithdrawOpen(false)}>
               Cancel
             </Button>
             <Button 
               onClick={handleWithdraw} 
               disabled={withdrawMutation.isPending || !amount}
-              className="rounded-xl"
-              style={{ background: "var(--tenant-gradient-wallet)", color: "white" }}
+              style={{
+                backgroundColor: "hsl(var(--tenant-primary))",
+                color: "hsl(var(--tenant-primary-foreground))",
+              }}
               data-testid="button-confirm-withdraw"
             >
               {withdrawMutation.isPending ? "Processing..." : "Withdraw"}

@@ -113,10 +113,10 @@ export default function TenantAgent() {
   };
 
   return (
-    <div className="space-y-8" data-testid="page-tenant-agent">
+    <div className="space-y-6" data-testid="page-tenant-agent">
       <div>
-        <h1 className="text-5xl font-bold tracking-tight mb-2" style={{ color: "hsl(var(--tenant-foreground))" }}>Naltos Assistant</h1>
-        <p className="text-lg" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+        <h1 className="text-3xl font-bold tracking-tight mb-1" style={{ color: "hsl(var(--tenant-foreground))" }}>Naltos Assistant</h1>
+        <p className="text-base" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
           Your personal AI assistant for rent and account management
         </p>
       </div>
