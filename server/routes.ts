@@ -55,8 +55,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email } = req.body;
 
-      // Create magic code
-      const code = Math.random() < 0.5 ? "000000" : Math.floor(100000 + Math.random() * 900000).toString();
+      // Create magic code - always "000000" for demo
+      const code = "000000";
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
       await storage.createMagicCode({
