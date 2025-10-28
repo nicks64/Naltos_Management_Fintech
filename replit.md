@@ -36,6 +36,8 @@ Naltos is a sophisticated dual-sided property management platform with integrate
 - `bank_ledger` - Bank/PMS ledger entries
 - `treasury_products` - Treasury product definitions
 - `treasury_subscriptions` - User subscriptions to treasury products
+- `crypto_wallets` - Stablecoin wallet balances (USDC, USDT, DAI)
+- `crypto_transactions` - Crypto transaction history (deposits, conversions, withdrawals)
 - `organization_settings` - Org configuration
 - `audit_logs` - Compliance audit trail
 
@@ -89,6 +91,17 @@ Naltos is a sophisticated dual-sided property management platform with integrate
 - `POST /api/treasury/redeem` - Withdraw funds
 - `POST /api/treasury/autoroll` - Toggle auto-roll preference
 
+### Crypto Treasury (`/api/crypto/*`)
+- `GET /api/crypto/wallets` - Get stablecoin wallet balances (USDC, USDT, DAI)
+- `POST /api/crypto/convert` - Convert between stablecoins (1:1 ratio, 0.1% fee)
+- `POST /api/crypto/to-usd` - Convert crypto to USD (0.2% fee, 1-2 day settlement)
+- `GET /api/crypto/transactions` - Get crypto transaction history
+
+### Tenant Crypto (`/api/tenant/crypto/*`)
+- `GET /api/tenant/crypto/wallets` - Get tenant stablecoin balances
+- `POST /api/tenant/crypto/convert` - Convert between stablecoins
+- `GET /api/tenant/crypto/transactions` - Get tenant crypto transaction history
+
 ### Agent (`/api/agent`)
 - `POST /api/agent` - Streaming AI responses using GPT-5
 
@@ -118,6 +131,7 @@ Naltos is a sophisticated dual-sided property management platform with integrate
 - `Collections` - Payment management table
 - `Reconciliation` - Two-pane ledger matching
 - `Treasury` - Product cards with subscribe/redeem
+- `CryptoTreasury` - Stablecoin wallet management with conversions and transactions
 - `Reports` - Charts and analytics
 - `Agent` - AI business intelligence chat
 - `Settings` - Org/user/PMS/compliance config
