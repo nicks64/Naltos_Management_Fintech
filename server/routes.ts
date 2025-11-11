@@ -658,34 +658,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const orgId = req.organizationId!;
       
-      // Mock crypto wallet data for demo
-      const wallets = [
-        {
-          coin: "USDC",
-          balance: 125000.50,
-          usdValue: 125000.50,
-          depositAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7",
-          price: 1.00,
-        },
-        {
-          coin: "USDT",
-          balance: 85000.25,
-          usdValue: 85000.25,
-          depositAddress: "0xE3a5B4d7f79d64088C8d4ef153A7DDe2D2e0c08f",
-          price: 1.00,
-        },
-        {
-          coin: "DAI",
-          balance: 42500.75,
-          usdValue: 42500.75,
-          depositAddress: "0x9C8EB2F46a2F4dCf4D0b6aE50fE3b5c8D7e4A9c2",
-          price: 1.00,
-        },
-      ];
+      // Get wallets from database
+      const wallets = await storage.getCryptoWallets(orgId);
       
-      const totalUsdValue = wallets.reduce((sum, w) => sum + w.usdValue, 0);
+      // Format for frontend
+      const formattedWallets = wallets.map(w => ({
+        coin: w.coin,
+        balance: parseFloat(w.balance),
+        usdValue: parseFloat(w.balance), // 1:1 for stablecoins
+        depositAddress: w.depositAddress || "",
+        price: 1.00,
+      }));
       
-      res.json({ wallets, totalUsdValue });
+      const totalUsdValue = formattedWallets.reduce((sum, w) => sum + w.usdValue, 0);
+      
+      res.json({ wallets: formattedWallets, totalUsdValue });
     } catch (error: any) {
       console.error("Crypto wallets error:", error);
       res.status(500).json({ error: error.message });
@@ -695,10 +682,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/crypto/convert", requireAuth, async (req, res) => {
     try {
       const { fromCoin, toCoin, amount } = req.body;
+      const orgId = req.organizationId!;
       
-      // Mock conversion rates (all 1:1 for stablecoins)
-      const exchangeRate = 1.0;
-      const convertedAmount = amount * exchangeRate;
+      // Perform real conversion using storage
+      const result = await storage.convertCrypto({
+        organizationId: orgId,
+        fromCoin,
+        toCoin,
+        amount: amount.toString(),
+        exchangeRate: "1.0", // 1:1 for stablecoins
+      });
+      
+      // Return the gross converted amount (before fees) to match frontend contract
+      const convertedAmount = amount * 1.0; // 1:1 exchange rate for stablecoins
       const fee = amount * 0.001; // 0.1% fee
       
       res.json({
@@ -706,10 +702,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fromCoin,
         toCoin,
         fromAmount: amount,
-        toAmount: convertedAmount,
-        exchangeRate,
+        toAmount: convertedAmount, // Gross amount before fees
+        exchangeRate: 1.0,
         fee,
-        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+        txHash: result.transaction.txHash,
       });
     } catch (error: any) {
       console.error("Crypto convert error:", error);
@@ -720,16 +716,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/crypto/to-usd", requireAuth, async (req, res) => {
     try {
       const { coin, amount } = req.body;
+      const orgId = req.organizationId!;
       
-      // Mock conversion to USD (1:1 for stablecoins)
-      const usdAmount = amount;
       const fee = amount * 0.002; // 0.2% fee
+      
+      // Perform real USD conversion using storage
+      const result = await storage.convertToUsd({
+        organizationId: orgId,
+        coin,
+        amount: amount.toString(),
+        exchangeRate: "1.0",
+        fee: fee.toString(),
+      });
       
       res.json({
         success: true,
         coin,
         cryptoAmount: amount,
-        usdAmount: usdAmount - fee,
+        usdAmount: amount - fee,
         exchangeRate: 1.0,
         fee,
       });
@@ -741,42 +745,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/crypto/transactions", requireAuth, async (req, res) => {
     try {
-      // Mock transaction history
-      const transactions = [
-        {
-          id: "tx-1",
-          type: "deposit",
-          coin: "USDC",
-          amount: 50000,
-          usdValue: 50000,
-          status: "completed",
-          txHash: "0x1234...5678",
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "tx-2",
-          type: "conversion",
-          fromCoin: "USDT",
-          toCoin: "USDC",
-          amount: 25000,
-          usdValue: 25000,
-          status: "completed",
-          txHash: "0xabcd...efgh",
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "tx-3",
-          type: "deposit",
-          coin: "DAI",
-          amount: 30000,
-          usdValue: 30000,
-          status: "completed",
-          txHash: "0x9876...4321",
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
+      const orgId = req.organizationId!;
       
-      res.json({ transactions });
+      // Get real transaction history from database
+      const transactions = await storage.getCryptoTransactions(orgId);
+      
+      // Format for frontend
+      const formattedTransactions = transactions.map(tx => ({
+        id: tx.id,
+        type: tx.transactionType,
+        coin: tx.fromCoin,
+        fromCoin: tx.fromCoin,
+        toCoin: tx.toCoin,
+        amount: parseFloat(tx.amount),
+        usdValue: parseFloat(tx.usdValue || "0"),
+        status: tx.status,
+        txHash: tx.txHash || "",
+        createdAt: tx.createdAt.toISOString(),
+      }));
+      
+      res.json({ transactions: formattedTransactions });
     } catch (error: any) {
       console.error("Crypto transactions error:", error);
       res.status(500).json({ error: error.message });
@@ -786,34 +774,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ Crypto Wallet Routes (Tenant) ============
   app.get("/api/tenant/crypto/wallets", requireRole("Tenant"), async (req, res) => {
     try {
-      // Mock tenant crypto wallet data
-      const wallets = [
-        {
-          coin: "USDC",
-          balance: 1250.50,
-          usdValue: 1250.50,
-          depositAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7",
-          price: 1.00,
-        },
-        {
-          coin: "USDT",
-          balance: 850.25,
-          usdValue: 850.25,
-          depositAddress: "0xE3a5B4d7f79d64088C8d4ef153A7DDe2D2e0c08f",
-          price: 1.00,
-        },
-        {
-          coin: "DAI",
-          balance: 425.75,
-          usdValue: 425.75,
-          depositAddress: "0x9C8EB2F46a2F4dCf4D0b6aE50fE3b5c8D7e4A9c2",
-          price: 1.00,
-        },
-      ];
+      const orgId = req.organizationId!;
+      const tenantId = req.user!.tenantId!;
       
-      const totalUsdValue = wallets.reduce((sum, w) => sum + w.usdValue, 0);
+      // Get tenant wallets from database
+      const wallets = await storage.getCryptoWallets(orgId, tenantId);
       
-      res.json({ wallets, totalUsdValue });
+      // Format for frontend
+      const formattedWallets = wallets.map(w => ({
+        coin: w.coin,
+        balance: parseFloat(w.balance),
+        usdValue: parseFloat(w.balance), // 1:1 for stablecoins
+        depositAddress: w.depositAddress || "",
+        price: 1.00,
+      }));
+      
+      const totalUsdValue = formattedWallets.reduce((sum, w) => sum + w.usdValue, 0);
+      
+      res.json({ wallets: formattedWallets, totalUsdValue });
     } catch (error: any) {
       console.error("Tenant crypto wallets error:", error);
       res.status(500).json({ error: error.message });
@@ -823,10 +801,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tenant/crypto/convert", requireRole("Tenant"), async (req, res) => {
     try {
       const { fromCoin, toCoin, amount } = req.body;
+      const orgId = req.organizationId!;
+      const tenantId = req.user!.tenantId!;
       
-      // Mock conversion rates (all 1:1 for stablecoins)
-      const exchangeRate = 1.0;
-      const convertedAmount = amount * exchangeRate;
+      // Perform real conversion using storage
+      const result = await storage.convertCrypto({
+        organizationId: orgId,
+        tenantId,
+        fromCoin,
+        toCoin,
+        amount: amount.toString(),
+        exchangeRate: "1.0",
+      });
+      
+      // Return the gross converted amount (before fees) to match frontend contract
+      const convertedAmount = amount * 1.0; // 1:1 exchange rate for stablecoins
       const fee = amount * 0.001; // 0.1% fee
       
       res.json({
@@ -834,10 +823,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fromCoin,
         toCoin,
         fromAmount: amount,
-        toAmount: convertedAmount,
-        exchangeRate,
+        toAmount: convertedAmount, // Gross amount before fees
+        exchangeRate: 1.0,
         fee,
-        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+        txHash: result.transaction.txHash,
       });
     } catch (error: any) {
       console.error("Tenant crypto convert error:", error);
@@ -847,31 +836,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/tenant/crypto/transactions", requireRole("Tenant"), async (req, res) => {
     try {
-      // Mock tenant transaction history
-      const transactions = [
-        {
-          id: "tx-1",
-          type: "deposit",
-          coin: "USDC",
-          amount: 500,
-          usdValue: 500,
-          status: "completed",
-          txHash: "0x1234...5678",
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "tx-2",
-          type: "rent_payment",
-          coin: "USDT",
-          amount: 2500,
-          usdValue: 2500,
-          status: "completed",
-          txHash: "0xabcd...efgh",
-          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
+      const orgId = req.organizationId!;
+      const tenantId = req.user!.tenantId!;
       
-      res.json({ transactions });
+      // Get real transaction history from database
+      const transactions = await storage.getCryptoTransactions(orgId, tenantId);
+      
+      // Format for frontend
+      const formattedTransactions = transactions.map(tx => ({
+        id: tx.id,
+        type: tx.transactionType,
+        coin: tx.fromCoin,
+        fromCoin: tx.fromCoin,
+        toCoin: tx.toCoin,
+        amount: parseFloat(tx.amount),
+        usdValue: parseFloat(tx.usdValue || "0"),
+        status: tx.status,
+        txHash: tx.txHash || "",
+        createdAt: tx.createdAt.toISOString(),
+      }));
+      
+      res.json({ transactions: formattedTransactions });
     } catch (error: any) {
       console.error("Tenant crypto transactions error:", error);
       res.status(500).json({ error: error.message });

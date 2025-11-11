@@ -13,6 +13,8 @@ import {
   treasurySubscriptions,
   organizationSettings,
   magicCodes,
+  cryptoWallets,
+  cryptoTransactions,
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -52,6 +54,14 @@ export async function seedDatabase() {
   
   // Delete bank ledger FIRST (it references payments via matchedPaymentId)
   await db.delete(bankLedger).where(eq(bankLedger.organizationId, demoOrg.id));
+  
+  // Delete crypto data (transactions first, then wallets)
+  const orgWallets = await db.select().from(cryptoWallets).where(eq(cryptoWallets.organizationId, demoOrg.id));
+  const walletIds = orgWallets.map(w => w.id);
+  if (walletIds.length > 0) {
+    await db.delete(cryptoTransactions).where(inArray(cryptoTransactions.walletId, walletIds));
+  }
+  await db.delete(cryptoWallets).where(eq(cryptoWallets.organizationId, demoOrg.id));
   
   // Delete treasury data (subscriptions only - products are global shared catalog)
   await db.delete(treasurySubscriptions).where(eq(treasurySubscriptions.organizationId, demoOrg.id));
@@ -360,6 +370,116 @@ export async function seedDatabase() {
     balance: "300000.00",
     autoRoll: true,
   });
+
+  // Create crypto wallets for business (demo org)
+  const [usdcWallet] = await db.insert(cryptoWallets).values({
+    organizationId: demoOrg.id,
+    coin: "USDC",
+    balance: "125000.50",
+    depositAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7",
+  }).returning();
+
+  const [usdtWallet] = await db.insert(cryptoWallets).values({
+    organizationId: demoOrg.id,
+    coin: "USDT",
+    balance: "85000.25",
+    depositAddress: "0xE3a5B4d7f79d64088C8d4ef153A7DDe2D2e0c08f",
+  }).returning();
+
+  const [daiWallet] = await db.insert(cryptoWallets).values({
+    organizationId: demoOrg.id,
+    coin: "DAI",
+    balance: "42500.75",
+    depositAddress: "0x9C8EB2F46a2F4dCf4D0b6aE50fE3b5c8D7e4A9c2",
+  }).returning();
+
+  // Add sample crypto transactions for business
+  await db.insert(cryptoTransactions).values({
+    walletId: usdcWallet.id,
+    transactionType: "deposit",
+    fromCoin: "USDC",
+    amount: "50000",
+    usdValue: "50000.00",
+    status: "completed",
+    txHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+  });
+
+  await db.insert(cryptoTransactions).values({
+    walletId: usdtWallet.id,
+    transactionType: "conversion",
+    fromCoin: "USDT",
+    toCoin: "USDC",
+    amount: "25000",
+    usdValue: "25000.00",
+    exchangeRate: "1.0",
+    status: "completed",
+    txHash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+  });
+
+  await db.insert(cryptoTransactions).values({
+    walletId: daiWallet.id,
+    transactionType: "deposit",
+    fromCoin: "DAI",
+    amount: "30000",
+    usdValue: "30000.00",
+    status: "completed",
+    txHash: "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  });
+
+  // Create crypto wallets for tenant user (linked to tenant)
+  if (createdTenants.length > 0) {
+    const firstTenant = createdTenants[0];
+    
+    const [tenantUsdcWallet] = await db.insert(cryptoWallets).values({
+      organizationId: demoOrg.id,
+      tenantId: firstTenant.id,
+      coin: "USDC",
+      balance: "1250.50",
+      depositAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7",
+    }).returning();
+
+    const [tenantUsdtWallet] = await db.insert(cryptoWallets).values({
+      organizationId: demoOrg.id,
+      tenantId: firstTenant.id,
+      coin: "USDT",
+      balance: "850.25",
+      depositAddress: "0xE3a5B4d7f79d64088C8d4ef153A7DDe2D2e0c08f",
+    }).returning();
+
+    const [tenantDaiWallet] = await db.insert(cryptoWallets).values({
+      organizationId: demoOrg.id,
+      tenantId: firstTenant.id,
+      coin: "DAI",
+      balance: "425.75",
+      depositAddress: "0x9C8EB2F46a2F4dCf4D0b6aE50fE3b5c8D7e4A9c2",
+    }).returning();
+
+    // Add sample tenant crypto transactions
+    await db.insert(cryptoTransactions).values({
+      walletId: tenantUsdcWallet.id,
+      transactionType: "deposit",
+      fromCoin: "USDC",
+      amount: "500",
+      usdValue: "500.00",
+      status: "completed",
+      txHash: "0x1234abcd5678ef901234abcd5678ef901234abcd5678ef901234abcd5678ef90",
+      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    });
+
+    await db.insert(cryptoTransactions).values({
+      walletId: tenantUsdtWallet.id,
+      transactionType: "rent_payment",
+      fromCoin: "USDT",
+      amount: "2500",
+      usdValue: "2500.00",
+      status: "completed",
+      txHash: "0xabcd12345678ef90abcd12345678ef90abcd12345678ef90abcd12345678ef90",
+      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    });
+  }
 
   console.log("Database seeded successfully!");
   console.log(`- Organization: ${demoOrg.name}`);

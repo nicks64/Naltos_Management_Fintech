@@ -59,9 +59,11 @@ export default function CryptoTreasury() {
   const convertMutation = useMutation({
     mutationFn: (data: { fromCoin: string; toCoin: string; amount: number }) =>
       apiRequest("POST", "/api/crypto/convert", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crypto/wallets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crypto/transactions"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/crypto/wallets"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/crypto/transactions"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/crypto/wallets"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/crypto/transactions"] });
       setConvertOpen(false);
       setConvertAmount("");
       toast({
@@ -74,9 +76,11 @@ export default function CryptoTreasury() {
   const convertToUsdMutation = useMutation({
     mutationFn: (data: { coin: string; amount: number }) =>
       apiRequest("POST", "/api/crypto/to-usd", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crypto/wallets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crypto/transactions"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/crypto/wallets"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/crypto/transactions"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/crypto/wallets"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/crypto/transactions"] });
       setConvertToUsdOpen(false);
       setConvertAmount("");
       toast({
@@ -159,7 +163,7 @@ export default function CryptoTreasury() {
           {/* Wallet Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {cryptoData?.wallets.map((wallet) => (
-              <Card key={wallet.coin} className="overflow-hidden">
+              <Card key={`${wallet.coin}-${wallet.depositAddress}`} className="overflow-hidden" data-testid={`card-wallet-${wallet.coin}`}>
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{wallet.coin}</CardTitle>

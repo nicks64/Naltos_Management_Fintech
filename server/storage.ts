@@ -14,6 +14,8 @@ import {
   organizationSettings,
   magicCodes,
   auditLogs,
+  cryptoWallets,
+  cryptoTransactions,
   type User,
   type InsertUser,
   type Organization,
@@ -32,6 +34,10 @@ import {
   type Unit,
   type MagicCode,
   type InsertMagicCode,
+  type CryptoWallet,
+  type InsertCryptoWallet,
+  type CryptoTransaction,
+  type InsertCryptoTransaction,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lt, gte, sql, sum, inArray } from "drizzle-orm";
@@ -59,7 +65,7 @@ export interface IStorage {
 
   // Reconciliation methods
   getReconciliation(organizationId: string): Promise<any>;
-  approvematch(bankEntryId: string, paymentId: string): Promise<void>;
+  approveMatch(bankEntryId: string, paymentId: string): Promise<void>;
 
   // Treasury methods
   getTreasuryProducts(): Promise<TreasuryProduct[]>;
@@ -76,6 +82,34 @@ export interface IStorage {
 
   // Reports methods
   getReports(organizationId: string): Promise<any>;
+
+  // Crypto wallet methods
+  getCryptoWallets(organizationId: string, tenantId?: string): Promise<CryptoWallet[]>;
+  getCryptoWallet(organizationId: string, coin: CryptoWallet['coin'], tenantId?: string): Promise<CryptoWallet | undefined>;
+  convertCrypto(params: {
+    organizationId: string;
+    tenantId?: string;
+    fromCoin: CryptoWallet['coin'];
+    toCoin: CryptoWallet['coin'];
+    amount: string;
+    exchangeRate: string;
+  }): Promise<{
+    fromWallet: CryptoWallet;
+    toWallet: CryptoWallet;
+    transaction: CryptoTransaction;
+  }>;
+  convertToUsd(params: {
+    organizationId: string;
+    tenantId?: string;
+    coin: CryptoWallet['coin'];
+    amount: string;
+    exchangeRate: string;
+    fee: string;
+  }): Promise<{
+    wallet: CryptoWallet;
+    transaction: CryptoTransaction;
+  }>;
+  getCryptoTransactions(organizationId: string, tenantId?: string, limit?: number): Promise<CryptoTransaction[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -443,6 +477,233 @@ export class DatabaseStorage implements IStorage {
         { month: "Jun", yield: 5.6, tbillRate: 5.4 },
       ],
     };
+  }
+
+  // Crypto wallet methods
+  async getCryptoWallets(organizationId: string, tenantId?: string): Promise<CryptoWallet[]> {
+    const conditions = tenantId
+      ? and(eq(cryptoWallets.organizationId, organizationId), eq(cryptoWallets.tenantId, tenantId))
+      : and(eq(cryptoWallets.organizationId, organizationId), sql`${cryptoWallets.tenantId} IS NULL`);
+    
+    return await db.select().from(cryptoWallets).where(conditions);
+  }
+
+  async getCryptoWallet(organizationId: string, coin: CryptoWallet['coin'], tenantId?: string): Promise<CryptoWallet | undefined> {
+    let conditions;
+    if (tenantId) {
+      conditions = and(
+        eq(cryptoWallets.organizationId, organizationId),
+        eq(cryptoWallets.coin, coin),
+        eq(cryptoWallets.tenantId, tenantId)
+      );
+    } else {
+      conditions = and(
+        eq(cryptoWallets.organizationId, organizationId),
+        eq(cryptoWallets.coin, coin),
+        sql`${cryptoWallets.tenantId} IS NULL`
+      );
+    }
+    
+    const [wallet] = await db.select().from(cryptoWallets).where(conditions);
+    return wallet || undefined;
+  }
+
+  async convertCrypto(params: {
+    organizationId: string;
+    tenantId?: string;
+    fromCoin: CryptoWallet['coin'];
+    toCoin: CryptoWallet['coin'];
+    amount: string;
+    exchangeRate: string;
+  }): Promise<{
+    fromWallet: CryptoWallet;
+    toWallet: CryptoWallet;
+    transaction: CryptoTransaction;
+  }> {
+    return await db.transaction(async (tx) => {
+      // Build conditions for from wallet
+      let fromConditions;
+      if (params.tenantId) {
+        fromConditions = and(
+          eq(cryptoWallets.organizationId, params.organizationId),
+          eq(cryptoWallets.coin, params.fromCoin),
+          eq(cryptoWallets.tenantId, params.tenantId)
+        );
+      } else {
+        fromConditions = and(
+          eq(cryptoWallets.organizationId, params.organizationId),
+          eq(cryptoWallets.coin, params.fromCoin),
+          sql`${cryptoWallets.tenantId} IS NULL`
+        );
+      }
+
+      // Build conditions for to wallet
+      let toConditions;
+      if (params.tenantId) {
+        toConditions = and(
+          eq(cryptoWallets.organizationId, params.organizationId),
+          eq(cryptoWallets.coin, params.toCoin),
+          eq(cryptoWallets.tenantId, params.tenantId)
+        );
+      } else {
+        toConditions = and(
+          eq(cryptoWallets.organizationId, params.organizationId),
+          eq(cryptoWallets.coin, params.toCoin),
+          sql`${cryptoWallets.tenantId} IS NULL`
+        );
+      }
+
+      // Get both wallets using transaction client
+      const [fromWallet] = await tx.select().from(cryptoWallets).where(fromConditions);
+      const [toWallet] = await tx.select().from(cryptoWallets).where(toConditions);
+
+      if (!fromWallet || !toWallet) {
+        throw new Error("One or both wallets not found");
+      }
+
+      // Validate sufficient balance
+      const currentBalance = parseFloat(fromWallet.balance);
+      const convertAmount = parseFloat(params.amount);
+      
+      if (currentBalance < convertAmount) {
+        throw new Error("Insufficient balance");
+      }
+
+      // Calculate conversion
+      const exchangeRate = parseFloat(params.exchangeRate);
+      const convertedAmount = convertAmount * exchangeRate;
+      const fee = convertAmount * 0.001; // 0.1% fee
+      const finalToAmount = convertedAmount - fee;
+
+      // Update balances
+      const [updatedFromWallet] = await tx
+        .update(cryptoWallets)
+        .set({ balance: (currentBalance - convertAmount).toFixed(8) })
+        .where(eq(cryptoWallets.id, fromWallet.id))
+        .returning();
+
+      const [updatedToWallet] = await tx
+        .update(cryptoWallets)
+        .set({ balance: (parseFloat(toWallet.balance) + finalToAmount).toFixed(8) })
+        .where(eq(cryptoWallets.id, toWallet.id))
+        .returning();
+
+      // Create transaction record
+      const [transaction] = await tx
+        .insert(cryptoTransactions)
+        .values({
+          walletId: fromWallet.id,
+          transactionType: "conversion",
+          fromCoin: params.fromCoin,
+          toCoin: params.toCoin,
+          amount: params.amount,
+          usdValue: convertAmount.toFixed(2),
+          exchangeRate: params.exchangeRate,
+          status: "completed",
+          txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+        })
+        .returning();
+
+      return {
+        fromWallet: updatedFromWallet,
+        toWallet: updatedToWallet,
+        transaction,
+      };
+    });
+  }
+
+  async convertToUsd(params: {
+    organizationId: string;
+    tenantId?: string;
+    coin: CryptoWallet['coin'];
+    amount: string;
+    exchangeRate: string;
+    fee: string;
+  }): Promise<{
+    wallet: CryptoWallet;
+    transaction: CryptoTransaction;
+  }> {
+    return await db.transaction(async (tx) => {
+      // Build conditions for wallet
+      let conditions;
+      if (params.tenantId) {
+        conditions = and(
+          eq(cryptoWallets.organizationId, params.organizationId),
+          eq(cryptoWallets.coin, params.coin),
+          eq(cryptoWallets.tenantId, params.tenantId)
+        );
+      } else {
+        conditions = and(
+          eq(cryptoWallets.organizationId, params.organizationId),
+          eq(cryptoWallets.coin, params.coin),
+          sql`${cryptoWallets.tenantId} IS NULL`
+        );
+      }
+
+      // Get wallet using transaction client
+      const [wallet] = await tx.select().from(cryptoWallets).where(conditions);
+
+      if (!wallet) {
+        throw new Error("Wallet not found");
+      }
+
+      // Validate sufficient balance
+      const currentBalance = parseFloat(wallet.balance);
+      const withdrawAmount = parseFloat(params.amount);
+      
+      if (currentBalance < withdrawAmount) {
+        throw new Error("Insufficient balance");
+      }
+
+      // Update balance
+      const [updatedWallet] = await tx
+        .update(cryptoWallets)
+        .set({ balance: (currentBalance - withdrawAmount).toFixed(8) })
+        .where(eq(cryptoWallets.id, wallet.id))
+        .returning();
+
+      // Calculate USD value after fee
+      const exchangeRate = parseFloat(params.exchangeRate);
+      const feeAmount = parseFloat(params.fee);
+      const usdValue = (withdrawAmount * exchangeRate) - feeAmount;
+
+      // Create transaction record
+      const [transaction] = await tx
+        .insert(cryptoTransactions)
+        .values({
+          walletId: wallet.id,
+          transactionType: "withdrawal",
+          fromCoin: params.coin,
+          amount: params.amount,
+          usdValue: usdValue.toFixed(2),
+          exchangeRate: params.exchangeRate,
+          status: "completed",
+          txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+        })
+        .returning();
+
+      return {
+        wallet: updatedWallet,
+        transaction,
+      };
+    });
+  }
+
+  async getCryptoTransactions(organizationId: string, tenantId?: string, limit: number = 50): Promise<CryptoTransaction[]> {
+    // Get all wallets for this org/tenant
+    const wallets = await this.getCryptoWallets(organizationId, tenantId);
+    const walletIds = wallets.map(w => w.id);
+
+    if (walletIds.length === 0) {
+      return [];
+    }
+
+    return await db
+      .select()
+      .from(cryptoTransactions)
+      .where(inArray(cryptoTransactions.walletId, walletIds))
+      .orderBy(desc(cryptoTransactions.createdAt))
+      .limit(limit);
   }
 }
 
