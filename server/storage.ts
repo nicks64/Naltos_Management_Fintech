@@ -40,7 +40,7 @@ import {
   type InsertCryptoTransaction,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, lt, gte, sql, sum, inArray } from "drizzle-orm";
+import { eq, and, desc, lt, gte, sql, sum, inArray, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -750,25 +750,27 @@ export class DatabaseStorage implements IStorage {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const orgPayments = await db
-      .select({
-        id: payments.id,
-        amount: payments.amount,
-        paidAt: payments.paidAt,
-        invoiceId: payments.invoiceId,
-      })
+    // Query all payments for this organization
+    const allOrgPayments = await db
+      .select()
       .from(payments)
       .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
       .innerJoin(leases, eq(invoices.leaseId, leases.id))
       .innerJoin(units, eq(leases.unitId, units.id))
       .innerJoin(properties, eq(units.propertyId, properties.id))
-      .where(
-        and(
-          eq(properties.organizationId, organizationId),
-          gte(payments.paidAt, thirtyDaysAgo)
-        )
-      )
-      .orderBy(desc(payments.paidAt));
+      .where(eq(properties.organizationId, organizationId));
+
+    // Filter for recent payments with valid paidAt dates and sort
+    const orgPayments = allOrgPayments
+      .filter((row) => {
+        const paidAt = row.payments.paidAt;
+        return paidAt && new Date(paidAt) >= thirtyDaysAgo;
+      })
+      .sort((a, b) => {
+        const dateA = a.payments.paidAt ? new Date(a.payments.paidAt).getTime() : 0;
+        const dateB = b.payments.paidAt ? new Date(b.payments.paidAt).getTime() : 0;
+        return dateB - dateA; // desc order
+      });
 
     // Calculate metrics
     const defaultDuration = config.rentFloatDefaultDuration || 10;
@@ -776,7 +778,8 @@ export class DatabaseStorage implements IStorage {
     
     let totalFloat = 0;
     let totalDays = 0;
-    const processedPayments = orgPayments.map((payment) => {
+    const processedPayments = orgPayments.map((row) => {
+      const payment = row.payments;
       const amount = parseFloat(payment.amount);
       const daysInFloat = defaultDuration; // Use default duration for simplicity
       
@@ -789,7 +792,7 @@ export class DatabaseStorage implements IStorage {
       return {
         id: payment.id,
         amount: payment.amount,
-        paidAt: payment.paidAt,
+        paidAt: payment.paidAt!,
         daysInFloat,
         yieldGenerated: yieldGenerated.toFixed(2),
       };
