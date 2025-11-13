@@ -176,7 +176,8 @@ export const organizationSettings = pgTable("organization_settings", {
   bridgeConversionStrategy: bridgeConversionStrategyEnum("bridge_conversion_strategy").default("immediate").notNull(),
   bridgeYieldRate: decimal("bridge_yield_rate", { precision: 5, scale: 2 }).default("4.75").notNull(), // Yield earned on float
   bridgeConversionFeeRate: decimal("bridge_conversion_fee_rate", { precision: 4, scale: 2 }).default("0.30").notNull(), // Conversion fee %
-  appfolioApiKey: text("appfolio_api_key"), // NOTE: Encrypted at application layer before storage
+  // AppFolio credentials: Store as env vars (APPFOLIO_API_KEY_{org_id}) or use secrets service
+  // DO NOT store sensitive API keys in this table - reference only
   appfolioAccountId: text("appfolio_account_id"),
 });
 
@@ -226,21 +227,24 @@ export const cryptoTransactions = pgTable("crypto_transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Bridge Conversion Jobs - queue for stablecoin→USD conversions
+// Bridge Conversion Jobs - queue for bidirectional conversions (crypto↔fiat)
 export const bridgeConversionJobs = pgTable("bridge_conversion_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   direction: bridgeDirectionEnum("direction").notNull(), // inbound (crypto→fiat) or outbound (fiat→crypto)
   status: bridgeStatusEnum("status").notNull().default("pending"),
   conversionStrategy: bridgeConversionStrategyEnum("conversion_strategy").notNull().default("immediate"),
-  invoiceId: varchar("invoice_id").references(() => invoices.id), // For inbound rent payments
+  invoiceId: varchar("invoice_id").references(() => invoices.id), // For inbound rent payments (optional)
   cryptoTransactionId: varchar("crypto_transaction_id").references(() => cryptoTransactions.id),
-  fromCoin: cryptoCoinEnum("from_coin"),
+  // Inbound (crypto→fiat): fromCoin + cryptoAmount → fiatAmount
+  // Outbound (fiat→crypto): fiatAmount → toCoin + cryptoAmount
+  fromCoin: cryptoCoinEnum("from_coin"), // For inbound conversions
+  toCoin: cryptoCoinEnum("to_coin"), // For outbound conversions
   cryptoAmount: decimal("crypto_amount", { precision: 18, scale: 8 }),
-  targetUsdAmount: decimal("target_usd_amount", { precision: 12, scale: 2 }),
+  fiatAmount: decimal("fiat_amount", { precision: 12, scale: 2 }), // USD amount (source for outbound, target for inbound)
   slippageTolerance: decimal("slippage_tolerance", { precision: 5, scale: 2 }).default("0.5"), // 0.5% default
   scheduledFor: timestamp("scheduled_for"), // For delayed conversions
-  floatStartedAt: timestamp("float_started_at"), // When crypto was received
+  floatStartedAt: timestamp("float_started_at"), // When funds were received
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
