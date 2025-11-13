@@ -1,0 +1,142 @@
+Here’s the **most reasonable, simple, investor-ready flow of money** for your business model (Naltos).
+This version works for MF operators, keeps compliance clean, and shows exactly **where your revenue and yield come from** without overcomplicating anything.
+
+---
+
+# ✅ **THE SIMPLE, REASONABLE FLOW OF MONEY (Naltos Model)**
+
+## **1. Tenant → Naltos (Rent Payment Inbound)**
+
+**Tenants pay rent through Naltos** using ACH/card/stablecoin.
+Funds land in a **custodial account (FDIC-insured)** or in a **1:1 backed stablecoin (NUSD)**.
+
+**This is your “float”—your raw material.**
+
+---
+
+## **2. Naltos Treasury → Short-Term Yield Vehicle**
+
+For 5–15 days (until owner payout), Naltos moves idle rent funds into ultra-safe, short-term instruments:
+
+* **Tokenized T-bills**
+* **Money-market style instruments**
+* Optional: **Delta-neutral BTC-backed notes** (low exposure, hedged)
+
+**These generate 4–6% APY.**
+
+This is your **yield engine**.
+
+---
+
+## **3. Yield Accrues Daily**
+
+While rent is sitting, yield accumulates.
+Example:
+
+* $1M rent × (10/365 days) × 5.5% = **$1,507**
+* This happens every month.
+
+This is where **owners earn more NOI**, tenants get incentives, and Naltos earns margin.
+
+---
+
+## **4. Naltos → Owner Payouts (Outflow)**
+
+Rent is disbursed to property owners on their chosen schedule (daily/weekly/monthly).
+
+* Owners always receive **100% of their rent principal.**
+* Yield is distributed separately according to your split.
+
+**This keeps everything clean and compliant.**
+
+---
+
+## **5. Yield Distribution**
+
+Yield is split like this (example):
+
+| Receiver             | Share        | Purpose                   |
+| -------------------- | ------------ | ------------------------- |
+| Owners               | **2.5–3.5%** | Boost NOI                 |
+| Tenants              | **1–1.5%**   | On-time payment incentive |
+| Naltos (your profit) | **0.5–1%**   | Treasury + platform fee   |
+
+This is the **business model**.
+
+---
+
+## **6. Vendor Payments (Optional Layer)**
+
+If property managers have **Net 30 / Net 45** agreements:
+
+* rent float lasts longer
+* more yield is earned
+* owner gains more NOI
+* Naltos earns higher treasury margin
+
+This is how **payables timing increases your revenue** without any extra cost.
+
+---
+
+# 📌 **In One Clear Sentence**
+
+> **Tenants pay rent → Naltos holds the funds temporarily → deploys the float into short-term, low-risk yield → pays owners and vendors → shares part of the yield with tenants and owners → keeps a small margin.**
+
+---
+
+# 💡 Why This Flow is “Reasonable”
+
+It checks all the boxes:
+
+### ✔ Clean
+
+No custodial complexity. No investor confusion.
+
+### ✔ Regulatory-safe
+
+Naltos never “takes deposits.”
+Funds remain:
+
+* custodial
+* 1:1 backed
+* short-duration
+* redeemable
+
+### ✔ Easily understood by PMs and investors
+
+They see how money enters → grows → exits.
+
+### ✔ Scalable
+
+This flow works for 1 property or 100,000.
+
+### ✔ High-margins, low risk
+
+You earn from:
+
+* treasury margin (0.5–1%)
+* workflow automation fees (SaaS)
+* extended float (Net 30)
+
+---
+
+# ⭐ **Visual Summary**
+
+```
+Tenant → (Rent) → Naltos Custody → Short-Term Yield → Owner Payout
+                             ↓
+                       Yield Generated
+                             ↓
+   Owners (3%) ← Tenants (1%) ← Naltos (0.5–1%)
+```
+
+---
+
+If you want, I can turn this into:
+
+✅ a **slide** for your deck
+✅ a **diagram**
+✅ a **step-by-step script** you can use on sales calls
+✅ a **single paragraph** you can send to property managers
+
+Just tell me which one.
