@@ -110,6 +110,24 @@ export interface IStorage {
     transaction: CryptoTransaction;
   }>;
   getCryptoTransactions(organizationId: string, tenantId?: string, limit?: number): Promise<CryptoTransaction[]>;
+
+  // Rent Float Treasury methods
+  getRentFloatData(organizationId: string): Promise<{
+    config: OrganizationSettings;
+    totalFloat: string;
+    averageDuration: number;
+    monthlyYield: string;
+    ownerShare: string;
+    tenantShare: string;
+    naltosShare: string;
+    recentPayments: Array<{
+      id: string;
+      amount: string;
+      paidAt: Date;
+      daysInFloat: number;
+      yieldGenerated: string;
+    }>;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -704,6 +722,110 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(cryptoTransactions.walletId, walletIds))
       .orderBy(desc(cryptoTransactions.createdAt))
       .limit(limit);
+  }
+
+  async getRentFloatData(organizationId: string): Promise<{
+    config: OrganizationSettings;
+    totalFloat: string;
+    averageDuration: number;
+    monthlyYield: string;
+    ownerShare: string;
+    tenantShare: string;
+    naltosShare: string;
+    recentPayments: Array<{
+      id: string;
+      amount: string;
+      paidAt: Date;
+      daysInFloat: number;
+      yieldGenerated: string;
+    }>;
+  }> {
+    // Get rent float configuration
+    const config = await this.getSettings(organizationId);
+    if (!config) {
+      throw new Error("Organization settings not found");
+    }
+
+    // Get recent payments (last 30 days) to simulate rent float
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const orgPayments = await db
+      .select({
+        id: payments.id,
+        amount: payments.amount,
+        paidAt: payments.paidAt,
+        invoiceId: payments.invoiceId,
+      })
+      .from(payments)
+      .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
+      .innerJoin(leases, eq(invoices.leaseId, leases.id))
+      .innerJoin(units, eq(leases.unitId, units.id))
+      .innerJoin(properties, eq(units.propertyId, properties.id))
+      .where(
+        and(
+          eq(properties.organizationId, organizationId),
+          gte(payments.paidAt, thirtyDaysAgo)
+        )
+      )
+      .orderBy(desc(payments.paidAt));
+
+    // Calculate metrics
+    const defaultDuration = config.rentFloatDefaultDuration || 10;
+    const yieldRate = parseFloat(config.rentFloatYieldRate || "5.50") / 100; // Convert to decimal
+    
+    let totalFloat = 0;
+    let totalDays = 0;
+    const processedPayments = orgPayments.map((payment) => {
+      const amount = parseFloat(payment.amount);
+      const daysInFloat = defaultDuration; // Use default duration for simplicity
+      
+      // Calculate yield for this payment: principal * (days/365) * annualRate
+      const yieldGenerated = amount * (daysInFloat / 365) * yieldRate;
+      
+      totalFloat += amount;
+      totalDays += daysInFloat;
+      
+      return {
+        id: payment.id,
+        amount: payment.amount,
+        paidAt: payment.paidAt,
+        daysInFloat,
+        yieldGenerated: yieldGenerated.toFixed(2),
+      };
+    });
+
+    const averageDuration = processedPayments.length > 0 
+      ? Math.round(totalDays / processedPayments.length) 
+      : defaultDuration;
+
+    // Calculate total monthly yield
+    const monthlyYield = processedPayments.reduce(
+      (sum, p) => sum + parseFloat(p.yieldGenerated), 
+      0
+    );
+
+    // Normalize yield shares (architect guidance: shares should sum to 100%)
+    const ownerSharePct = parseFloat(config.rentFloatOwnerShare || "3.00");
+    const tenantSharePct = parseFloat(config.rentFloatTenantShare || "1.25");
+    const naltosSharePct = parseFloat(config.rentFloatNaltosShare || "0.75");
+    const totalSharePct = ownerSharePct + tenantSharePct + naltosSharePct;
+
+    // Distribute monthly yield proportionally - normalize each share by total
+    const ownerShare = totalSharePct > 0 ? (monthlyYield * ownerSharePct / totalSharePct) : 0;
+    const tenantShare = totalSharePct > 0 ? (monthlyYield * tenantSharePct / totalSharePct) : 0;
+    const naltosShare = totalSharePct > 0 ? (monthlyYield * naltosSharePct / totalSharePct) : 0;
+
+    return {
+      config,
+      totalFloat: totalFloat.toFixed(2),
+      averageDuration,
+      monthlyYield: monthlyYield.toFixed(2),
+      ownerShare: ownerShare.toFixed(2),
+      tenantShare: tenantShare.toFixed(2),
+      naltosShare: naltosShare.toFixed(2),
+      recentPayments: processedPayments,
+    };
   }
 }
 

@@ -160,6 +160,13 @@ export const organizationSettings = pgTable("organization_settings", {
   complianceMode: complianceModeEnum("compliance_mode").notNull().default("indirect_only"),
   pmsProvider: pmsProviderEnum("pms_provider"),
   pmsApiKey: text("pms_api_key"),
+  // Rent Float Treasury Configuration
+  rentFloatEnabled: boolean("rent_float_enabled").default(true).notNull(),
+  rentFloatYieldRate: decimal("rent_float_yield_rate", { precision: 5, scale: 2 }).default("5.50").notNull(), // Annual yield rate %
+  rentFloatOwnerShare: decimal("rent_float_owner_share", { precision: 4, scale: 2 }).default("3.00").notNull(), // Owner share %
+  rentFloatTenantShare: decimal("rent_float_tenant_share", { precision: 4, scale: 2 }).default("1.25").notNull(), // Tenant share %
+  rentFloatNaltosShare: decimal("rent_float_naltos_share", { precision: 4, scale: 2 }).default("0.75").notNull(), // Naltos share %
+  rentFloatDefaultDuration: integer("rent_float_default_duration").default(10).notNull(), // Days between payment and disbursement
 });
 
 // Tenant Wallets - for consumer-side balance and yield accounts
