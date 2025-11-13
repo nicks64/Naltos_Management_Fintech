@@ -6,7 +6,8 @@ import {
   BarChart3, 
   Bot, 
   Settings,
-  Building2
+  Building2,
+  TrendingUp
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,6 +56,12 @@ const menuItems = [
     title: "Crypto Treasury",
     url: "/crypto-treasury",
     icon: Coins,
+    roles: ["Admin", "CFO"] as UserRole[],
+  },
+  {
+    title: "Rent Float Treasury",
+    url: "/rent-float",
+    icon: TrendingUp,
     roles: ["Admin", "CFO"] as UserRole[],
   },
   {
