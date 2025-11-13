@@ -38,7 +38,7 @@ Naltos is a sophisticated dual-sided property management platform with integrate
 - `treasury_subscriptions` - User subscriptions to treasury products
 - `crypto_wallets` - Stablecoin wallet balances (USDC, USDT, DAI)
 - `crypto_transactions` - Crypto transaction history (deposits, conversions, withdrawals)
-- `organization_settings` - Org configuration
+- `organization_settings` - Org configuration (includes rent float settings: yield rates, split percentages, float duration)
 - `audit_logs` - Compliance audit trail
 
 ### Relationships
@@ -97,6 +97,11 @@ Naltos is a sophisticated dual-sided property management platform with integrate
 - `POST /api/crypto/to-usd` - Convert crypto to USD (0.2% fee, 1-2 day settlement)
 - `GET /api/crypto/transactions` - Get crypto transaction history
 
+### Rent Float Treasury (`/api/rent-float`)
+- `GET /api/rent-float` - Get rent float metrics and cash flow model
+  - Returns: totalFloat, averageDuration, monthlyYield, ownerShare, tenantShare, naltosShare, recentPayments, config
+  - Calculates yield on rent payment float between tenant payment and owner disbursement
+
 ### Tenant Crypto (`/api/tenant/crypto/*`)
 - `GET /api/tenant/crypto/wallets` - Get tenant stablecoin balances
 - `POST /api/tenant/crypto/convert` - Convert between stablecoins
@@ -132,6 +137,7 @@ Naltos is a sophisticated dual-sided property management platform with integrate
 - `Reconciliation` - Two-pane ledger matching
 - `Treasury` - Product cards with subscribe/redeem
 - `CryptoTreasury` - Stablecoin wallet management with conversions and transactions
+- `RentFloat` - Rent float treasury dashboard with visual cash flow diagram and yield distribution
 - `Reports` - Charts and analytics
 - `Agent` - AI business intelligence chat
 - `Settings` - Org/user/PMS/compliance config
