@@ -12,6 +12,9 @@ export const treasuryProductTypeEnum = pgEnum("treasury_product_type", ["NRF", "
 export const complianceModeEnum = pgEnum("compliance_mode", ["indirect_only", "accredited_access"]);
 export const cryptoCoinEnum = pgEnum("crypto_coin", ["USDC", "USDT", "DAI"]);
 export const cryptoTransactionTypeEnum = pgEnum("crypto_transaction_type", ["deposit", "withdrawal", "conversion", "rent_payment"]);
+export const bridgeDirectionEnum = pgEnum("bridge_direction", ["inbound", "outbound"]);
+export const bridgeStatusEnum = pgEnum("bridge_status", ["pending", "converting", "awaiting_sync", "settled", "failed"]);
+export const bridgeConversionStrategyEnum = pgEnum("bridge_conversion_strategy", ["immediate", "daily", "optimal_yield"]);
 
 // Organizations table
 export const organizations = pgTable("organizations", {
@@ -167,6 +170,14 @@ export const organizationSettings = pgTable("organization_settings", {
   rentFloatTenantShare: decimal("rent_float_tenant_share", { precision: 4, scale: 2 }).default("1.25").notNull(), // Tenant share %
   rentFloatNaltosShare: decimal("rent_float_naltos_share", { precision: 4, scale: 2 }).default("0.75").notNull(), // Naltos share %
   rentFloatDefaultDuration: integer("rent_float_default_duration").default(10).notNull(), // Days between payment and disbursement
+  // Stablecoin Bridge Configuration
+  bridgeEnabled: boolean("bridge_enabled").default(false).notNull(),
+  bridgeAutoConvert: boolean("bridge_auto_convert").default(true).notNull(), // Auto-convert on receipt vs manual
+  bridgeConversionStrategy: bridgeConversionStrategyEnum("bridge_conversion_strategy").default("immediate").notNull(),
+  bridgeYieldRate: decimal("bridge_yield_rate", { precision: 5, scale: 2 }).default("4.75").notNull(), // Yield earned on float
+  bridgeConversionFeeRate: decimal("bridge_conversion_fee_rate", { precision: 4, scale: 2 }).default("0.30").notNull(), // Conversion fee %
+  appfolioApiKey: text("appfolio_api_key"), // NOTE: Encrypted at application layer before storage
+  appfolioAccountId: text("appfolio_account_id"),
 });
 
 // Tenant Wallets - for consumer-side balance and yield accounts
@@ -212,6 +223,65 @@ export const cryptoTransactions = pgTable("crypto_transactions", {
   exchangeRate: decimal("exchange_rate", { precision: 12, scale: 6 }),
   status: text("status").notNull().default("completed"), // completed, pending, failed
   txHash: text("tx_hash"), // Mock transaction hash
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Bridge Conversion Jobs - queue for stablecoin→USD conversions
+export const bridgeConversionJobs = pgTable("bridge_conversion_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  direction: bridgeDirectionEnum("direction").notNull(), // inbound (crypto→fiat) or outbound (fiat→crypto)
+  status: bridgeStatusEnum("status").notNull().default("pending"),
+  conversionStrategy: bridgeConversionStrategyEnum("conversion_strategy").notNull().default("immediate"),
+  invoiceId: varchar("invoice_id").references(() => invoices.id), // For inbound rent payments
+  cryptoTransactionId: varchar("crypto_transaction_id").references(() => cryptoTransactions.id),
+  fromCoin: cryptoCoinEnum("from_coin"),
+  cryptoAmount: decimal("crypto_amount", { precision: 18, scale: 8 }),
+  targetUsdAmount: decimal("target_usd_amount", { precision: 12, scale: 2 }),
+  slippageTolerance: decimal("slippage_tolerance", { precision: 5, scale: 2 }).default("0.5"), // 0.5% default
+  scheduledFor: timestamp("scheduled_for"), // For delayed conversions
+  floatStartedAt: timestamp("float_started_at"), // When crypto was received
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Bridge Conversions - immutable execution records
+export const bridgeConversions = pgTable("bridge_conversions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobId: varchar("job_id").notNull().references(() => bridgeConversionJobs.id, { onDelete: "cascade" }),
+  cryptoAmount: decimal("crypto_amount", { precision: 18, scale: 8 }).notNull(),
+  usdAmount: decimal("usd_amount", { precision: 12, scale: 2 }).notNull(),
+  exchangeRate: decimal("exchange_rate", { precision: 12, scale: 6 }).notNull(),
+  conversionFee: decimal("conversion_fee", { precision: 12, scale: 2 }).notNull(),
+  yieldEarned: decimal("yield_earned", { precision: 12, scale: 2 }).default("0"), // Yield from holding float
+  floatDuration: integer("float_duration"), // Days between receipt and conversion
+  executedAt: timestamp("executed_at").defaultNow().notNull(),
+});
+
+// Bridge Sync Logs - track AppFolio/Buildium API interactions
+export const bridgeSyncLogs = pgTable("bridge_sync_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  conversionId: varchar("conversion_id").references(() => bridgeConversions.id),
+  direction: bridgeDirectionEnum("direction").notNull(),
+  provider: pmsProviderEnum("provider").notNull(), // AppFolio, Yardi, Buildium
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  status: text("status").notNull().default("pending"), // pending, success, failed
+  pmsTransactionId: text("pms_transaction_id"), // External system ID
+  retryCount: integer("retry_count").default(0).notNull(),
+  lastError: text("last_error"),
+  syncedAt: timestamp("synced_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Bridge Payment Links - join table for audit trail
+export const bridgePaymentLinks = pgTable("bridge_payment_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: varchar("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+  cryptoTransactionId: varchar("crypto_transaction_id").references(() => cryptoTransactions.id),
+  paymentId: varchar("payment_id").references(() => payments.id),
+  conversionJobId: varchar("conversion_job_id").references(() => bridgeConversionJobs.id),
+  allocationAmount: decimal("allocation_amount", { precision: 12, scale: 2 }).notNull(), // For partial payments
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -352,6 +422,60 @@ export const cryptoTransactionsRelations = relations(cryptoTransactions, ({ one 
   }),
 }));
 
+export const bridgeConversionJobsRelations = relations(bridgeConversionJobs, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [bridgeConversionJobs.organizationId],
+    references: [organizations.id],
+  }),
+  invoice: one(invoices, {
+    fields: [bridgeConversionJobs.invoiceId],
+    references: [invoices.id],
+  }),
+  cryptoTransaction: one(cryptoTransactions, {
+    fields: [bridgeConversionJobs.cryptoTransactionId],
+    references: [cryptoTransactions.id],
+  }),
+  conversions: many(bridgeConversions),
+}));
+
+export const bridgeConversionsRelations = relations(bridgeConversions, ({ one, many }) => ({
+  job: one(bridgeConversionJobs, {
+    fields: [bridgeConversions.jobId],
+    references: [bridgeConversionJobs.id],
+  }),
+  syncLogs: many(bridgeSyncLogs),
+}));
+
+export const bridgeSyncLogsRelations = relations(bridgeSyncLogs, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [bridgeSyncLogs.organizationId],
+    references: [organizations.id],
+  }),
+  conversion: one(bridgeConversions, {
+    fields: [bridgeSyncLogs.conversionId],
+    references: [bridgeConversions.id],
+  }),
+}));
+
+export const bridgePaymentLinksRelations = relations(bridgePaymentLinks, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [bridgePaymentLinks.invoiceId],
+    references: [invoices.id],
+  }),
+  cryptoTransaction: one(cryptoTransactions, {
+    fields: [bridgePaymentLinks.cryptoTransactionId],
+    references: [cryptoTransactions.id],
+  }),
+  payment: one(payments, {
+    fields: [bridgePaymentLinks.paymentId],
+    references: [payments.id],
+  }),
+  conversionJob: one(bridgeConversionJobs, {
+    fields: [bridgePaymentLinks.conversionJobId],
+    references: [bridgeConversionJobs.id],
+  }),
+}));
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
@@ -372,6 +496,10 @@ export const insertTenantWalletSchema = createInsertSchema(tenantWallets).omit({
 export const insertTenantPaymentMethodSchema = createInsertSchema(tenantPaymentMethods).omit({ id: true, createdAt: true });
 export const insertCryptoWalletSchema = createInsertSchema(cryptoWallets).omit({ id: true, createdAt: true });
 export const insertCryptoTransactionSchema = createInsertSchema(cryptoTransactions).omit({ id: true, createdAt: true });
+export const insertBridgeConversionJobSchema = createInsertSchema(bridgeConversionJobs).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertBridgeConversionSchema = createInsertSchema(bridgeConversions).omit({ id: true, executedAt: true });
+export const insertBridgeSyncLogSchema = createInsertSchema(bridgeSyncLogs).omit({ id: true, createdAt: true });
+export const insertBridgePaymentLinkSchema = createInsertSchema(bridgePaymentLinks).omit({ id: true, createdAt: true });
 
 // Types
 export type Organization = typeof organizations.$inferSelect;
@@ -422,3 +550,15 @@ export type TreasuryProductType = "NRF" | "NRK" | "NRC";
 export type ComplianceMode = "indirect_only" | "accredited_access";
 export type CryptoCoin = "USDC" | "USDT" | "DAI";
 export type CryptoTransactionType = "deposit" | "withdrawal" | "conversion" | "rent_payment";
+export type BridgeDirection = "inbound" | "outbound";
+export type BridgeStatus = "pending" | "converting" | "awaiting_sync" | "settled" | "failed";
+export type BridgeConversionStrategy = "immediate" | "daily" | "optimal_yield";
+
+export type BridgeConversionJob = typeof bridgeConversionJobs.$inferSelect;
+export type InsertBridgeConversionJob = z.infer<typeof insertBridgeConversionJobSchema>;
+export type BridgeConversion = typeof bridgeConversions.$inferSelect;
+export type InsertBridgeConversion = z.infer<typeof insertBridgeConversionSchema>;
+export type BridgeSyncLog = typeof bridgeSyncLogs.$inferSelect;
+export type InsertBridgeSyncLog = z.infer<typeof insertBridgeSyncLogSchema>;
+export type BridgePaymentLink = typeof bridgePaymentLinks.$inferSelect;
+export type InsertBridgePaymentLink = z.infer<typeof insertBridgePaymentLinkSchema>;
