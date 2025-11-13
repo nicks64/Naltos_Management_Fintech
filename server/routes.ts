@@ -346,6 +346,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Rent Float Treasury Routes ============
+  app.get("/api/rent-float", requireRole("Admin", "CFO"), async (req, res) => {
+    try {
+      const orgId = req.organizationId!;
+
+      const data = await storage.getRentFloatData(orgId);
+
+      res.json(data);
+    } catch (error: any) {
+      console.error("Rent float error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Agent Routes ============
   // All roles can access agent
   app.post("/api/agent", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
