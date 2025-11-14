@@ -9,7 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Home, Wallet, Bot, FileText, Settings, Building2 } from "lucide-react";
+import { Home, Wallet, Store, Bot, FileText, Settings, Building2 } from "lucide-react";
 
 const tenantNavItems = [
   {
@@ -21,6 +21,11 @@ const tenantNavItems = [
     title: "Wallet",
     url: "/tenant/wallet",
     icon: Wallet,
+  },
+  {
+    title: "Merchants",
+    url: "/tenant/merchants",
+    icon: Store,
   },
   {
     title: "Assistant",

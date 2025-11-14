@@ -27,6 +27,7 @@ import NotFound from "@/pages/not-found";
 // Tenant pages
 import TenantHome from "@/pages/tenant/home";
 import TenantWallet from "@/pages/tenant/wallet";
+import TenantMerchants from "@/pages/tenant/merchants";
 import TenantAgent from "@/pages/tenant/agent";
 import TenantReports from "@/pages/tenant/reports";
 import TenantSettings from "@/pages/tenant/settings";
@@ -142,6 +143,9 @@ function AppContent() {
                 </Route>
                 <Route path="/tenant/wallet">
                   {() => <ProtectedRoute component={TenantWallet} path="/tenant/wallet" />}
+                </Route>
+                <Route path="/tenant/merchants">
+                  {() => <ProtectedRoute component={TenantMerchants} path="/tenant/merchants" />}
                 </Route>
                 <Route path="/tenant/agent">
                   {() => <ProtectedRoute component={TenantAgent} path="/tenant/agent" />}
