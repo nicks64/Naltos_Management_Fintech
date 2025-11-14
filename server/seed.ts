@@ -17,6 +17,8 @@ import {
   cryptoTransactions,
   vendors,
   vendorInvoices,
+  merchants,
+  merchantTransactions,
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -584,6 +586,97 @@ export async function seedDatabase() {
 
   const seededInvoices = await db.insert(vendorInvoices).values(vendorInvoiceData).returning();
   console.log(`${seededInvoices.length} vendor invoices created (showcasing 3-9× yield multiplier vs rent float)!`);
+
+  // Seed merchants for tenant transaction demo (1-3 day settlement float - 3rd yield source)
+  console.log("Seeding merchants...");
+  const merchantData = [
+    { name: "Whole Foods Market", category: "Grocery" as const, settlementDays: 2, yieldRate: "5.50" },
+    { name: "Target", category: "Shopping" as const, settlementDays: 3, yieldRate: "5.50" },
+    { name: "Chipotle Mexican Grill", category: "Restaurants" as const, settlementDays: 1, yieldRate: "5.50" },
+    { name: "AMC Theatres", category: "Entertainment" as const, settlementDays: 2, yieldRate: "5.50" },
+    { name: "Shell Gas Station", category: "Services" as const, settlementDays: 1, yieldRate: "5.50" },
+    { name: "Starbucks", category: "Restaurants" as const, settlementDays: 1, yieldRate: "5.50" },
+    { name: "Amazon", category: "Shopping" as const, settlementDays: 3, yieldRate: "5.50" },
+    { name: "Uber", category: "Transportation" as const, settlementDays: 2, yieldRate: "5.50" },
+  ];
+
+  const seededMerchants = await db.insert(merchants).values(
+    merchantData.map(m => ({
+      organizationId: demoOrg.id,
+      name: m.name,
+      category: m.category,
+      settlementDays: m.settlementDays,
+      yieldRate: m.yieldRate,
+      description: `${m.category} merchant accepting NUSD payments`,
+      active: true,
+    }))
+  ).returning();
+
+  console.log(`${seededMerchants.length} merchants created!`);
+
+  // Seed merchant transactions for demo tenant (showcasing 1-3 day settlement float - shortest yield window)
+  console.log("Seeding merchant transactions...");
+  const demoTenant = createdTenants[0]; // Use first tenant for demo
+  const now3 = new Date();
+  const merchantTxData: any[] = [];
+
+  seededMerchants.forEach((merchant, idx) => {
+    // Transaction 1: Recent purchase (pending settlement)
+    const tx1Date = new Date(now3);
+    tx1Date.setDate(now3.getDate() - 2);
+    const tx1Settlement = new Date(tx1Date);
+    tx1Settlement.setDate(tx1Date.getDate() + merchant.settlementDays);
+    const amount1 = idx === 0 ? 125.50 : idx === 1 ? 89.99 : idx === 2 ? 45.20 : idx === 3 ? 78.00 : idx === 4 ? 52.30 : idx === 5 ? 12.75 : idx === 6 ? 156.40 : 35.00;
+    const yieldRate = parseFloat(merchant.yieldRate);
+    const yield1 = amount1 * (merchant.settlementDays / 365) * (yieldRate / 100);
+    const tenantShare1 = yield1 * 0.0125; // 1.25% to tenant
+
+    merchantTxData.push({
+      merchantId: merchant.id,
+      tenantId: demoTenant.id,
+      organizationId: demoOrg.id,
+      amount: amount1.toFixed(2),
+      transactionDate: tx1Date,
+      settlementDate: tx1Settlement,
+      status: "pending" as const,
+      settlementDays: merchant.settlementDays,
+      yieldRate: merchant.yieldRate,
+      yieldGenerated: yield1.toFixed(2),
+      tenantYieldShare: tenantShare1.toFixed(2),
+      description: `Purchase at ${merchant.name}`,
+    });
+
+    // Transaction 2: Older settled transaction
+    if (idx < 5) { // Only create settled transactions for first 5 merchants
+      const tx2Date = new Date(now3);
+      tx2Date.setDate(now3.getDate() - 10);
+      const tx2Settlement = new Date(tx2Date);
+      tx2Settlement.setDate(tx2Date.getDate() + merchant.settlementDays);
+      const tx2Settled = new Date(tx2Settlement);
+      const amount2 = idx === 0 ? 215.80 : idx === 1 ? 142.30 : idx === 2 ? 68.50 : idx === 3 ? 95.00 : 28.40;
+      const yield2 = amount2 * (merchant.settlementDays / 365) * (yieldRate / 100);
+      const tenantShare2 = yield2 * 0.0125;
+
+      merchantTxData.push({
+        merchantId: merchant.id,
+        tenantId: demoTenant.id,
+        organizationId: demoOrg.id,
+        amount: amount2.toFixed(2),
+        transactionDate: tx2Date,
+        settlementDate: tx2Settlement,
+        settledAt: tx2Settled,
+        status: "settled" as const,
+        settlementDays: merchant.settlementDays,
+        yieldRate: merchant.yieldRate,
+        yieldGenerated: yield2.toFixed(2),
+        tenantYieldShare: tenantShare2.toFixed(2),
+        description: `Purchase at ${merchant.name}`,
+      });
+    }
+  });
+
+  const seededMerchantTxs = await db.insert(merchantTransactions).values(merchantTxData).returning();
+  console.log(`${seededMerchantTxs.length} merchant transactions created (showcasing 1-3 day settlement float)!`);
 
   console.log("Database seeded successfully!");
   console.log(`- Organization: ${demoOrg.name}`);
