@@ -38,6 +38,7 @@ The platform features a dual-sided interface: a Business Console for property ma
     - Role-Based Access for Admin, PropertyManager, CFO, Analyst, Tenant, and Vendor.
 - **NUSD**: A private, fully-backed, redeemable internal accounting unit representing $1 held in short-term treasury assets, instantly redeemable 1:1 for USD, and programmable for automated payouts and yield distribution.
 - **Vendor Account System**: Full vendor portal with professional authentication enabling vendors to log in once and access invoices/balances across all property management companies they work with. Uses `vendor_user_links` junction table for explicit multi-org access, eliminating reliance on email heuristics. Vendors have nullable `users.organizationId` to support cross-org visibility while maintaining organizational boundaries for property managers.
+- **Vendor Authentication**: Secure magic-link authentication system with dedicated `/api/vendor-auth/*` endpoints. The `requireVendor` middleware revalidates `vendor_user_links` on every request (no session caching) for immediate permission revocation. Vendor sessions store only `{ userId, userRole: "Vendor" }` with `organizationId=undefined`. Regular login rejects vendor users to prevent cross-role session reuse. Session regeneration prevents fixation attacks.
 
 ### Feature Specifications
 - **Dashboard KPIs**: Displays operational (On-Time %, DSO, Delinquent), financial (Opex/Unit, Treasury AUM, Current Yield), and float yield metrics (Vendor Float AUM, Vendor Yield, Rent Float Yield) in a 3x3 grid.
