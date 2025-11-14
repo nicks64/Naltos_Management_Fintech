@@ -24,6 +24,9 @@ export const vendorInvoiceStatusEnum = pgEnum("vendor_invoice_status", ["pending
 // Merchant Transaction System Enums - For 1-3 day settlement float
 export const merchantCategoryEnum = pgEnum("merchant_category", ["Grocery", "Restaurants", "Transportation", "Entertainment", "Shopping", "Services", "Utilities", "Health", "Other"]);
 export const merchantTransactionStatusEnum = pgEnum("merchant_transaction_status", ["pending", "settled", "refunded"]);
+// Crypto Treasury Enums - For automated stablecoin yield orchestration
+export const cryptoTreasuryFlowTypeEnum = pgEnum("crypto_treasury_flow_type", ["bridge_inbound", "bridge_outbound", "wallet_transfer", "deployment_in", "deployment_out", "yield_accrual"]);
+export const cryptoDeploymentStatusEnum = pgEnum("crypto_deployment_status", ["pending", "active", "matured", "withdrawn"]);
 
 // Organizations table
 export const organizations = pgTable("organizations", {
@@ -370,6 +373,61 @@ export const bridgePaymentLinks = pgTable("bridge_payment_links", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ====== CRYPTO TREASURY ORCHESTRATION ======
+// Automated stablecoin deployment into yield-generating treasury products
+
+// Crypto Treasury Positions - Materialized snapshot of organization's stablecoin balances
+export const cryptoTreasuryPositions = pgTable("crypto_treasury_positions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  coin: cryptoCoinEnum("coin").notNull(), // USDC, USDT, DAI, NUSD
+  asOf: timestamp("as_of").defaultNow().notNull(), // Snapshot timestamp
+  availableBalance: decimal("available_balance", { precision: 18, scale: 8 }).notNull().default("0"), // Idle balance ready for deployment
+  deployedBalance: decimal("deployed_balance", { precision: 18, scale: 8 }).notNull().default("0"), // Currently deployed in treasury products
+  reservedBalance: decimal("reserved_balance", { precision: 18, scale: 8 }).notNull().default("0"), // Reserved for pending operations
+  totalYieldAccrued: decimal("total_yield_accrued", { precision: 18, scale: 8 }).notNull().default("0"), // Lifetime yield from deployments
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  // Unique constraint to prevent duplicate snapshots for same org/coin/timestamp
+  orgCoinAsOfUnique: sql`UNIQUE (organization_id, coin, as_of)`,
+}));
+
+// Crypto Treasury Deployments - Tracks stablecoin deployments into treasury products
+export const cryptoTreasuryDeployments = pgTable("crypto_treasury_deployments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  treasuryProductId: varchar("treasury_product_id").notNull().references(() => treasuryProducts.id, { onDelete: "restrict" }),
+  sourceWalletId: varchar("source_wallet_id").notNull().references(() => cryptoWallets.id, { onDelete: "restrict" }), // Required: must track source wallet
+  coin: cryptoCoinEnum("coin").notNull(), // Stablecoin used for deployment
+  deploymentAmount: decimal("deployment_amount", { precision: 18, scale: 8 }).notNull(), // Amount deployed
+  status: cryptoDeploymentStatusEnum("status").notNull().default("pending"),
+  deployedAt: timestamp("deployed_at").defaultNow().notNull(),
+  maturityDate: timestamp("maturity_date"), // Expected maturity/redemption date
+  withdrawnAt: timestamp("withdrawn_at"), // Actual withdrawal timestamp
+  cumulativeYield: decimal("cumulative_yield", { precision: 18, scale: 8 }).notNull().default("0"), // Total yield earned
+  reinvestPolicy: boolean("reinvest_policy").default(true).notNull(), // Auto-reinvest yield
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Crypto Treasury Flows - Event stream tracking all crypto treasury movements
+export const cryptoTreasuryFlows = pgTable("crypto_treasury_flows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  flowType: cryptoTreasuryFlowTypeEnum("flow_type").notNull(), // bridge_inbound, deployment_in, yield_accrual, etc.
+  coin: cryptoCoinEnum("coin").notNull(),
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  // Foreign key references for audit trail
+  bridgeConversionJobId: varchar("bridge_conversion_job_id").references(() => bridgeConversionJobs.id, { onDelete: "set null" }),
+  bridgeConversionId: varchar("bridge_conversion_id").references(() => bridgeConversions.id, { onDelete: "set null" }),
+  cryptoTransactionId: varchar("crypto_transaction_id").references(() => cryptoTransactions.id, { onDelete: "set null" }),
+  deploymentId: varchar("deployment_id").references(() => cryptoTreasuryDeployments.id, { onDelete: "set null" }),
+  description: text("description"), // Human-readable description of the flow
+  metadata: text("metadata"), // JSON metadata for additional context
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),
@@ -608,6 +666,52 @@ export const merchantTransactionsRelations = relations(merchantTransactions, ({ 
   }),
 }));
 
+export const cryptoTreasuryPositionsRelations = relations(cryptoTreasuryPositions, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [cryptoTreasuryPositions.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const cryptoTreasuryDeploymentsRelations = relations(cryptoTreasuryDeployments, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [cryptoTreasuryDeployments.organizationId],
+    references: [organizations.id],
+  }),
+  treasuryProduct: one(treasuryProducts, {
+    fields: [cryptoTreasuryDeployments.treasuryProductId],
+    references: [treasuryProducts.id],
+  }),
+  sourceWallet: one(cryptoWallets, {
+    fields: [cryptoTreasuryDeployments.sourceWalletId],
+    references: [cryptoWallets.id],
+  }),
+  flows: many(cryptoTreasuryFlows),
+}));
+
+export const cryptoTreasuryFlowsRelations = relations(cryptoTreasuryFlows, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [cryptoTreasuryFlows.organizationId],
+    references: [organizations.id],
+  }),
+  bridgeConversionJob: one(bridgeConversionJobs, {
+    fields: [cryptoTreasuryFlows.bridgeConversionJobId],
+    references: [bridgeConversionJobs.id],
+  }),
+  bridgeConversion: one(bridgeConversions, {
+    fields: [cryptoTreasuryFlows.bridgeConversionId],
+    references: [bridgeConversions.id],
+  }),
+  cryptoTransaction: one(cryptoTransactions, {
+    fields: [cryptoTreasuryFlows.cryptoTransactionId],
+    references: [cryptoTransactions.id],
+  }),
+  deployment: one(cryptoTreasuryDeployments, {
+    fields: [cryptoTreasuryFlows.deploymentId],
+    references: [cryptoTreasuryDeployments.id],
+  }),
+}));
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
 export const insertVendorSchema = createInsertSchema(vendors).omit({ id: true, createdAt: true });
@@ -646,6 +750,9 @@ export const insertBridgeConversionJobSchema = createInsertSchema(bridgeConversi
 export const insertBridgeConversionSchema = createInsertSchema(bridgeConversions).omit({ id: true, executedAt: true });
 export const insertBridgeSyncLogSchema = createInsertSchema(bridgeSyncLogs).omit({ id: true, createdAt: true });
 export const insertBridgePaymentLinkSchema = createInsertSchema(bridgePaymentLinks).omit({ id: true, createdAt: true });
+export const insertCryptoTreasuryPositionSchema = createInsertSchema(cryptoTreasuryPositions).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCryptoTreasuryDeploymentSchema = createInsertSchema(cryptoTreasuryDeployments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCryptoTreasuryFlowSchema = createInsertSchema(cryptoTreasuryFlows).omit({ id: true, createdAt: true });
 
 // Types
 export type Organization = typeof organizations.$inferSelect;
@@ -699,6 +806,8 @@ export type CryptoTransactionType = "deposit" | "withdrawal" | "conversion" | "r
 export type BridgeDirection = "inbound" | "outbound";
 export type BridgeStatus = "pending" | "converting" | "awaiting_sync" | "settled" | "failed";
 export type BridgeConversionStrategy = "immediate" | "daily" | "optimal_yield";
+export type CryptoTreasuryFlowType = "bridge_inbound" | "bridge_outbound" | "wallet_transfer" | "deployment_in" | "deployment_out" | "yield_accrual";
+export type CryptoDeploymentStatus = "pending" | "active" | "matured" | "withdrawn";
 
 export type BridgeConversionJob = typeof bridgeConversionJobs.$inferSelect;
 export type InsertBridgeConversionJob = z.infer<typeof insertBridgeConversionJobSchema>;
@@ -716,3 +825,9 @@ export type Merchant = typeof merchants.$inferSelect;
 export type InsertMerchant = z.infer<typeof insertMerchantSchema>;
 export type MerchantTransaction = typeof merchantTransactions.$inferSelect;
 export type InsertMerchantTransaction = z.infer<typeof insertMerchantTransactionSchema>;
+export type CryptoTreasuryPosition = typeof cryptoTreasuryPositions.$inferSelect;
+export type InsertCryptoTreasuryPosition = z.infer<typeof insertCryptoTreasuryPositionSchema>;
+export type CryptoTreasuryDeployment = typeof cryptoTreasuryDeployments.$inferSelect;
+export type InsertCryptoTreasuryDeployment = z.infer<typeof insertCryptoTreasuryDeploymentSchema>;
+export type CryptoTreasuryFlow = typeof cryptoTreasuryFlows.$inferSelect;
+export type InsertCryptoTreasuryFlow = z.infer<typeof insertCryptoTreasuryFlowSchema>;
