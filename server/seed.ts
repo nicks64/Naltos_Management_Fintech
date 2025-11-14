@@ -15,6 +15,8 @@ import {
   magicCodes,
   cryptoWallets,
   cryptoTransactions,
+  vendors,
+  vendorInvoices,
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -480,6 +482,108 @@ export async function seedDatabase() {
       createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     });
   }
+
+  // Seed vendors for instant payment demo (Net30-90 yield amplification)
+  console.log("Seeding vendors...");
+  const vendorData = [
+    { name: "ABC Maintenance Co.", category: "Maintenance" as const, defaultPaymentTerms: "Net60" as const },
+    { name: "City Power & Light", category: "Utilities" as const, defaultPaymentTerms: "Net30" as const },
+    { name: "Premier Insurance Group", category: "Insurance" as const, defaultPaymentTerms: "Net45" as const },
+    { name: "Green Lawn Services", category: "Landscaping" as const, defaultPaymentTerms: "Net30" as const },
+    { name: "SecureGuard Security", category: "Security" as const, defaultPaymentTerms: "Net90" as const },
+    { name: "CleanPro Janitorial", category: "Cleaning" as const, defaultPaymentTerms: "Net30" as const },
+  ];
+
+  const seededVendors = await db.insert(vendors).values(
+    vendorData.map(v => ({
+      organizationId: demoOrg.id,
+      name: v.name,
+      category: v.category,
+      defaultPaymentTerms: v.defaultPaymentTerms,
+      email: `contact@${v.name.toLowerCase().replace(/[^a-z]/g, '')}.com`,
+      phone: "(555) " + Math.floor(Math.random() * 900 + 100) + "-" + Math.floor(Math.random() * 9000 + 1000),
+    }))
+  ).returning();
+
+  console.log(`${seededVendors.length} vendors created!`);
+
+  // Seed vendor invoices showing instant vs traditional payment (showcases 3-9× yield multiplier)
+  console.log("Seeding vendor invoices...");
+  const now2 = new Date();
+  const vendorInvoiceData: any[] = [];
+
+  // Create mix of instant-paid and pending invoices for each vendor
+  seededVendors.forEach((vendor, idx) => {
+    const termDays = vendor.defaultPaymentTerms === "Net30" ? 30 : 
+                     vendor.defaultPaymentTerms === "Net45" ? 45 :
+                     vendor.defaultPaymentTerms === "Net60" ? 60 : 90;
+
+    // Invoice 1: Paid via instant (showcases yield generation - 3-9× rent float!)
+    const invoice1Date = new Date(now2);
+    invoice1Date.setDate(now2.getDate() - 20);
+    const invoice1Due = new Date(invoice1Date);
+    invoice1Due.setDate(invoice1Date.getDate() + termDays);
+    const invoice1Scheduled = new Date(invoice1Due);
+
+    const amount1 = (idx === 0 ? 12500 : idx === 1 ? 8900 : idx === 2 ? 15600 : idx === 3 ? 4200 : idx === 4 ? 22000 : 3500);
+    const advanceDate1 = new Date(invoice1Date);
+    advanceDate1.setDate(invoice1Date.getDate() + 1); // Paid next day via instant
+    const floatDays1 = Math.floor((invoice1Scheduled.getTime() - advanceDate1.getTime()) / (1000 * 60 * 60 * 24));
+    const yieldRate1 = 5.50; // 5.50% APY
+    const yield1 = amount1 * (floatDays1 / 365) * (yieldRate1 / 100);
+
+    vendorInvoiceData.push({
+      vendorId: vendor.id,
+      organizationId: demoOrg.id,
+      invoiceNumber: `INV-${vendor.name.substring(0, 3).toUpperCase()}-${1000 + idx}`,
+      amount: amount1.toFixed(2),
+      invoiceDate: invoice1Date,
+      dueDate: invoice1Due,
+      scheduledPaymentDate: invoice1Scheduled,
+      paymentTerms: vendor.defaultPaymentTerms,
+      status: "paid_instant" as const,
+      paidDate: advanceDate1,
+      advanceDate: advanceDate1,
+      paidViaInstant: true,
+      instantAdvanceAmount: amount1.toFixed(2),
+      floatDurationDays: floatDays1,
+      floatYieldRate: yieldRate1.toFixed(2),
+      yieldGenerated: yield1.toFixed(2),
+      description: `${vendor.category} services - ${invoice1Date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+    });
+
+    // Invoice 2: Pending (awaiting instant payment decision)
+    const invoice2Date = new Date(now2);
+    invoice2Date.setDate(now2.getDate() - 5);
+    const invoice2Due = new Date(invoice2Date);
+    invoice2Due.setDate(invoice2Date.getDate() + termDays);
+    const invoice2Scheduled = new Date(invoice2Due);
+
+    const amount2 = (idx === 0 ? 9800 : idx === 1 ? 7200 : idx === 2 ? 18400 : idx === 3 ? 5100 : idx === 4 ? 19500 : 4800);
+
+    vendorInvoiceData.push({
+      vendorId: vendor.id,
+      organizationId: demoOrg.id,
+      invoiceNumber: `INV-${vendor.name.substring(0, 3).toUpperCase()}-${2000 + idx}`,
+      amount: amount2.toFixed(2),
+      invoiceDate: invoice2Date,
+      dueDate: invoice2Due,
+      scheduledPaymentDate: invoice2Scheduled,
+      paymentTerms: vendor.defaultPaymentTerms,
+      status: "pending" as const,
+      paidDate: null,
+      advanceDate: null,
+      paidViaInstant: false,
+      instantAdvanceAmount: null,
+      floatDurationDays: null,
+      floatYieldRate: null,
+      yieldGenerated: null,
+      description: `${vendor.category} services - ${invoice2Date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+    });
+  });
+
+  const seededInvoices = await db.insert(vendorInvoices).values(vendorInvoiceData).returning();
+  console.log(`${seededInvoices.length} vendor invoices created (showcasing 3-9× yield multiplier vs rent float)!`);
 
   console.log("Database seeded successfully!");
   console.log(`- Organization: ${demoOrg.name}`);
