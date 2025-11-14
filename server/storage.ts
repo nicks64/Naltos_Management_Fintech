@@ -258,6 +258,23 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    // Calculate Vendor Float Metrics
+    const vendorInvoices = await db.select().from(vendorInvoices).where(eq(vendorInvoices.organizationId, organizationId));
+    
+    // Total vendor float AUM (all paid_instant invoices currently in float)
+    const paidInstantInvoices = vendorInvoices.filter(inv => inv.status === "paid_instant");
+    const vendorFloatAUM = paidInstantInvoices.reduce((sum, inv) => {
+      return sum + (inv.instantAdvanceAmount ? parseFloat(inv.instantAdvanceAmount) : 0);
+    }, 0);
+    
+    // Total vendor yield generated (all-time)
+    const vendorFloatYield = vendorInvoices
+      .filter(inv => inv.yieldGenerated)
+      .reduce((sum, inv) => sum + parseFloat(inv.yieldGenerated!), 0);
+    
+    // Active vendor invoices count (currently in float period)
+    const activeVendorInvoices = paidInstantInvoices.length;
+
     // Generate sparkline data (mock for now)
     const sparklineData = Array.from({ length: 30 }, (_, i) => ({
       value: 85 + Math.random() * 10,
@@ -270,6 +287,9 @@ export class DatabaseStorage implements IStorage {
       opexPerUnit,
       treasuryAUM,
       currentYield: weightedYield,
+      vendorFloatAUM,
+      vendorFloatYield,
+      activeVendorInvoices,
       sparklineData,
     };
   }
