@@ -12,6 +12,8 @@ export const treasuryProductTypeEnum = pgEnum("treasury_product_type", ["NRF", "
 export const complianceModeEnum = pgEnum("compliance_mode", ["indirect_only", "accredited_access"]);
 export const cryptoCoinEnum = pgEnum("crypto_coin", ["USDC", "USDT", "DAI", "NUSD"]);
 export const cryptoTransactionTypeEnum = pgEnum("crypto_transaction_type", ["deposit", "withdrawal", "conversion", "rent_payment"]);
+// TODO: Bridge System Enums - Schema ready, implementation deferred
+// These support future vendor/merchant payment flows when bridgeEnabled=true
 export const bridgeDirectionEnum = pgEnum("bridge_direction", ["inbound", "outbound"]);
 export const bridgeStatusEnum = pgEnum("bridge_status", ["pending", "converting", "awaiting_sync", "settled", "failed"]);
 export const bridgeConversionStrategyEnum = pgEnum("bridge_conversion_strategy", ["immediate", "daily", "optimal_yield"]);
@@ -227,7 +229,9 @@ export const cryptoTransactions = pgTable("crypto_transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Bridge Conversion Jobs - queue for bidirectional conversions (crypto↔fiat)
+// TODO: Bridge Conversion Jobs - Schema complete, backend/UI deferred
+// Future: Enables crypto→fiat rent payments and fiat→crypto vendor payouts
+// Gate behind organization_settings.bridgeEnabled flag
 export const bridgeConversionJobs = pgTable("bridge_conversion_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
@@ -249,7 +253,7 @@ export const bridgeConversionJobs = pgTable("bridge_conversion_jobs", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Bridge Conversions - immutable execution records
+// TODO: Bridge Conversions - Execution records (deferred implementation)
 export const bridgeConversions = pgTable("bridge_conversions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   jobId: varchar("job_id").notNull().references(() => bridgeConversionJobs.id, { onDelete: "cascade" }),
@@ -262,7 +266,7 @@ export const bridgeConversions = pgTable("bridge_conversions", {
   executedAt: timestamp("executed_at").defaultNow().notNull(),
 });
 
-// Bridge Sync Logs - track AppFolio/Buildium API interactions
+// TODO: Bridge Sync Logs - PMS integration audit trail (deferred)
 export const bridgeSyncLogs = pgTable("bridge_sync_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
@@ -278,7 +282,7 @@ export const bridgeSyncLogs = pgTable("bridge_sync_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Bridge Payment Links - join table for audit trail
+// TODO: Bridge Payment Links - Audit trail for crypto→invoice linking (deferred)
 export const bridgePaymentLinks = pgTable("bridge_payment_links", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   invoiceId: varchar("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),

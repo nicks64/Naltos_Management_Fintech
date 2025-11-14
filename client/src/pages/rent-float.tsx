@@ -59,7 +59,7 @@ export default function RentFloat() {
       <div>
         <h1 className="text-3xl font-semibold text-foreground">Rent Float Treasury</h1>
         <p className="text-muted-foreground mt-2">
-          Generate yield on rent payment float between tenant payment and owner disbursement
+          Transform rent flows into programmable yield-generating assets through automated treasury deployment
         </p>
       </div>
 

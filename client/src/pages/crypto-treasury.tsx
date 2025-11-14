@@ -131,7 +131,7 @@ export default function CryptoTreasury() {
       <div>
         <h1 className="text-4xl font-semibold tracking-tight mb-2">Crypto Treasury</h1>
         <p className="text-muted-foreground">
-          Manage your stablecoin holdings and conversions
+          Programmable dollar infrastructure for instant settlement and treasury automation
         </p>
       </div>
 
