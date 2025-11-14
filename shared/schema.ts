@@ -21,6 +21,9 @@ export const bridgeConversionStrategyEnum = pgEnum("bridge_conversion_strategy",
 export const vendorCategoryEnum = pgEnum("vendor_category", ["Maintenance", "Utilities", "Insurance", "Legal", "Marketing", "Property_Management", "Landscaping", "Cleaning", "Security", "Other"]);
 export const paymentTermsEnum = pgEnum("payment_terms", ["Net15", "Net30", "Net45", "Net60", "Net90", "Immediate"]);
 export const vendorInvoiceStatusEnum = pgEnum("vendor_invoice_status", ["pending", "paid_instant", "paid_traditional", "overdue"]);
+// Merchant Transaction System Enums - For 1-3 day settlement float
+export const merchantCategoryEnum = pgEnum("merchant_category", ["Grocery", "Restaurants", "Transportation", "Entertainment", "Shopping", "Services", "Utilities", "Health", "Other"]);
+export const merchantTransactionStatusEnum = pgEnum("merchant_transaction_status", ["pending", "settled", "refunded"]);
 
 // Organizations table
 export const organizations = pgTable("organizations", {
@@ -223,6 +226,38 @@ export const vendorInvoices = pgTable("vendor_invoices", {
   uniqueInvoiceNumber: sql`UNIQUE (organization_id, invoice_number)`,
 }));
 
+// Merchants - Consumer merchants where tenants spend NUSD
+export const merchants = pgTable("merchants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  category: merchantCategoryEnum("category").notNull(),
+  description: text("description"),
+  logoUrl: text("logo_url"),
+  settlementDays: integer("settlement_days").notNull().default(2), // 1-3 days settlement float
+  yieldRate: decimal("yield_rate", { precision: 5, scale: 2 }).notNull().default("5.50"), // APY for settlement float
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Merchant Transactions - Tenant purchases at merchants generating 1-3 day settlement float
+export const merchantTransactions = pgTable("merchant_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  merchantId: varchar("merchant_id").notNull().references(() => merchants.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  transactionDate: timestamp("transaction_date").defaultNow().notNull(),
+  settlementDate: timestamp("settlement_date").notNull(), // When merchant receives funds (1-3 days later)
+  status: merchantTransactionStatusEnum("status").notNull().default("pending"),
+  settledAt: timestamp("settled_at"),
+  settlementDays: integer("settlement_days").notNull(), // Actual settlement float duration
+  yieldRate: decimal("yield_rate", { precision: 5, scale: 2 }).notNull(), // Snapshot of yield rate at transaction time
+  yieldGenerated: decimal("yield_generated", { precision: 10, scale: 2 }).notNull(), // Calculated: amount * (settlementDays/365) * (yieldRate/100)
+  tenantYieldShare: decimal("tenant_yield_share", { precision: 10, scale: 2 }), // Portion of yield credited to tenant (1-1.5%)
+  description: text("description"),
+});
+
 // Tenant Wallets - for consumer-side balance and yield accounts
 export const tenantWallets = pgTable("tenant_wallets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -340,6 +375,8 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   tenants: many(tenants),
   vendors: many(vendors),
   vendorInvoices: many(vendorInvoices),
+  merchants: many(merchants),
+  merchantTransactions: many(merchantTransactions),
   bankLedger: many(bankLedger),
   pmsImportJobs: many(pmsImportJobs),
   treasurySubscriptions: many(treasurySubscriptions),
@@ -384,6 +421,7 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   wallet: one(tenantWallets),
   paymentMethods: many(tenantPaymentMethods),
   cryptoWallets: many(cryptoWallets),
+  merchantTransactions: many(merchantTransactions),
 }));
 
 export const leasesRelations = relations(leases, ({ one, many }) => ({
@@ -545,10 +583,35 @@ export const vendorInvoicesRelations = relations(vendorInvoices, ({ one }) => ({
   }),
 }));
 
+export const merchantsRelations = relations(merchants, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [merchants.organizationId],
+    references: [organizations.id],
+  }),
+  transactions: many(merchantTransactions),
+}));
+
+export const merchantTransactionsRelations = relations(merchantTransactions, ({ one }) => ({
+  merchant: one(merchants, {
+    fields: [merchantTransactions.merchantId],
+    references: [merchants.id],
+  }),
+  tenant: one(tenants, {
+    fields: [merchantTransactions.tenantId],
+    references: [tenants.id],
+  }),
+  organization: one(organizations, {
+    fields: [merchantTransactions.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
 export const insertVendorSchema = createInsertSchema(vendors).omit({ id: true, createdAt: true });
 export const insertVendorInvoiceSchema = createInsertSchema(vendorInvoices).omit({ id: true, floatDurationDays: true, yieldGenerated: true });
+export const insertMerchantSchema = createInsertSchema(merchants).omit({ id: true, createdAt: true });
+export const insertMerchantTransactionSchema = createInsertSchema(merchantTransactions).omit({ id: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertMagicCodeSchema = createInsertSchema(magicCodes).omit({ id: true });
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true });
@@ -637,3 +700,7 @@ export type Vendor = typeof vendors.$inferSelect;
 export type InsertVendor = z.infer<typeof insertVendorSchema>;
 export type VendorInvoice = typeof vendorInvoices.$inferSelect;
 export type InsertVendorInvoice = z.infer<typeof insertVendorInvoiceSchema>;
+export type Merchant = typeof merchants.$inferSelect;
+export type InsertMerchant = z.infer<typeof insertMerchantSchema>;
+export type MerchantTransaction = typeof merchantTransactions.$inferSelect;
+export type InsertMerchantTransaction = z.infer<typeof insertMerchantTransactionSchema>;
