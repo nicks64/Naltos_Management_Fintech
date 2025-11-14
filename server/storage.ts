@@ -259,16 +259,16 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Calculate Vendor Float Metrics
-    const vendorInvoices = await db.select().from(vendorInvoices).where(eq(vendorInvoices.organizationId, organizationId));
+    const allVendorInvoices = await db.select().from(vendorInvoices).where(eq(vendorInvoices.organizationId, organizationId));
     
     // Total vendor float AUM (all paid_instant invoices currently in float)
-    const paidInstantInvoices = vendorInvoices.filter(inv => inv.status === "paid_instant");
+    const paidInstantInvoices = allVendorInvoices.filter(inv => inv.status === "paid_instant");
     const vendorFloatAUM = paidInstantInvoices.reduce((sum, inv) => {
       return sum + (inv.instantAdvanceAmount ? parseFloat(inv.instantAdvanceAmount) : 0);
     }, 0);
     
     // Total vendor yield generated (all-time)
-    const vendorFloatYield = vendorInvoices
+    const vendorFloatYield = allVendorInvoices
       .filter(inv => inv.yieldGenerated)
       .reduce((sum, inv) => sum + parseFloat(inv.yieldGenerated!), 0);
     

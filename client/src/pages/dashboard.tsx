@@ -8,7 +8,8 @@ import {
   AlertCircle, 
   Home, 
   Landmark, 
-  Percent 
+  Percent,
+  Zap
 } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
@@ -19,6 +20,9 @@ interface KPIData {
   opexPerUnit: number;
   treasuryAUM: number;
   currentYield: number;
+  vendorFloatAUM: number;
+  vendorFloatYield: number;
+  activeVendorInvoices: number;
   sparklineData: Array<{ value: number }>;
 }
 
@@ -75,6 +79,30 @@ export default function Dashboard() {
       trend: "up" as const,
       icon: DollarSign,
       color: "text-emerald-600",
+    },
+    {
+      title: "Vendor Float AUM",
+      value: kpis?.vendorFloatAUM ? `$${(kpis.vendorFloatAUM / 1000).toFixed(0)}K` : "—",
+      change: "All-Time",
+      trend: "up" as const,
+      icon: Zap,
+      color: "text-violet-600",
+    },
+    {
+      title: "Vendor Yield",
+      value: kpis?.vendorFloatYield ? `$${kpis.vendorFloatYield.toFixed(0)}` : "—",
+      change: "All-Time",
+      trend: "up" as const,
+      icon: TrendingUp,
+      color: "text-emerald-600",
+    },
+    {
+      title: "Active Vendor Invoices",
+      value: kpis?.activeVendorInvoices?.toString() || "—",
+      change: "In Float",
+      trend: "up" as const,
+      icon: Clock,
+      color: "text-blue-600",
     },
   ];
 
