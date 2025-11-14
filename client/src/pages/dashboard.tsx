@@ -22,9 +22,7 @@ interface KPIData {
   currentYield: number;
   vendorFloatAUM: number;
   vendorFloatYield: number;
-  activeVendorInvoices: number;
   rentFloatYield: number;
-  combinedTotalYield: number;
   sparklineData: Array<{ value: number }>;
 }
 
@@ -99,27 +97,11 @@ export default function Dashboard() {
       color: "text-emerald-600",
     },
     {
-      title: "Active Vendor Invoices",
-      value: kpis?.activeVendorInvoices?.toString() || "—",
-      change: "In Float",
-      trend: "up" as const,
-      icon: Clock,
-      color: "text-blue-600",
-    },
-    {
       title: "Rent Float Yield",
       value: kpis?.rentFloatYield ? `$${kpis.rentFloatYield.toFixed(0)}` : "—",
       change: "Last 30d",
       trend: "up" as const,
       icon: TrendingUp,
-      color: "text-emerald-600",
-    },
-    {
-      title: "Total Yield (All Sources)",
-      value: kpis?.combinedTotalYield ? `$${kpis.combinedTotalYield.toFixed(0)}` : "—",
-      change: "Combined",
-      trend: "up" as const,
-      icon: DollarSign,
       color: "text-emerald-600",
     },
   ];
