@@ -1,9 +1,20 @@
 # Naltos Platform - Project Documentation
 
 ## Project Overview
-Naltos is a sophisticated dual-sided property management platform with integrated treasury solutions. Built as a production-quality demo showcasing enterprise SaaS capabilities including:
-- **Business Console**: For property managers/owners with AI-powered reconciliation, financial analytics, and institutional-grade treasury products
-- **Tenant Portal**: Consumer-facing mobile-first interface for residents with rent payments, yield wallet, and AI assistant
+
+**Naltos transforms multifamily rent flows into a programmable financial asset** by orchestrating stablecoin rails and automating treasury yield on idle cash. By converting rent, vendor invoices, and merchant transactions into **NUSD** (a fully-backed programmatic dollar), Naltos deploys idle balances into short-duration, low-risk assets — generating yield for property owners, creating incentives for tenants, and operating a seamless payment layer for vendors and merchants.
+
+### Core Innovation
+Traditional multifamily finance leaves **$35B+ idle monthly** earning 0%. Naltos treats rent as **short-duration financial assets** capable of producing yield through:
+- **Rent Float** (5-15 days): Tenant payment → Owner disbursement
+- **Vendor Float** (Net30-Net90): Instant vendor payout → Extended treasury deployment
+- **Merchant Settlement** (1-3 days): Transaction → Settlement float
+
+### Platform Architecture
+- **Business Console**: Property managers/owners with AI-powered reconciliation, financial analytics, and institutional-grade treasury automation
+- **Tenant Portal**: Mobile-first resident interface with rent payments, NUSD wallet, and yield-earning capabilities
+- **Treasury Engine**: Automated deployment into tokenized T-Bills (4.8-5.2%), money-market equivalents, and delta-neutral credit
+- **Stablecoin Bridge**: Bidirectional conversion layer between crypto rails (USDC/USDT/DAI) and legacy PMS systems (AppFolio/Yardi/Buildium)
 
 ## Architecture
 
@@ -22,6 +33,32 @@ Naltos is a sophisticated dual-sided property management platform with integrate
 5. **Real-time Analytics**: KPI dashboard with sparklines
 6. **Role-Based Access**: Admin, PropertyManager, CFO, Analyst, Tenant roles
 
+## Economic Model
+
+### Yield Sources
+1. **Rent Float (5-15 days)**: Tenant pays → Treasury deploys → Owner receives rent + yield
+2. **Vendor Float (Net30-Net90)**: Vendor paid instantly in NUSD → Naltos holds USD 30-90 days → Yield multiplies 3-9×
+3. **Merchant Settlement (1-3 days)**: Transaction → Settlement buffer → Treasury yield
+
+### Yield Distribution
+- **Property Owners**: 2.5-3.5% (increased NOI, reduced operating expenses)
+- **Tenants**: 1-1.5% (rebates, rewards, reduced effective rent)
+- **Naltos Platform**: 0.5-1% (operations, infrastructure, compliance)
+
+### NUSD - The Programmable Dollar
+NUSD is a **private, fully-backed, redeemable internal accounting unit** (not a public cryptocurrency):
+- Represents $1 held in short-term treasury assets
+- Instantly redeemable 1:1 for USD
+- Programmable for treasury rules, automated payouts, and yield distribution
+- Enables 24/7 settlement, instant vendor payments, and composable treasury operations
+
+### Future: MeshPay Expansion
+At scale, Naltos evolves into **MeshPay** — a global stablecoin payment and settlement network:
+- Multi-currency support (USDC, EURC, XSGD, PYUSD, USDT, NUSD)
+- Global FX routing and optimization
+- Instant merchant/vendor liquidity
+- Network effects: More transactions → More float → More yield
+
 ## Database Schema
 
 ### Core Tables
@@ -36,9 +73,13 @@ Naltos is a sophisticated dual-sided property management platform with integrate
 - `bank_ledger` - Bank/PMS ledger entries
 - `treasury_products` - Treasury product definitions
 - `treasury_subscriptions` - User subscriptions to treasury products
-- `crypto_wallets` - Stablecoin wallet balances (USDC, USDT, DAI)
-- `crypto_transactions` - Crypto transaction history (deposits, conversions, withdrawals)
-- `organization_settings` - Org configuration (includes rent float settings: yield rates, split percentages, float duration)
+- `crypto_wallets` - Stablecoin wallet balances (USDC, USDT, DAI) + NUSD accounting
+- `crypto_transactions` - Crypto transaction history (deposits, conversions, withdrawals, rent_payment)
+- `organization_settings` - Org configuration (rent float + bridge settings: yield rates, split percentages, conversion strategy)
+- `bridge_conversion_jobs` - Queue for bidirectional crypto↔fiat conversions with yield tracking
+- `bridge_conversions` - Immutable execution records with fees and yield earned
+- `bridge_sync_logs` - AppFolio/Buildium/Yardi sync audit trail with retry logic
+- `bridge_payment_links` - Audit trail linking crypto→invoices→payments→conversions
 - `audit_logs` - Compliance audit trail
 
 ### Relationships
