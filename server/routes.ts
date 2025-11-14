@@ -877,6 +877,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Tenant Merchant Transaction Routes ============
+  // Get all merchants for tenant's organization
+  app.get("/api/tenant/merchants", requireRole("Tenant"), async (req, res) => {
+    try {
+      const orgId = req.organizationId!;
+      const merchants = await storage.getMerchants(orgId);
+      
+      // Format for frontend
+      const formattedMerchants = merchants.map(m => ({
+        id: m.id,
+        name: m.name,
+        category: m.category,
+        description: m.description,
+        settlementDays: m.settlementDays,
+        yieldRate: parseFloat(m.yieldRate),
+        active: m.active,
+      }));
+      
+      res.json({ merchants: formattedMerchants });
+    } catch (error: any) {
+      console.error("Get merchants error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get merchant transaction history for tenant
+  app.get("/api/tenant/merchant-transactions", requireRole("Tenant"), async (req, res) => {
+    try {
+      const tenantId = req.user!.tenantId!;
+      const status = req.query.status as string | undefined;
+      
+      const transactions = await storage.getMerchantTransactions(
+        tenantId,
+        status ? { status } : undefined
+      );
+      
+      // Format for frontend
+      const formattedTransactions = transactions.map(tx => ({
+        id: tx.id,
+        merchantId: tx.merchantId,
+        merchantName: tx.merchantName,
+        amount: parseFloat(tx.amount),
+        transactionDate: tx.transactionDate.toISOString(),
+        settlementDate: tx.settlementDate.toISOString(),
+        status: tx.status,
+        settledAt: tx.settledAt?.toISOString() || null,
+        settlementDays: tx.settlementDays,
+        yieldRate: parseFloat(tx.yieldRate),
+        yieldGenerated: parseFloat(tx.yieldGenerated),
+        tenantYieldShare: tx.tenantYieldShare ? parseFloat(tx.tenantYieldShare) : 0,
+        description: tx.description,
+      }));
+      
+      res.json({ transactions: formattedTransactions });
+    } catch (error: any) {
+      console.error("Get merchant transactions error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create new merchant transaction (tenant makes purchase)
+  app.post("/api/tenant/merchant-transactions", requireRole("Tenant"), async (req, res) => {
+    try {
+      const orgId = req.organizationId!;
+      const tenantId = req.user!.tenantId!;
+      const { merchantId, amount, description } = req.body;
+      
+      // Validate input
+      if (!merchantId || !amount || amount <= 0) {
+        return res.status(400).json({ error: "Invalid merchant transaction data" });
+      }
+      
+      // Create transaction
+      const transaction = await storage.createMerchantTransaction({
+        merchantId,
+        tenantId,
+        organizationId: orgId,
+        amount: amount.toString(),
+        description: description || null,
+      });
+      
+      res.json({ 
+        transaction: {
+          id: transaction.id,
+          merchantId: transaction.merchantId,
+          amount: parseFloat(transaction.amount),
+          transactionDate: transaction.transactionDate.toISOString(),
+          settlementDate: transaction.settlementDate.toISOString(),
+          status: transaction.status,
+          settlementDays: transaction.settlementDays,
+          yieldGenerated: parseFloat(transaction.yieldGenerated),
+          tenantYieldShare: transaction.tenantYieldShare ? parseFloat(transaction.tenantYieldShare) : 0,
+        },
+        message: "Merchant transaction created - yield generation in progress!",
+      });
+    } catch (error: any) {
+      console.error("Create merchant transaction error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // ============ Vendor Instant Payment Routes ============
   // Get all vendors for organization
   app.get("/api/vendors", requireAuth, async (req, res) => {

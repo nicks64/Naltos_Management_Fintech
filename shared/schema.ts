@@ -611,7 +611,17 @@ export const insertOrganizationSchema = createInsertSchema(organizations).omit({
 export const insertVendorSchema = createInsertSchema(vendors).omit({ id: true, createdAt: true });
 export const insertVendorInvoiceSchema = createInsertSchema(vendorInvoices).omit({ id: true, floatDurationDays: true, yieldGenerated: true });
 export const insertMerchantSchema = createInsertSchema(merchants).omit({ id: true, createdAt: true });
-export const insertMerchantTransactionSchema = createInsertSchema(merchantTransactions).omit({ id: true });
+export const insertMerchantTransactionSchema = createInsertSchema(merchantTransactions).omit({ 
+  id: true,
+  transactionDate: true,
+  settlementDate: true,
+  settlementDays: true,
+  yieldRate: true,
+  yieldGenerated: true,
+  tenantYieldShare: true,
+  status: true,
+  settledAt: true,
+});
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertMagicCodeSchema = createInsertSchema(magicCodes).omit({ id: true });
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true });
