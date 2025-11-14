@@ -1,10 +1,10 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, decimal, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, decimal, boolean, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["Admin", "PropertyManager", "CFO", "Analyst", "Tenant"]);
+export const userRoleEnum = pgEnum("user_role", ["Admin", "PropertyManager", "CFO", "Analyst", "Tenant", "Vendor"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["pending", "paid", "overdue", "partial"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["ACH", "Card", "Check", "Wire"]);
 export const pmsProviderEnum = pgEnum("pms_provider", ["AppFolio", "Yardi", "Buildium"]);
@@ -12,6 +12,10 @@ export const treasuryProductTypeEnum = pgEnum("treasury_product_type", ["NRF", "
 export const complianceModeEnum = pgEnum("compliance_mode", ["indirect_only", "accredited_access"]);
 export const cryptoCoinEnum = pgEnum("crypto_coin", ["USDC", "USDT", "DAI", "NUSD"]);
 export const cryptoTransactionTypeEnum = pgEnum("crypto_transaction_type", ["deposit", "withdrawal", "conversion", "rent_payment"]);
+// Vendor Payout System Enums
+export const payoutRailEnum = pgEnum("payout_rail", ["ACH", "PushToCard", "OnChainStablecoin"]);
+export const redemptionStatusEnum = pgEnum("redemption_status", ["pending", "processing", "completed", "failed", "cancelled"]);
+export const complianceStatusEnum = pgEnum("compliance_status", ["not_verified", "pending_review", "verified", "rejected"]);
 // TODO: Bridge System Enums - Schema ready, implementation deferred
 // These support future vendor/merchant payment flows when bridgeEnabled=true
 export const bridgeDirectionEnum = pgEnum("bridge_direction", ["inbound", "outbound"]);
@@ -40,9 +44,10 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").references(() => organizations.id, { onDelete: "cascade" }), // Nullable for vendor users who span multiple orgs
   role: userRoleEnum("role").notNull().default("Analyst"),
   tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "set null" }), // Link tenant-role users to tenant records
+  vendorId: varchar("vendor_id").references(() => vendors.id, { onDelete: "set null" }), // Link vendor-role users to primary vendor record
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -204,6 +209,85 @@ export const vendors = pgTable("vendors", {
   defaultPaymentTerms: paymentTermsEnum("default_payment_terms").notNull().default("Net30"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Vendor Balances - Tracks NUSD balance for each vendor across all orgs they work with
+// Note: vendors table has organizationId, so each vendor record is specific to one property management company
+// If "ABC Plumbing" works with 3 property managers, there are 3 vendor records
+// vendor_balances tracks NUSD balance for each vendor record (which is already org-specific)
+export const vendorBalances = pgTable("vendor_balances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  nusdBalance: decimal("nusd_balance", { precision: 12, scale: 2 }).notNull().default("0"), // Current NUSD balance
+  totalReceived: decimal("total_received", { precision: 12, scale: 2 }).notNull().default("0"), // Lifetime NUSD received
+  totalRedeemed: decimal("total_redeemed", { precision: 12, scale: 2 }).notNull().default("0"), // Lifetime USD redeemed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  vendorOrgIdx: uniqueIndex("vendor_balances_vendor_org_idx").on(table.vendorId, table.organizationId),
+}));
+
+// Vendor Redemptions - Tracks all payout requests from vendors
+export const vendorRedemptions = pgTable("vendor_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  payoutMethodId: varchar("payout_method_id").references(() => vendorPayoutMethods.id, { onDelete: "set null" }),
+  rail: payoutRailEnum("rail").notNull(), // ACH, PushToCard, OnChainStablecoin
+  nusdAmount: decimal("nusd_amount", { precision: 12, scale: 2 }).notNull(), // Amount being redeemed
+  usdAmount: decimal("usd_amount", { precision: 12, scale: 2 }).notNull(), // USD equivalent (1:1 for NUSD)
+  feeAmount: decimal("fee_amount", { precision: 12, scale: 2 }).notNull().default("0"), // Early redemption or processing fee
+  status: redemptionStatusEnum("status").notNull().default("pending"),
+  scheduledFor: timestamp("scheduled_for"), // When redemption will be processed (Net30 default)
+  processedAt: timestamp("processed_at"), // When actually processed
+  completedAt: timestamp("completed_at"), // When funds settled
+  failureReason: text("failure_reason"), // If failed, why
+  metadata: text("metadata"), // JSON: transaction hashes, confirmation numbers, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Vendor Payout Methods - Stores vendor payout preferences (demo/placeholder data only)
+export const vendorPayoutMethods = pgTable("vendor_payout_methods", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }),
+  rail: payoutRailEnum("rail").notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
+  // Demo/placeholder fields - NOT storing real sensitive data
+  bankName: text("bank_name"), // For ACH: "Chase Bank"
+  accountLastFour: text("account_last_four"), // For ACH: "1234"
+  cardLastFour: text("card_last_four"), // For PushToCard: "5678"
+  walletAddress: text("wallet_address"), // For OnChainStablecoin: "0x123...abc"
+  walletType: text("wallet_type"), // For OnChainStablecoin: "USDC", "USDT", "DAI"
+  // Status tracking
+  verified: boolean("verified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Vendor Compliance Status - Tracks KYC/verification status (NOT storing actual PII)
+export const vendorComplianceStatus = pgTable("vendor_compliance_status", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().unique().references(() => vendors.id, { onDelete: "cascade" }),
+  kycStatus: complianceStatusEnum("kyc_status").notNull().default("not_verified"),
+  kycSubmittedAt: timestamp("kyc_submitted_at"),
+  kycVerifiedAt: timestamp("kyc_verified_at"),
+  kycRejectionReason: text("kyc_rejection_reason"),
+  // Demo flag - indicates this is stub data for demo purposes
+  isDemo: boolean("is_demo").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Vendor User Links - Maps vendor users to ALL vendor records they can access (multi-org support)
+// This enables a single vendor login to see invoices/balances across all property managers they work with
+export const vendorUserLinks = pgTable("vendor_user_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userVendorIdx: uniqueIndex("vendor_user_links_user_vendor_idx").on(table.userId, table.vendorId),
+}));
 
 // Vendor Invoices - Showcases Net30-90 yield generation
 export const vendorInvoices = pgTable("vendor_invoices", {
@@ -454,6 +538,10 @@ export const usersRelations = relations(users, ({ one }) => ({
     fields: [users.tenantId],
     references: [tenants.id],
   }),
+  vendor: one(vendors, {
+    fields: [users.vendorId],
+    references: [vendors.id],
+  }),
 }));
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
@@ -643,6 +731,58 @@ export const vendorInvoicesRelations = relations(vendorInvoices, ({ one }) => ({
   }),
 }));
 
+export const vendorBalancesRelations = relations(vendorBalances, ({ one }) => ({
+  vendor: one(vendors, {
+    fields: [vendorBalances.vendorId],
+    references: [vendors.id],
+  }),
+  organization: one(organizations, {
+    fields: [vendorBalances.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const vendorRedemptionsRelations = relations(vendorRedemptions, ({ one }) => ({
+  vendor: one(vendors, {
+    fields: [vendorRedemptions.vendorId],
+    references: [vendors.id],
+  }),
+  organization: one(organizations, {
+    fields: [vendorRedemptions.organizationId],
+    references: [organizations.id],
+  }),
+  payoutMethod: one(vendorPayoutMethods, {
+    fields: [vendorRedemptions.payoutMethodId],
+    references: [vendorPayoutMethods.id],
+  }),
+}));
+
+export const vendorPayoutMethodsRelations = relations(vendorPayoutMethods, ({ one, many }) => ({
+  vendor: one(vendors, {
+    fields: [vendorPayoutMethods.vendorId],
+    references: [vendors.id],
+  }),
+  redemptions: many(vendorRedemptions),
+}));
+
+export const vendorComplianceStatusRelations = relations(vendorComplianceStatus, ({ one }) => ({
+  vendor: one(vendors, {
+    fields: [vendorComplianceStatus.vendorId],
+    references: [vendors.id],
+  }),
+}));
+
+export const vendorUserLinksRelations = relations(vendorUserLinks, ({ one }) => ({
+  user: one(users, {
+    fields: [vendorUserLinks.userId],
+    references: [users.id],
+  }),
+  vendor: one(vendors, {
+    fields: [vendorUserLinks.vendorId],
+    references: [vendors.id],
+  }),
+}));
+
 export const merchantsRelations = relations(merchants, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [merchants.organizationId],
@@ -753,6 +893,11 @@ export const insertBridgePaymentLinkSchema = createInsertSchema(bridgePaymentLin
 export const insertCryptoTreasuryPositionSchema = createInsertSchema(cryptoTreasuryPositions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCryptoTreasuryDeploymentSchema = createInsertSchema(cryptoTreasuryDeployments).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCryptoTreasuryFlowSchema = createInsertSchema(cryptoTreasuryFlows).omit({ id: true, createdAt: true });
+export const insertVendorBalanceSchema = createInsertSchema(vendorBalances).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertVendorRedemptionSchema = createInsertSchema(vendorRedemptions).omit({ id: true, createdAt: true });
+export const insertVendorPayoutMethodSchema = createInsertSchema(vendorPayoutMethods).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertVendorComplianceStatusSchema = createInsertSchema(vendorComplianceStatus).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertVendorUserLinkSchema = createInsertSchema(vendorUserLinks).omit({ id: true, createdAt: true });
 
 // Types
 export type Organization = typeof organizations.$inferSelect;
@@ -795,7 +940,7 @@ export type CryptoTransaction = typeof cryptoTransactions.$inferSelect;
 export type InsertCryptoTransaction = z.infer<typeof insertCryptoTransactionSchema>;
 
 // Additional types for frontend
-export type UserRole = "Admin" | "PropertyManager" | "CFO" | "Analyst" | "Tenant";
+export type UserRole = "Admin" | "PropertyManager" | "CFO" | "Analyst" | "Tenant" | "Vendor";
 export type InvoiceStatus = "pending" | "paid" | "overdue" | "partial";
 export type PaymentMethod = "ACH" | "Card" | "Check" | "Wire";
 export type PMSProvider = "AppFolio" | "Yardi" | "Buildium";
@@ -808,6 +953,9 @@ export type BridgeStatus = "pending" | "converting" | "awaiting_sync" | "settled
 export type BridgeConversionStrategy = "immediate" | "daily" | "optimal_yield";
 export type CryptoTreasuryFlowType = "bridge_inbound" | "bridge_outbound" | "wallet_transfer" | "deployment_in" | "deployment_out" | "yield_accrual";
 export type CryptoDeploymentStatus = "pending" | "active" | "matured" | "withdrawn";
+export type PayoutRail = "ACH" | "PushToCard" | "OnChainStablecoin";
+export type RedemptionStatus = "pending" | "processing" | "completed" | "failed" | "cancelled";
+export type ComplianceStatus = "not_verified" | "pending_review" | "verified" | "rejected";
 
 export type BridgeConversionJob = typeof bridgeConversionJobs.$inferSelect;
 export type InsertBridgeConversionJob = z.infer<typeof insertBridgeConversionJobSchema>;
@@ -831,6 +979,16 @@ export type CryptoTreasuryDeployment = typeof cryptoTreasuryDeployments.$inferSe
 export type InsertCryptoTreasuryDeployment = z.infer<typeof insertCryptoTreasuryDeploymentSchema>;
 export type CryptoTreasuryFlow = typeof cryptoTreasuryFlows.$inferSelect;
 export type InsertCryptoTreasuryFlow = z.infer<typeof insertCryptoTreasuryFlowSchema>;
+export type VendorBalance = typeof vendorBalances.$inferSelect;
+export type InsertVendorBalance = z.infer<typeof insertVendorBalanceSchema>;
+export type VendorRedemption = typeof vendorRedemptions.$inferSelect;
+export type InsertVendorRedemption = z.infer<typeof insertVendorRedemptionSchema>;
+export type VendorPayoutMethod = typeof vendorPayoutMethods.$inferSelect;
+export type InsertVendorPayoutMethod = z.infer<typeof insertVendorPayoutMethodSchema>;
+export type VendorComplianceStatus = typeof vendorComplianceStatus.$inferSelect;
+export type InsertVendorComplianceStatus = z.infer<typeof insertVendorComplianceStatusSchema>;
+export type VendorUserLink = typeof vendorUserLinks.$inferSelect;
+export type InsertVendorUserLink = z.infer<typeof insertVendorUserLinkSchema>;
 
 export interface CryptoTreasurySummary {
   totalAUM: number;
