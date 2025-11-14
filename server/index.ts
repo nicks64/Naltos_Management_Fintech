@@ -41,7 +41,10 @@ declare module 'express-session' {
   interface SessionData {
     userId: string;
     userRole: string;
-    organizationId: string;
+    organizationId: string; // Nullable for vendor users
+    tenantId?: string; // For tenant-role users
+    // Note: Vendor links are NOT cached in session - they're revalidated on every request
+    // via requireVendor middleware to ensure immediate revocation. Access via req.vendorIds.
   }
 }
 app.use(express.json({

@@ -21,6 +21,7 @@ import {
   cryptoTreasuryFlows,
   vendors,
   vendorInvoices,
+  vendorUserLinks,
   merchants,
   merchantTransactions,
   type User,
@@ -148,6 +149,11 @@ export interface IStorage {
   getVendors(organizationId: string): Promise<Vendor[]>;
   getVendorInvoices(organizationId: string, filters?: { status?: string }): Promise<(VendorInvoice & { vendorName: string })[]>;
   payVendorInstant(invoiceId: string): Promise<VendorInvoice>;
+  
+  // Vendor User Links methods (for multi-org vendor access)
+  getVendorUserLinks(userId: string): Promise<string[]>; // Returns array of vendorIds accessible by this user
+  createVendorUserLink(userId: string, vendorId: string): Promise<void>;
+  
   // Tenant methods
   getTenantByEmail(email: string): Promise<Tenant | undefined>;
   
@@ -1108,6 +1114,19 @@ export class DatabaseStorage implements IStorage {
     return tenant || undefined;
   }
 
+  // Vendor User Links Methods (for multi-org vendor access)
+  async getVendorUserLinks(userId: string): Promise<string[]> {
+    const links = await db
+      .select({ vendorId: vendorUserLinks.vendorId })
+      .from(vendorUserLinks)
+      .where(eq(vendorUserLinks.userId, userId));
+    return links.map(link => link.vendorId);
+  }
+
+  async createVendorUserLink(userId: string, vendorId: string): Promise<void> {
+    await db.insert(vendorUserLinks).values({ userId, vendorId });
+  }
+
   // Crypto Treasury Methods
   async getCryptoTreasuryPositions(organizationId: string) {
     const results = await db
@@ -1201,11 +1220,8 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(merchants.organizationId, organizationId), eq(merchants.active, true)))
       .orderBy(merchants.category, merchants.name);
     
-    // Convert decimal fields to numbers for proper JSON serialization
-    return results.map(merchant => ({
-      ...merchant,
-      yieldRate: this.safeDecimalToNumber(merchant.yieldRate),
-    }));
+    // Return merchants with yieldRate as string (matches schema)
+    return results;
   }
 
   async getMerchantTransactions(
@@ -1243,16 +1259,8 @@ export class DatabaseStorage implements IStorage {
 
     const results = await query.orderBy(desc(merchantTransactions.transactionDate));
     
-    // Convert decimal fields to numbers for proper JSON serialization
-    return results.map(tx => ({
-      ...tx,
-      amount: this.safeDecimalToNumber(tx.amount),
-      yieldRate: this.safeDecimalToNumber(tx.yieldRate),
-      yieldGenerated: this.safeDecimalToNumber(tx.yieldGenerated),
-      propertyYieldShare: this.safeDecimalToNumber(tx.propertyYieldShare),
-      tenantYieldShare: this.safeDecimalToNumber(tx.tenantYieldShare),
-      platformYieldShare: this.safeDecimalToNumber(tx.platformYieldShare),
-    }));
+    // Return transactions with decimal fields as strings (matches schema)
+    return results;
   }
 
   async createMerchantTransaction(data: InsertMerchantTransaction, userId: string): Promise<MerchantTransaction> {

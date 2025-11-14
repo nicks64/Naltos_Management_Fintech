@@ -74,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store user info in session for secure authentication
       req.session.userId = user.id;
       req.session.userRole = user.role;
-      req.session.organizationId = user.organizationId;
+      req.session.organizationId = user.organizationId!; // Safe because signup always creates an organization
 
       res.json({ user, organization });
     } catch (error: any) {
@@ -149,8 +149,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get organization
-      const organization = await storage.getOrganization(user.organizationId);
+      // Vendor users should use /api/vendor-auth/login instead
+      if (user.role === "Vendor") {
+        return res.status(400).json({ 
+          error: "Invalid login endpoint",
+          message: "Vendor users should login at /api/vendor-auth/login"
+        });
+      }
+
+      // Get organization (safe because we verified user is not a vendor)
+      const organization = await storage.getOrganization(user.organizationId!);
 
       // Regenerate session to prevent fixation attacks
       await new Promise<void>((resolve, reject) => {
@@ -163,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store user info in session for secure authentication
       req.session.userId = user.id;
       req.session.userRole = user.role;
-      req.session.organizationId = user.organizationId;
+      req.session.organizationId = user.organizationId!; // Safe because non-vendor users always have organizationId
 
       res.json({ user, organization });
     } catch (error: any) {
@@ -179,6 +187,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ success: true });
     });
+  });
+
+  // ============ Vendor Auth Routes ============
+  // Vendor-specific authentication (no organization signup, vendors are invited by property managers)
+  
+  app.post("/api/vendor-auth/send-code", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      // Verify vendor user exists (vendors must be invited, they can't self-signup)
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.role !== "Vendor") {
+        return res.status(404).json({ 
+          error: "Vendor not found",
+          message: "No vendor account found with this email. Please contact your property manager to get invited."
+        });
+      }
+
+      // Create magic code - always "000000" for demo
+      const code = "000000";
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      await storage.createMagicCode({
+        email,
+        code,
+        expiresAt,
+        used: false,
+      });
+
+      // In production, would send email here
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Vendor send code error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/vendor-auth/login", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+
+      // Find magic code
+      const magicCode = await storage.getMagicCode(email, code);
+      if (!magicCode) {
+        return res.status(401).json({ error: "Invalid magic code" });
+      }
+
+      // Check expiration
+      if (new Date() > magicCode.expiresAt) {
+        return res.status(401).json({ error: "Magic code expired" });
+      }
+
+      // Mark as used
+      await storage.markMagicCodeUsed(magicCode.id);
+
+      // Get vendor user (must exist, vendors are invited not self-signup)
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.role !== "Vendor") {
+        return res.status(401).json({ 
+          error: "Invalid vendor account",
+          message: "This account is not registered as a vendor."
+        });
+      }
+
+      // Get vendor user links to ensure they have access to at least one vendor
+      const linkedVendorIds = await storage.getVendorUserLinks(user.id);
+      if (linkedVendorIds.length === 0) {
+        return res.status(409).json({ 
+          error: "No vendor access",
+          message: "Your account has not been linked to any vendors yet. Please contact your property manager."
+        });
+      }
+
+      // Regenerate session to prevent fixation attacks
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      // Store user info in session for secure authentication
+      // NOTE: organizationId is undefined for vendor users (they span multiple orgs)
+      req.session.userId = user.id;
+      req.session.userRole = "Vendor";
+      req.session.organizationId = undefined as any; // Vendor users have no single organization
+
+      // Return user with vendor metadata (linked vendor count)
+      res.json({ 
+        user: {
+          ...user,
+          vendorCount: linkedVendorIds.length, // Number of property managers this vendor works with
+        },
+        organization: null, // Vendors don't have a single organization
+      });
+    } catch (error: any) {
+      console.error("Vendor login error:", error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // ============ KPI Routes ============
@@ -830,7 +937,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tenant/crypto/wallets", requireRole("Tenant"), async (req, res) => {
     try {
       const orgId = req.organizationId!;
-      const tenantId = req.user!.tenantId!;
+      // Get tenant ID from user record
+      const user = await storage.getUser(req.userId!);
+      const tenantId = user!.tenantId!;
       
       // Get tenant wallets from database
       const wallets = await storage.getCryptoWallets(orgId, tenantId);
@@ -857,7 +966,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { fromCoin, toCoin, amount } = req.body;
       const orgId = req.organizationId!;
-      const tenantId = req.user!.tenantId!;
+      // Get tenant ID from user record
+      const user = await storage.getUser(req.userId!);
+      const tenantId = user!.tenantId!;
       
       // Perform real conversion using storage
       const result = await storage.convertCrypto({
@@ -892,7 +1003,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tenant/crypto/transactions", requireRole("Tenant"), async (req, res) => {
     try {
       const orgId = req.organizationId!;
-      const tenantId = req.user!.tenantId!;
+      // Get tenant ID from user record
+      const user = await storage.getUser(req.userId!);
+      const tenantId = user!.tenantId!;
       
       // Get real transaction history from database
       const transactions = await storage.getCryptoTransactions(orgId, tenantId);
@@ -1016,13 +1129,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid merchant transaction data" });
       }
       
-      // Create transaction
+      // Create transaction with yield splits (demo values: 90% property / 10% platform)
+      const propertyYieldShare = (amount * 0.009).toFixed(2); // 0.9% to property owner
+      const platformYieldShare = (amount * 0.001).toFixed(2); // 0.1% to platform
+      
       const transaction = await storage.createMerchantTransaction({
         merchantId,
         tenantId: tenant.id,
         organizationId: orgId,
         amount: amount.toString(),
         description: description || null,
+        propertyYieldShare,
+        platformYieldShare,
       }, userId);
       
       res.json({ 

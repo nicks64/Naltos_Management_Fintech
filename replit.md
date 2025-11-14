@@ -35,14 +35,17 @@ The platform features a dual-sided interface: a Business Console for property ma
     - Multi-tenancy with organization-based isolation and RBAC.
     - Treasury Products (NRF, NRK, NRC) for businesses and a yield wallet for tenants.
     - Real-time KPI dashboard with sparklines.
-    - Role-Based Access for Admin, PropertyManager, CFO, Analyst, and Tenant.
+    - Role-Based Access for Admin, PropertyManager, CFO, Analyst, Tenant, and Vendor.
 - **NUSD**: A private, fully-backed, redeemable internal accounting unit representing $1 held in short-term treasury assets, instantly redeemable 1:1 for USD, and programmable for automated payouts and yield distribution.
+- **Vendor Account System**: Full vendor portal with professional authentication enabling vendors to log in once and access invoices/balances across all property management companies they work with. Uses `vendor_user_links` junction table for explicit multi-org access, eliminating reliance on email heuristics. Vendors have nullable `users.organizationId` to support cross-org visibility while maintaining organizational boundaries for property managers.
 
 ### Feature Specifications
 - **Dashboard KPIs**: Displays operational (On-Time %, DSO, Delinquent), financial (Opex/Unit, Treasury AUM, Current Yield), and float yield metrics (Vendor Float AUM, Vendor Yield, Rent Float Yield) in a 3x3 grid.
 - **Treasury Orchestration Engine**: Automatically deploys stablecoins (USDC/USDT/DAI) into yield-generating products including tokenized T-Bills (NRF), money-market equivalents (NRK), and delta-neutral credit (NRC).
 - **Stablecoin Bridge**: Bidirectional orchestration layer between crypto rails (USDC/USDT/DAI) and legacy PMS systems (AppFolio/Yardi/Buildium), converting traditional payment flows into programmable stablecoin assets.
 - **Vendor Payment Flow**: Property managers pay vendors instantly via NUSD → Vendors receive stablecoin-backed payments (redeemable 1:1 for USD) → Float between instant payment and traditional due date (Net30-Net90) generates yield → Yield distributed to property owners, with platform taking small fee.
+- **Vendor Redemption System**: Three payout rails with different speed/cost tradeoffs: (1) ACH next-day (default, scheduled for Net30/60/90 due date, no fee), (2) Push-to-Card instant (opt-in early redemption, 1-2% fee), (3) On-Chain Stablecoin (instant crypto withdrawal, minimal gas fee). All implemented as stubs for demo purposes.
+- **Multi-Org Vendor Model**: Vendors table is org-specific (each vendor record = "Vendor X working with Property Manager Y"). Single vendor login aggregates data across all property managers via `vendor_user_links` junction table. Example: "ABC Plumbing" working with 3 property managers has 3 vendor records, 1 user account, 3 junction table entries.
 - **Economic Model**: Yield is generated from Rent Float (5-15 days), Vendor Float (Net30-Net90), and Merchant Settlement (1-3 days), with distribution to Property Owners (2.5-3.5%), Tenants (1-1.5%), and Naltos Platform (0.5-1%).
 
 ### System Design Choices
