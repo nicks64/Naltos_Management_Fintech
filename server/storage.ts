@@ -18,6 +18,8 @@ import {
   cryptoTransactions,
   vendors,
   vendorInvoices,
+  merchants,
+  merchantTransactions,
   type User,
   type InsertUser,
   type Organization,
@@ -42,6 +44,9 @@ import {
   type InsertCryptoTransaction,
   type Vendor,
   type VendorInvoice,
+  type Merchant,
+  type MerchantTransaction,
+  type InsertMerchantTransaction,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lt, gte, sql, sum, inArray, isNotNull } from "drizzle-orm";
@@ -137,6 +142,10 @@ export interface IStorage {
   getVendors(organizationId: string): Promise<Vendor[]>;
   getVendorInvoices(organizationId: string, filters?: { status?: string }): Promise<(VendorInvoice & { vendorName: string })[]>;
   payVendorInstant(invoiceId: string): Promise<VendorInvoice>;
+  // Merchant methods for tenant-side transactions
+  getMerchants(organizationId: string): Promise<Merchant[]>;
+  getMerchantTransactions(tenantId: string, filters?: { status?: string }): Promise<(MerchantTransaction & { merchantName: string })[]>;
+  createMerchantTransaction(data: InsertMerchantTransaction): Promise<MerchantTransaction>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1003,6 +1012,112 @@ export class DatabaseStorage implements IStorage {
       });
 
       return updatedInvoice;
+    });
+  }
+
+  // Merchant Transaction Methods
+  async getMerchants(organizationId: string): Promise<Merchant[]> {
+    return await db
+      .select()
+      .from(merchants)
+      .where(and(eq(merchants.organizationId, organizationId), eq(merchants.active, true)))
+      .orderBy(merchants.category, merchants.name);
+  }
+
+  async getMerchantTransactions(
+    tenantId: string,
+    filters?: { status?: string }
+  ): Promise<(MerchantTransaction & { merchantName: string })[]> {
+    let query = db
+      .select({
+        id: merchantTransactions.id,
+        merchantId: merchantTransactions.merchantId,
+        tenantId: merchantTransactions.tenantId,
+        organizationId: merchantTransactions.organizationId,
+        amount: merchantTransactions.amount,
+        transactionDate: merchantTransactions.transactionDate,
+        settlementDate: merchantTransactions.settlementDate,
+        status: merchantTransactions.status,
+        settledAt: merchantTransactions.settledAt,
+        settlementDays: merchantTransactions.settlementDays,
+        yieldRate: merchantTransactions.yieldRate,
+        yieldGenerated: merchantTransactions.yieldGenerated,
+        tenantYieldShare: merchantTransactions.tenantYieldShare,
+        description: merchantTransactions.description,
+        merchantName: merchants.name,
+      })
+      .from(merchantTransactions)
+      .innerJoin(merchants, eq(merchantTransactions.merchantId, merchants.id))
+      .where(eq(merchantTransactions.tenantId, tenantId))
+      .$dynamic();
+
+    if (filters?.status) {
+      query = query.where(eq(merchantTransactions.status, filters.status as any));
+    }
+
+    return await query.orderBy(desc(merchantTransactions.transactionDate));
+  }
+
+  async createMerchantTransaction(data: InsertMerchantTransaction): Promise<MerchantTransaction> {
+    return await db.transaction(async (tx) => {
+      // Get merchant details for settlement days and yield rate
+      const [merchant] = await tx
+        .select()
+        .from(merchants)
+        .where(eq(merchants.id, data.merchantId));
+
+      if (!merchant) {
+        throw new Error("Merchant not found");
+      }
+
+      // Calculate settlement details
+      const transactionDate = new Date();
+      const settlementDate = new Date(transactionDate);
+      settlementDate.setDate(transactionDate.getDate() + merchant.settlementDays);
+
+      const amount = typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount;
+      const yieldRate = parseFloat(merchant.yieldRate);
+      
+      // Calculate yield: amount * (settlementDays / 365) * (yieldRate / 100)
+      const yieldGenerated = amount * (merchant.settlementDays / 365) * (yieldRate / 100);
+
+      // Tenant gets 1-1.5% share of yield (using 1.25% as middle ground)
+      const tenantYieldSharePercent = 1.25; // This could come from org settings
+      const tenantYieldShare = yieldGenerated * (tenantYieldSharePercent / 100);
+
+      // Create transaction
+      const [transaction] = await tx
+        .insert(merchantTransactions)
+        .values({
+          ...data,
+          amount: amount.toFixed(2),
+          transactionDate,
+          settlementDate,
+          status: "pending",
+          settlementDays: merchant.settlementDays,
+          yieldRate: yieldRate.toFixed(2),
+          yieldGenerated: yieldGenerated.toFixed(2),
+          tenantYieldShare: tenantYieldShare.toFixed(2),
+        })
+        .returning();
+
+      // Log audit trail
+      await tx.insert(auditLogs).values({
+        organizationId: data.organizationId,
+        userId: data.tenantId, // Using tenantId as userId for audit
+        action: "merchant_transaction_created",
+        entity: "merchant_transaction",
+        entityId: transaction.id,
+        metadata: JSON.stringify({
+          merchantName: merchant.name,
+          amount: amount.toFixed(2),
+          settlementDays: merchant.settlementDays,
+          yieldGenerated: yieldGenerated.toFixed(2),
+          tenantYieldShare: tenantYieldShare.toFixed(2),
+        }),
+      });
+
+      return transaction;
     });
   }
 }
