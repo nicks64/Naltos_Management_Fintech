@@ -877,6 +877,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Vendor Instant Payment Routes ============
+  // Get all vendors for organization
+  app.get("/api/vendors", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.user!.organizationId;
+      const vendors = await storage.getVendors(orgId);
+      res.json({ vendors });
+    } catch (error: any) {
+      console.error("Get vendors error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get vendor invoices (with optional status filter)
+  app.get("/api/vendor-invoices", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.user!.organizationId;
+      const status = req.query.status as string | undefined;
+      
+      const invoices = await storage.getVendorInvoices(orgId, status ? { status } : undefined);
+      
+      res.json({ invoices });
+    } catch (error: any) {
+      console.error("Get vendor invoices error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Pay vendor invoice instantly (showcases yield amplification!)
+  app.post("/api/vendor-invoices/:id/pay-instant", requireAuth, async (req, res) => {
+    try {
+      const invoiceId = req.params.id;
+      
+      // Process instant payment (calculates yield based on float duration)
+      const updatedInvoice = await storage.payVendorInstant(invoiceId);
+      
+      res.json({ 
+        invoice: updatedInvoice,
+        message: "Vendor paid instantly - yield generation locked in!",
+      });
+    } catch (error: any) {
+      console.error("Pay vendor instant error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // ============ Admin Routes ============
   // Only Admin can reset demo
   app.post("/api/admin/reset", requireRole("Admin"), async (req, res) => {

@@ -16,6 +16,8 @@ import {
   auditLogs,
   cryptoWallets,
   cryptoTransactions,
+  vendors,
+  vendorInvoices,
   type User,
   type InsertUser,
   type Organization,
@@ -38,6 +40,8 @@ import {
   type InsertCryptoWallet,
   type CryptoTransaction,
   type InsertCryptoTransaction,
+  type Vendor,
+  type VendorInvoice,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lt, gte, sql, sum, inArray, isNotNull } from "drizzle-orm";
@@ -128,6 +132,11 @@ export interface IStorage {
       yieldGenerated: string;
     }>;
   }>;
+
+  // Vendor Instant Payment methods
+  getVendors(organizationId: string): Promise<Vendor[]>;
+  getVendorInvoices(organizationId: string, filters?: { status?: string }): Promise<(VendorInvoice & { vendorName: string })[]>;
+  payVendorInstant(invoiceId: string): Promise<VendorInvoice>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -420,7 +429,7 @@ export class DatabaseStorage implements IStorage {
 
     if (existing) {
       // Update balance
-      const newBalance = (parseFloat(existing.balance) + parseFloat(insertSub.balance)).toFixed(2);
+      const newBalance = (parseFloat(existing.balance) + parseFloat(insertSub.balance || "0")).toFixed(2);
       const [updated] = await db
         .update(treasurySubscriptions)
         .set({ balance: newBalance })
@@ -829,6 +838,139 @@ export class DatabaseStorage implements IStorage {
       naltosShare: naltosShare.toFixed(2),
       recentPayments: processedPayments,
     };
+  }
+
+  async getVendors(organizationId: string): Promise<Vendor[]> {
+    return await db
+      .select()
+      .from(vendors)
+      .where(eq(vendors.organizationId, organizationId))
+      .orderBy(vendors.name);
+  }
+
+  async getVendorInvoices(
+    organizationId: string, 
+    filters?: { status?: string }
+  ): Promise<(VendorInvoice & { vendorName: string })[]> {
+    let query = db
+      .select({
+        id: vendorInvoices.id,
+        vendorId: vendorInvoices.vendorId,
+        organizationId: vendorInvoices.organizationId,
+        invoiceNumber: vendorInvoices.invoiceNumber,
+        amount: vendorInvoices.amount,
+        invoiceDate: vendorInvoices.invoiceDate,
+        dueDate: vendorInvoices.dueDate,
+        scheduledPaymentDate: vendorInvoices.scheduledPaymentDate,
+        paymentTerms: vendorInvoices.paymentTerms,
+        status: vendorInvoices.status,
+        paidDate: vendorInvoices.paidDate,
+        advanceDate: vendorInvoices.advanceDate,
+        paidViaInstant: vendorInvoices.paidViaInstant,
+        instantAdvanceAmount: vendorInvoices.instantAdvanceAmount,
+        floatDurationDays: vendorInvoices.floatDurationDays,
+        floatYieldRate: vendorInvoices.floatYieldRate,
+        yieldGenerated: vendorInvoices.yieldGenerated,
+        description: vendorInvoices.description,
+        vendorName: vendors.name,
+      })
+      .from(vendorInvoices)
+      .innerJoin(vendors, eq(vendorInvoices.vendorId, vendors.id))
+      .where(eq(vendorInvoices.organizationId, organizationId))
+      .$dynamic();
+
+    if (filters?.status) {
+      query = query.where(eq(vendorInvoices.status, filters.status as any));
+    }
+
+    return await query.orderBy(desc(vendorInvoices.invoiceDate));
+  }
+
+  async payVendorInstant(invoiceId: string): Promise<VendorInvoice> {
+    return await db.transaction(async (tx) => {
+      // Get the invoice
+      const [invoice] = await tx
+        .select()
+        .from(vendorInvoices)
+        .where(eq(vendorInvoices.id, invoiceId));
+
+      if (!invoice) {
+        throw new Error("Invoice not found");
+      }
+
+      if (invoice.status !== "pending") {
+        throw new Error("Invoice is not pending");
+      }
+
+      // Get org settings for yield rate
+      const config = await this.getSettings(invoice.organizationId);
+      if (!config) {
+        throw new Error("Organization settings not found");
+      }
+
+      // Calculate instant payment details
+      const advanceDate = new Date();
+      const scheduledDate = new Date(invoice.scheduledPaymentDate);
+      
+      // Calculate float duration (days between instant payment and scheduled payment)
+      // Use Math.max + Math.ceil to guarantee at least 1 day, preventing zero/negative durations
+      const rawDuration = (scheduledDate.getTime() - advanceDate.getTime()) / (1000 * 60 * 60 * 24);
+      const floatDurationDays = Math.max(Math.ceil(rawDuration), 1);
+
+      // Yield rate from org settings (consistent 5.50% APY)
+      // The 3-9× amplification comes naturally from DURATION:
+      // Net30 = ~30 days (3× vs rent float's ~10 days)
+      // Net60 = ~60 days (6× vs rent float)
+      // Net90 = ~90 days (9× vs rent float)
+      const yieldRate = parseFloat(config.rentFloatYieldRate || "5.50");
+
+      // Calculate yield: amount * (days / 365) * annualRate
+      // The extended duration creates the yield amplification!
+      const amount = parseFloat(invoice.amount);
+      const yieldGenerated = amount * (floatDurationDays / 365) * (yieldRate / 100);
+
+      // Update invoice to paid_instant status with complete yield economics
+      const [updatedInvoice] = await tx
+        .update(vendorInvoices)
+        .set({
+          status: "paid_instant",
+          paidDate: advanceDate,
+          advanceDate: advanceDate,
+          paidViaInstant: true,
+          instantAdvanceAmount: invoice.amount,
+          floatDurationDays,
+          floatYieldRate: yieldRate.toFixed(2),
+          yieldGenerated: yieldGenerated.toFixed(2),
+        })
+        .where(eq(vendorInvoices.id, invoiceId))
+        .returning();
+
+      // Calculate duration multiplier vs rent float baseline (~10 days) for audit trail
+      const rentFloatBaseline = typeof config.rentFloatDefaultDuration === 'number' 
+        ? config.rentFloatDefaultDuration 
+        : parseFloat(config.rentFloatDefaultDuration || "10");
+      const durationMultiplier = floatDurationDays / rentFloatBaseline;
+
+      // Log audit trail for value creation (showcasing yield amplification!)
+      await tx.insert(auditLogs).values({
+        organizationId: invoice.organizationId,
+        userId: null,
+        action: "vendor_instant_payment",
+        entity: "vendor_invoice",
+        entityId: invoiceId,
+        metadata: JSON.stringify({
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.amount,
+          paymentTerms: invoice.paymentTerms,
+          floatDurationDays,
+          yieldGenerated: yieldGenerated.toFixed(2),
+          yieldRate: yieldRate.toFixed(2),
+          durationMultiplier: durationMultiplier.toFixed(1) + "×",
+        }),
+      });
+
+      return updatedInvoice;
+    });
   }
 }
 
