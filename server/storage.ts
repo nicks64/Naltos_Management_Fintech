@@ -142,10 +142,13 @@ export interface IStorage {
   getVendors(organizationId: string): Promise<Vendor[]>;
   getVendorInvoices(organizationId: string, filters?: { status?: string }): Promise<(VendorInvoice & { vendorName: string })[]>;
   payVendorInstant(invoiceId: string): Promise<VendorInvoice>;
+  // Tenant methods
+  getTenantByEmail(email: string): Promise<Tenant | undefined>;
+  
   // Merchant methods for tenant-side transactions
   getMerchants(organizationId: string): Promise<Merchant[]>;
   getMerchantTransactions(tenantId: string, filters?: { status?: string }): Promise<(MerchantTransaction & { merchantName: string })[]>;
-  createMerchantTransaction(data: InsertMerchantTransaction): Promise<MerchantTransaction>;
+  createMerchantTransaction(data: InsertMerchantTransaction, userId: string): Promise<MerchantTransaction>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1015,6 +1018,23 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // Helper to safely convert decimal to number with data integrity checks
+  private safeDecimalToNumber(value: any): number {
+    if (value === null || value === undefined) return 0;
+    const num = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(num)) {
+      console.error(`Invalid decimal value encountered: ${value}`);
+      throw new Error(`Failed to convert decimal value to number: ${value}`);
+    }
+    return num;
+  }
+
+  // Tenant Methods
+  async getTenantByEmail(email: string): Promise<Tenant | undefined> {
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.email, email));
+    return tenant || undefined;
+  }
+
   // Merchant Transaction Methods
   async getMerchants(organizationId: string): Promise<Merchant[]> {
     const results = await db
@@ -1026,7 +1046,7 @@ export class DatabaseStorage implements IStorage {
     // Convert decimal fields to numbers for proper JSON serialization
     return results.map(merchant => ({
       ...merchant,
-      yieldRate: parseFloat(merchant.yieldRate as any),
+      yieldRate: this.safeDecimalToNumber(merchant.yieldRate),
     }));
   }
 
@@ -1068,16 +1088,16 @@ export class DatabaseStorage implements IStorage {
     // Convert decimal fields to numbers for proper JSON serialization
     return results.map(tx => ({
       ...tx,
-      amount: parseFloat(tx.amount as any),
-      yieldRate: parseFloat(tx.yieldRate as any),
-      yieldGenerated: parseFloat(tx.yieldGenerated as any),
-      propertyYieldShare: parseFloat(tx.propertyYieldShare as any),
-      tenantYieldShare: parseFloat(tx.tenantYieldShare as any),
-      platformYieldShare: parseFloat(tx.platformYieldShare as any),
+      amount: this.safeDecimalToNumber(tx.amount),
+      yieldRate: this.safeDecimalToNumber(tx.yieldRate),
+      yieldGenerated: this.safeDecimalToNumber(tx.yieldGenerated),
+      propertyYieldShare: this.safeDecimalToNumber(tx.propertyYieldShare),
+      tenantYieldShare: this.safeDecimalToNumber(tx.tenantYieldShare),
+      platformYieldShare: this.safeDecimalToNumber(tx.platformYieldShare),
     }));
   }
 
-  async createMerchantTransaction(data: InsertMerchantTransaction): Promise<MerchantTransaction> {
+  async createMerchantTransaction(data: InsertMerchantTransaction, userId: string): Promise<MerchantTransaction> {
     return await db.transaction(async (tx) => {
       // Get merchant details for settlement days and yield rate
       const [merchant] = await tx
@@ -1126,7 +1146,7 @@ export class DatabaseStorage implements IStorage {
       // Log audit trail
       await tx.insert(auditLogs).values({
         organizationId: data.organizationId,
-        userId: data.tenantId, // Using tenantId as userId for audit
+        userId: userId,
         action: "merchant_transaction_created",
         entity: "merchant_transaction",
         entityId: transaction.id,

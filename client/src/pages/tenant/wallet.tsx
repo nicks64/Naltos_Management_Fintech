@@ -289,7 +289,7 @@ export default function TenantWallet() {
                 </CardTitle>
               </div>
               <p className="text-sm font-bold tabular-nums" style={{ color: "hsl(var(--tenant-success))" }}>
-                +${recentMerchantTxs.reduce((sum, tx) => sum + tx.tenantYieldShare, 0).toFixed(2)}
+                +${recentMerchantTxs.reduce((sum, tx) => sum + (tx.tenantYieldShare || 0), 0).toFixed(2)}
               </p>
             </div>
             <CardDescription className="text-sm" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
@@ -321,7 +321,7 @@ export default function TenantWallet() {
                         Property (80%)
                       </p>
                       <p className="text-xs font-semibold tabular-nums mt-0.5" style={{ color: "hsl(var(--tenant-foreground))" }}>
-                        ${tx.propertyYieldShare.toFixed(4)}
+                        ${(tx.propertyYieldShare || 0).toFixed(4)}
                       </p>
                     </div>
                     <div className="p-2 rounded" style={{ backgroundColor: "hsl(var(--tenant-success) / 0.1)" }}>
@@ -329,7 +329,7 @@ export default function TenantWallet() {
                         You (12.5%)
                       </p>
                       <p className="text-xs font-bold tabular-nums mt-0.5" style={{ color: "hsl(var(--tenant-success))" }}>
-                        ${tx.tenantYieldShare.toFixed(4)}
+                        ${(tx.tenantYieldShare || 0).toFixed(4)}
                       </p>
                     </div>
                     <div className="p-2 rounded" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
@@ -337,7 +337,7 @@ export default function TenantWallet() {
                         Platform (7.5%)
                       </p>
                       <p className="text-xs font-semibold tabular-nums mt-0.5" style={{ color: "hsl(var(--tenant-foreground))" }}>
-                        ${tx.platformYieldShare.toFixed(4)}
+                        ${(tx.platformYieldShare || 0).toFixed(4)}
                       </p>
                     </div>
                   </div>

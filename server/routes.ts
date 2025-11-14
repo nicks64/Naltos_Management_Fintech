@@ -905,28 +905,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get merchant transaction history for tenant
   app.get("/api/tenant/merchant-transactions", requireRole("Tenant"), async (req, res) => {
     try {
-      const tenantId = req.user!.tenantId!;
+      const userId = req.userId!;
       const status = req.query.status as string | undefined;
       
+      // Find user to get email
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Find tenant by email
+      const tenant = await storage.getTenantByEmail(user.email);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant profile not found" });
+      }
+      
       const transactions = await storage.getMerchantTransactions(
-        tenantId,
+        tenant.id,
         status ? { status } : undefined
       );
       
-      // Format for frontend
+      // Storage layer already converted decimals to numbers - pass through directly
       const formattedTransactions = transactions.map(tx => ({
         id: tx.id,
         merchantId: tx.merchantId,
         merchantName: tx.merchantName,
-        amount: parseFloat(tx.amount),
+        amount: tx.amount,
         transactionDate: tx.transactionDate.toISOString(),
         settlementDate: tx.settlementDate.toISOString(),
         status: tx.status,
         settledAt: tx.settledAt?.toISOString() || null,
         settlementDays: tx.settlementDays,
-        yieldRate: parseFloat(tx.yieldRate),
-        yieldGenerated: parseFloat(tx.yieldGenerated),
-        tenantYieldShare: tx.tenantYieldShare ? parseFloat(tx.tenantYieldShare) : 0,
+        yieldRate: tx.yieldRate,
+        yieldGenerated: tx.yieldGenerated,
+        propertyYieldShare: tx.propertyYieldShare,
+        tenantYieldShare: tx.tenantYieldShare,
+        platformYieldShare: tx.platformYieldShare,
         description: tx.description,
       }));
       
@@ -941,8 +955,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tenant/merchant-transactions", requireRole("Tenant"), async (req, res) => {
     try {
       const orgId = req.organizationId!;
-      const tenantId = req.user!.tenantId!;
+      const userId = req.userId!;
       const { merchantId, amount, description } = req.body;
+      
+      // Find user to get email
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Find tenant by email
+      const tenant = await storage.getTenantByEmail(user.email);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant profile not found" });
+      }
       
       // Validate input
       if (!merchantId || !amount || amount <= 0) {
@@ -952,11 +978,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create transaction
       const transaction = await storage.createMerchantTransaction({
         merchantId,
-        tenantId,
+        tenantId: tenant.id,
         organizationId: orgId,
         amount: amount.toString(),
         description: description || null,
-      });
+      }, userId);
       
       res.json({ 
         transaction: {
