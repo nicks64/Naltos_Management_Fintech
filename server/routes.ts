@@ -785,6 +785,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Crypto Treasury Routes - Automated stablecoin orchestration
+  app.get("/api/crypto-treasury/positions", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId!;
+      const positions = await storage.getCryptoTreasuryPositions(orgId);
+      res.json({ positions });
+    } catch (error: any) {
+      console.error("Get crypto treasury positions error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/crypto-treasury/deployments", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId!;
+      const status = req.query.status as string | undefined;
+      const coin = req.query.coin as string | undefined;
+      
+      const deployments = await storage.getCryptoTreasuryDeployments(orgId, { status, coin });
+      res.json({ deployments });
+    } catch (error: any) {
+      console.error("Get crypto treasury deployments error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/crypto-treasury/flows", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId!;
+      const flowType = req.query.flowType as string | undefined;
+      const coin = req.query.coin as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      
+      const flows = await storage.getCryptoTreasuryFlows(orgId, { flowType, coin, limit });
+      res.json({ flows });
+    } catch (error: any) {
+      console.error("Get crypto treasury flows error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Crypto Wallet Routes (Tenant) ============
   app.get("/api/tenant/crypto/wallets", requireRole("Tenant"), async (req, res) => {
     try {

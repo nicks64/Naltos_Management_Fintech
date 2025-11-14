@@ -1035,6 +1035,91 @@ export class DatabaseStorage implements IStorage {
     return tenant || undefined;
   }
 
+  // Crypto Treasury Methods
+  async getCryptoTreasuryPositions(organizationId: string) {
+    const results = await db
+      .select()
+      .from(schema.cryptoTreasuryPositions)
+      .where(eq(schema.cryptoTreasuryPositions.organizationId, organizationId))
+      .orderBy(desc(schema.cryptoTreasuryPositions.asOf));
+
+    return results.map(pos => ({
+      ...pos,
+      availableBalance: this.safeDecimalToNumber(pos.availableBalance),
+      deployedBalance: this.safeDecimalToNumber(pos.deployedBalance),
+      reservedBalance: this.safeDecimalToNumber(pos.reservedBalance),
+      totalYieldAccrued: this.safeDecimalToNumber(pos.totalYieldAccrued),
+    }));
+  }
+
+  async getCryptoTreasuryDeployments(organizationId: string, filters?: { status?: string; coin?: string }) {
+    let query = db
+      .select({
+        id: schema.cryptoTreasuryDeployments.id,
+        organizationId: schema.cryptoTreasuryDeployments.organizationId,
+        treasuryProductId: schema.cryptoTreasuryDeployments.treasuryProductId,
+        sourceWalletId: schema.cryptoTreasuryDeployments.sourceWalletId,
+        coin: schema.cryptoTreasuryDeployments.coin,
+        deploymentAmount: schema.cryptoTreasuryDeployments.deploymentAmount,
+        status: schema.cryptoTreasuryDeployments.status,
+        deployedAt: schema.cryptoTreasuryDeployments.deployedAt,
+        maturityDate: schema.cryptoTreasuryDeployments.maturityDate,
+        withdrawnAt: schema.cryptoTreasuryDeployments.withdrawnAt,
+        cumulativeYield: schema.cryptoTreasuryDeployments.cumulativeYield,
+        reinvestPolicy: schema.cryptoTreasuryDeployments.reinvestPolicy,
+        productName: schema.treasuryProducts.name,
+        productType: schema.treasuryProducts.productType,
+      })
+      .from(schema.cryptoTreasuryDeployments)
+      .innerJoin(
+        schema.treasuryProducts,
+        eq(schema.cryptoTreasuryDeployments.treasuryProductId, schema.treasuryProducts.id)
+      )
+      .where(eq(schema.cryptoTreasuryDeployments.organizationId, organizationId))
+      .$dynamic();
+
+    if (filters?.status) {
+      query = query.where(eq(schema.cryptoTreasuryDeployments.status, filters.status as any));
+    }
+
+    if (filters?.coin) {
+      query = query.where(eq(schema.cryptoTreasuryDeployments.coin, filters.coin as any));
+    }
+
+    const results = await query.orderBy(desc(schema.cryptoTreasuryDeployments.deployedAt));
+
+    return results.map(dep => ({
+      ...dep,
+      deploymentAmount: this.safeDecimalToNumber(dep.deploymentAmount),
+      cumulativeYield: this.safeDecimalToNumber(dep.cumulativeYield),
+    }));
+  }
+
+  async getCryptoTreasuryFlows(organizationId: string, filters?: { flowType?: string; coin?: string; limit?: number }) {
+    let query = db
+      .select()
+      .from(schema.cryptoTreasuryFlows)
+      .where(eq(schema.cryptoTreasuryFlows.organizationId, organizationId))
+      .$dynamic();
+
+    if (filters?.flowType) {
+      query = query.where(eq(schema.cryptoTreasuryFlows.flowType, filters.flowType as any));
+    }
+
+    if (filters?.coin) {
+      query = query.where(eq(schema.cryptoTreasuryFlows.coin, filters.coin as any));
+    }
+
+    const results = await query
+      .orderBy(desc(schema.cryptoTreasuryFlows.createdAt))
+      .limit(filters?.limit || 100);
+
+    return results.map(flow => ({
+      ...flow,
+      amount: this.safeDecimalToNumber(flow.amount),
+    }));
+  }
+
   // Merchant Transaction Methods
   async getMerchants(organizationId: string): Promise<Merchant[]> {
     const results = await db

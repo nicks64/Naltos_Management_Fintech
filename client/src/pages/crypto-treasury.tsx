@@ -1,298 +1,259 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Coins, ArrowRightLeft, Copy, TrendingUp, DollarSign, Clock } from "lucide-react";
+import { Coins, TrendingUp, ArrowRight, Layers, Activity } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
-interface CryptoWallet {
+interface CryptoTreasuryPosition {
   coin: string;
-  balance: number;
-  usdValue: number;
-  depositAddress: string;
-  price: number;
+  availableBalance: number;
+  deployedBalance: number;
+  reservedBalance: number;
+  totalYieldAccrued: number;
+  asOf: string;
 }
 
-interface CryptoWalletsData {
-  wallets: CryptoWallet[];
-  totalUsdValue: number;
-}
-
-interface CryptoTransaction {
+interface CryptoTreasuryDeployment {
   id: string;
-  type: string;
-  coin?: string;
-  fromCoin?: string;
-  toCoin?: string;
-  amount: number;
-  usdValue: number;
+  coin: string;
+  productName: string;
+  productType: string;
+  deploymentAmount: number;
+  cumulativeYield: number;
   status: string;
-  txHash: string;
+  deployedAt: string;
+  maturityDate?: string;
+  reinvestPolicy: boolean;
+}
+
+interface CryptoTreasuryFlow {
+  id: string;
+  flowType: string;
+  coin: string;
+  amount: number;
+  description: string | null;
   createdAt: string;
 }
 
 export default function CryptoTreasury() {
-  const { toast } = useToast();
-  const [convertOpen, setConvertOpen] = useState(false);
-  const [convertToUsdOpen, setConvertToUsdOpen] = useState(false);
-  const [fromCoin, setFromCoin] = useState("");
-  const [toCoin, setToCoin] = useState("");
-  const [convertAmount, setConvertAmount] = useState("");
-  const [selectedCoin, setSelectedCoin] = useState("");
-
-  const { data: cryptoData, isLoading } = useQuery<CryptoWalletsData>({
-    queryKey: ["/api/crypto/wallets"],
+  const { data: positionsData, isLoading } = useQuery<{ positions: CryptoTreasuryPosition[] }>({
+    queryKey: ["/api/crypto-treasury/positions"],
   });
 
-  const { data: transactionsData } = useQuery<{ transactions: CryptoTransaction[] }>({
-    queryKey: ["/api/crypto/transactions"],
+  const { data: deploymentsData } = useQuery<{ deployments: CryptoTreasuryDeployment[] }>({
+    queryKey: ["/api/crypto-treasury/deployments"],
   });
 
-  const convertMutation = useMutation({
-    mutationFn: (data: { fromCoin: string; toCoin: string; amount: number }) =>
-      apiRequest("POST", "/api/crypto/convert", data),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/crypto/wallets"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/crypto/transactions"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/crypto/wallets"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/crypto/transactions"] });
-      setConvertOpen(false);
-      setConvertAmount("");
-      toast({
-        title: "Conversion Successful",
-        description: "Your stablecoins have been converted",
-      });
-    },
+  const { data: flowsData } = useQuery<{ flows: CryptoTreasuryFlow[] }>({
+    queryKey: ["/api/crypto-treasury/flows"],
   });
-
-  const convertToUsdMutation = useMutation({
-    mutationFn: (data: { coin: string; amount: number }) =>
-      apiRequest("POST", "/api/crypto/to-usd", data),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/crypto/wallets"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/crypto/transactions"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/crypto/wallets"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/crypto/transactions"] });
-      setConvertToUsdOpen(false);
-      setConvertAmount("");
-      toast({
-        title: "Converted to USD",
-        description: "Funds will be available in your bank account in 1-2 business days",
-      });
-    },
-  });
-
-  const handleConvert = () => {
-    if (fromCoin && toCoin && convertAmount) {
-      convertMutation.mutate({
-        fromCoin,
-        toCoin,
-        amount: parseFloat(convertAmount),
-      });
-    }
-  };
-
-  const handleConvertToUsd = () => {
-    if (selectedCoin && convertAmount) {
-      convertToUsdMutation.mutate({
-        coin: selectedCoin,
-        amount: parseFloat(convertAmount),
-      });
-    }
-  };
-
-  const copyAddress = (address: string) => {
-    navigator.clipboard.writeText(address);
-    toast({
-      title: "Address Copied",
-      description: "Deposit address copied to clipboard",
-    });
-  };
 
   if (isLoading) {
     return (
       <div className="space-y-8" data-testid="page-crypto-treasury">
         <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-        <div className="h-64 bg-muted animate-pulse rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="h-32 bg-muted animate-pulse rounded-lg" />
+          <div className="h-32 bg-muted animate-pulse rounded-lg" />
+          <div className="h-32 bg-muted animate-pulse rounded-lg" />
+        </div>
       </div>
     );
   }
+
+  // Calculate totals
+  const positions = positionsData?.positions || [];
+  const totalAUM = positions.reduce((sum, p) => sum + p.availableBalance + p.deployedBalance + p.reservedBalance, 0);
+  const totalDeployed = positions.reduce((sum, p) => sum + p.deployedBalance, 0);
+  const totalYield = positions.reduce((sum, p) => sum + p.totalYieldAccrued, 0);
+  
+  // Calculate weighted average APY based on deployments
+  const deployments = deploymentsData?.deployments || [];
+  const activeDeployments = deployments.filter(d => d.status === 'active');
+  const totalDeployedAmount = activeDeployments.reduce((sum, d) => sum + d.deploymentAmount, 0);
+  // Approximate APY: (total yield / total deployed) * (365 / 30 days) * 100
+  const estimatedAPY = totalDeployedAmount > 0 ? (totalYield / totalDeployedAmount) * (365 / 30) * 100 : 0;
 
   return (
     <div className="space-y-8" data-testid="page-crypto-treasury">
       <div>
         <h1 className="text-4xl font-semibold tracking-tight mb-2">Crypto Treasury</h1>
         <p className="text-muted-foreground">
-          Programmable dollar infrastructure for instant settlement and treasury automation
+          Automated stablecoin orchestration: Rent flows → Bridge conversions → Treasury deployments → Yield generation
         </p>
       </div>
 
-      {/* Total Value Card */}
-      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Total Crypto Holdings</p>
-              <h2 className="text-4xl font-bold tracking-tight" data-testid="total-crypto-value">
-                ${cryptoData?.totalUsdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">Across all stablecoins</p>
+      {/* Overview Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Coins className="w-5 h-5 text-primary" />
+              <CardTitle className="text-sm font-medium">Total Crypto AUM</CardTitle>
             </div>
-            <div className="p-4 bg-primary/10 rounded-lg">
-              <Coins className="w-12 h-12 text-primary" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold tabular-nums" data-testid="total-crypto-aum">
+              ${totalAUM.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Across USDC, USDT, DAI
+            </p>
+          </CardContent>
+        </Card>
 
-      <Tabs defaultValue="wallets" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="wallets">Wallets</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary" />
+              <CardTitle className="text-sm font-medium">Deployed in Treasury</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold tabular-nums" data-testid="total-deployed">
+              ${totalDeployed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {activeDeployments.length} active deployment{activeDeployments.length !== 1 ? 's' : ''}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <CardTitle className="text-sm font-medium">Estimated Yield APY</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold tabular-nums text-primary" data-testid="estimated-apy">
+              {estimatedAPY.toFixed(2)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              ${totalYield.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total yield accrued
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="positions" className="w-full">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsTrigger value="positions">Positions</TabsTrigger>
+          <TabsTrigger value="deployments">Deployments</TabsTrigger>
+          <TabsTrigger value="flows">Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="wallets" className="space-y-6 mt-6">
-          {/* Wallet Cards */}
+        {/* Stablecoin Positions Tab */}
+        <TabsContent value="positions" className="space-y-4 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {cryptoData?.wallets.map((wallet) => (
-              <Card key={`${wallet.coin}-${wallet.depositAddress}`} className="overflow-hidden" data-testid={`card-wallet-${wallet.coin}`}>
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{wallet.coin}</CardTitle>
-                    <Badge variant="secondary" className="font-mono">
-                      ${wallet.price.toFixed(2)}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Balance</p>
-                    <p className="text-2xl font-bold tabular-nums" data-testid={`balance-${wallet.coin}`}>
-                      {wallet.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      ≈ ${wallet.usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Deposit Address</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input
-                        value={wallet.depositAddress}
-                        readOnly
-                        className="font-mono text-xs"
-                      />
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => copyAddress(wallet.depositAddress)}
-                        data-testid={`copy-address-${wallet.coin}`}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
+            {positions.map((position) => {
+              const totalBalance = position.availableBalance + position.deployedBalance + position.reservedBalance;
+              const deployedPct = totalBalance > 0 ? (position.deployedBalance / totalBalance) * 100 : 0;
+              
+              return (
+                <Card key={position.coin} data-testid={`position-${position.coin}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl">{position.coin}</CardTitle>
+                      <Badge variant="secondary" className="text-xs">
+                        {deployedPct.toFixed(0)}% deployed
+                      </Badge>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <ArrowRightLeft className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Convert Stablecoins</CardTitle>
-                </div>
-                <CardDescription>
-                  Swap between different stablecoins
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  className="w-full"
-                  onClick={() => setConvertOpen(true)}
-                  data-testid="button-open-convert"
-                >
-                  <ArrowRightLeft className="mr-2 h-4 w-4" />
-                  Convert
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Convert to USD</CardTitle>
-                </div>
-                <CardDescription>
-                  Withdraw stablecoins to your bank account
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setConvertToUsdOpen(true)}
-                  data-testid="button-open-convert-usd"
-                >
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  Convert to USD
-                </Button>
-              </CardContent>
-            </Card>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Total Balance</p>
+                      <p className="text-2xl font-bold tabular-nums">
+                        ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Available</span>
+                        <span className="font-semibold tabular-nums">
+                          ${position.availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Deployed</span>
+                        <span className="font-semibold tabular-nums text-primary">
+                          ${position.deployedBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {position.reservedBalance > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Reserved</span>
+                          <span className="font-semibold tabular-nums">
+                            ${position.reservedBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="pt-3 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Lifetime Yield</span>
+                        <span className="font-semibold tabular-nums text-primary">
+                          +${position.totalYieldAccrued.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
 
-        <TabsContent value="transactions" className="mt-6">
+        {/* Treasury Deployments Tab */}
+        <TabsContent value="deployments" className="mt-6">
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-muted-foreground" />
-                <CardTitle>Transaction History</CardTitle>
-              </div>
+              <CardTitle>Active Treasury Deployments</CardTitle>
+              <CardDescription>
+                Stablecoins automatically deployed into yield-generating treasury products
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {transactionsData?.transactions && transactionsData.transactions.length > 0 ? (
+              {deployments.length > 0 ? (
                 <div className="space-y-4">
-                  {transactionsData.transactions.map((tx) => (
+                  {deployments.map((deployment) => (
                     <div
-                      key={tx.id}
+                      key={deployment.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover-elevate"
-                      data-testid={`transaction-${tx.id}`}
+                      data-testid={`deployment-${deployment.id}`}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Badge variant={tx.status === "completed" ? "default" : "secondary"}>
-                            {tx.type}
+                          <Badge variant={deployment.status === 'active' ? 'default' : 'secondary'}>
+                            {deployment.status}
                           </Badge>
-                          <Badge variant="outline" className="font-mono text-xs">
-                            {tx.coin || `${tx.fromCoin} → ${tx.toCoin}`}
+                          <Badge variant="outline" className="font-mono">
+                            {deployment.coin}
+                          </Badge>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">{deployment.productName}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {deployment.productType}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {format(parseISO(tx.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                        <p className="text-xs text-muted-foreground">
+                          Deployed {format(parseISO(deployment.deployedAt), "MMM d, yyyy")}
+                          {deployment.maturityDate && ` • Matures ${format(parseISO(deployment.maturityDate), "MMM d, yyyy")}`}
                         </p>
-                        <p className="text-xs font-mono text-muted-foreground mt-1">
-                          TX: {tx.txHash}
-                        </p>
+                        {deployment.reinvestPolicy && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Auto-reinvest enabled
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-semibold tabular-nums">
-                          {tx.amount.toLocaleString()} {tx.coin || tx.fromCoin}
+                          ${deployment.deploymentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          ${tx.usdValue.toLocaleString()}
+                        <p className="text-sm text-primary font-medium">
+                          +${deployment.cumulativeYield.toLocaleString(undefined, { minimumFractionDigits: 2 })} yield
                         </p>
                       </div>
                     </div>
@@ -300,133 +261,79 @@ export default function CryptoTreasury() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <Clock className="w-12 h-12 mx-auto mb-3 opacity-30 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">No transactions yet</p>
+                  <Layers className="w-12 h-12 mx-auto mb-3 opacity-30 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No active deployments</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Activity Flows Tab */}
+        <TabsContent value="flows" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-muted-foreground" />
+                <CardTitle>Treasury Flow Activity</CardTitle>
+              </div>
+              <CardDescription>
+                Complete audit trail of bridge conversions, deployments, and yield accruals
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {flowsData?.flows && flowsData.flows.length > 0 ? (
+                <div className="space-y-3">
+                  {flowsData.flows.map((flow) => {
+                    const flowTypeLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+                      bridge_inbound: { label: "Bridge In", variant: "default" },
+                      bridge_outbound: { label: "Bridge Out", variant: "secondary" },
+                      deployment_in: { label: "Deployed", variant: "default" },
+                      deployment_out: { label: "Withdrawn", variant: "secondary" },
+                      yield_accrual: { label: "Yield Accrued", variant: "default" },
+                      wallet_transfer: { label: "Transfer", variant: "outline" },
+                    };
+                    const flowInfo = flowTypeLabels[flow.flowType] || { label: flow.flowType, variant: "outline" as const };
+                    
+                    return (
+                      <div
+                        key={flow.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                        data-testid={`flow-${flow.id}`}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant={flowInfo.variant}>{flowInfo.label}</Badge>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {flow.coin}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {flow.description || flow.flowType}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(parseISO(flow.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold tabular-nums">
+                            ${flow.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Activity className="w-12 h-12 mx-auto mb-3 opacity-30 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No activity yet</p>
                 </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Convert Dialog */}
-      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Convert Stablecoins</DialogTitle>
-            <DialogDescription>
-              Swap between different stablecoins at 1:1 ratio (0.1% fee)
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="from-coin">From</Label>
-              <Select value={fromCoin} onValueChange={setFromCoin}>
-                <SelectTrigger id="from-coin" data-testid="select-from-coin">
-                  <SelectValue placeholder="Select coin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cryptoData?.wallets.map((w) => (
-                    <SelectItem key={w.coin} value={w.coin}>
-                      {w.coin} ({w.balance.toFixed(2)} available)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="to-coin">To</Label>
-              <Select value={toCoin} onValueChange={setToCoin}>
-                <SelectTrigger id="to-coin" data-testid="select-to-coin">
-                  <SelectValue placeholder="Select coin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cryptoData?.wallets.filter((w) => w.coin !== fromCoin).map((w) => (
-                    <SelectItem key={w.coin} value={w.coin}>
-                      {w.coin}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="amount">Amount</Label>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="0.00"
-                value={convertAmount}
-                onChange={(e) => setConvertAmount(e.target.value)}
-                data-testid="input-convert-amount"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConvertOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConvert}
-              disabled={convertMutation.isPending || !fromCoin || !toCoin || !convertAmount}
-              data-testid="button-confirm-convert"
-            >
-              {convertMutation.isPending ? "Converting..." : "Convert"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Convert to USD Dialog */}
-      <Dialog open={convertToUsdOpen} onOpenChange={setConvertToUsdOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Convert to USD</DialogTitle>
-            <DialogDescription>
-              Withdraw stablecoins to your bank account (0.2% fee, 1-2 business days)
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="coin-select">Stablecoin</Label>
-              <Select value={selectedCoin} onValueChange={setSelectedCoin}>
-                <SelectTrigger id="coin-select" data-testid="select-coin-usd">
-                  <SelectValue placeholder="Select coin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cryptoData?.wallets.map((w) => (
-                    <SelectItem key={w.coin} value={w.coin}>
-                      {w.coin} ({w.balance.toFixed(2)} available)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="usd-amount">Amount</Label>
-              <Input
-                id="usd-amount"
-                type="number"
-                placeholder="0.00"
-                value={convertAmount}
-                onChange={(e) => setConvertAmount(e.target.value)}
-                data-testid="input-usd-amount"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConvertToUsdOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConvertToUsd}
-              disabled={convertToUsdMutation.isPending || !selectedCoin || !convertAmount}
-              data-testid="button-confirm-convert-usd"
-            >
-              {convertToUsdMutation.isPending ? "Processing..." : "Convert to USD"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
