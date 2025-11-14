@@ -31,7 +31,9 @@ interface MerchantTransaction {
   status: string;
   settlementDays: number;
   yieldGenerated: number;
+  propertyYieldShare: number;
   tenantYieldShare: number;
+  platformYieldShare: number;
   description: string;
 }
 
@@ -327,11 +329,31 @@ export default function TenantMerchants() {
                     {selectedMerchant.settlementDays} days
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm pt-2 border-t" style={{ borderColor: "hsl(var(--tenant-card-border))" }}>
-                  <span className="font-semibold" style={{ color: "hsl(var(--tenant-success))" }}>Est. Yield Earned</span>
-                  <span className="font-bold" style={{ color: "hsl(var(--tenant-success))" }}>
-                    ${((parseFloat(amount) * (selectedMerchant.settlementDays / 365) * (selectedMerchant.yieldRate / 100)) * 0.0125).toFixed(2)}
+                <div className="flex items-center justify-between text-sm mb-2 pt-2 border-t" style={{ borderColor: "hsl(var(--tenant-card-border))" }}>
+                  <span style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Total Yield Generated</span>
+                  <span className="font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                    ${(parseFloat(amount) * (selectedMerchant.settlementDays / 365) * (selectedMerchant.yieldRate / 100)).toFixed(4)}
                   </span>
+                </div>
+                <div className="space-y-1 pl-4 mb-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span style={{ color: "hsl(var(--tenant-muted-foreground))" }}>• Property Owner (80%)</span>
+                    <span className="font-medium" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                      ${(parseFloat(amount) * (selectedMerchant.settlementDays / 365) * (selectedMerchant.yieldRate / 100) * 0.80).toFixed(4)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium" style={{ color: "hsl(var(--tenant-success))" }}>• You (12.5%)</span>
+                    <span className="font-semibold" style={{ color: "hsl(var(--tenant-success))" }}>
+                      ${(parseFloat(amount) * (selectedMerchant.settlementDays / 365) * (selectedMerchant.yieldRate / 100) * 0.125).toFixed(4)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span style={{ color: "hsl(var(--tenant-muted-foreground))" }}>• Platform (7.5%)</span>
+                    <span className="font-medium" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                      ${(parseFloat(amount) * (selectedMerchant.settlementDays / 365) * (selectedMerchant.yieldRate / 100) * 0.075).toFixed(4)}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

@@ -254,7 +254,9 @@ export const merchantTransactions = pgTable("merchant_transactions", {
   settlementDays: integer("settlement_days").notNull(), // Actual settlement float duration
   yieldRate: decimal("yield_rate", { precision: 5, scale: 2 }).notNull(), // Snapshot of yield rate at transaction time
   yieldGenerated: decimal("yield_generated", { precision: 10, scale: 2 }).notNull(), // Calculated: amount * (settlementDays/365) * (yieldRate/100)
-  tenantYieldShare: decimal("tenant_yield_share", { precision: 10, scale: 2 }), // Portion of yield credited to tenant (1-1.5%)
+  propertyYieldShare: decimal("property_yield_share", { precision: 10, scale: 2 }).notNull(), // Property owner share (80% of yield)
+  tenantYieldShare: decimal("tenant_yield_share", { precision: 10, scale: 2 }).notNull(), // Tenant share (12.5% of yield)
+  platformYieldShare: decimal("platform_yield_share", { precision: 10, scale: 2 }).notNull(), // Platform share (7.5% of yield)
   description: text("description"),
 });
 

@@ -629,7 +629,9 @@ export async function seedDatabase() {
     const amount1 = idx === 0 ? 125.50 : idx === 1 ? 89.99 : idx === 2 ? 45.20 : idx === 3 ? 78.00 : idx === 4 ? 52.30 : idx === 5 ? 12.75 : idx === 6 ? 156.40 : 35.00;
     const yieldRate = parseFloat(merchant.yieldRate);
     const yield1 = amount1 * (merchant.settlementDays / 365) * (yieldRate / 100);
-    const tenantShare1 = yield1 * 0.0125; // 1.25% to tenant
+    const propertyShare1 = yield1 * 0.80; // 80% to property owner
+    const tenantShare1 = yield1 * 0.125; // 12.5% to tenant
+    const platformShare1 = yield1 * 0.075; // 7.5% to platform
 
     merchantTxData.push({
       merchantId: merchant.id,
@@ -642,7 +644,9 @@ export async function seedDatabase() {
       settlementDays: merchant.settlementDays,
       yieldRate: merchant.yieldRate,
       yieldGenerated: yield1.toFixed(2),
+      propertyYieldShare: propertyShare1.toFixed(2),
       tenantYieldShare: tenantShare1.toFixed(2),
+      platformYieldShare: platformShare1.toFixed(2),
       description: `Purchase at ${merchant.name}`,
     });
 
@@ -655,7 +659,9 @@ export async function seedDatabase() {
       const tx2Settled = new Date(tx2Settlement);
       const amount2 = idx === 0 ? 215.80 : idx === 1 ? 142.30 : idx === 2 ? 68.50 : idx === 3 ? 95.00 : 28.40;
       const yield2 = amount2 * (merchant.settlementDays / 365) * (yieldRate / 100);
-      const tenantShare2 = yield2 * 0.0125;
+      const propertyShare2 = yield2 * 0.80; // 80% to property owner
+      const tenantShare2 = yield2 * 0.125; // 12.5% to tenant
+      const platformShare2 = yield2 * 0.075; // 7.5% to platform
 
       merchantTxData.push({
         merchantId: merchant.id,
@@ -669,7 +675,9 @@ export async function seedDatabase() {
         settlementDays: merchant.settlementDays,
         yieldRate: merchant.yieldRate,
         yieldGenerated: yield2.toFixed(2),
+        propertyYieldShare: propertyShare2.toFixed(2),
         tenantYieldShare: tenantShare2.toFixed(2),
+        platformYieldShare: platformShare2.toFixed(2),
         description: `Purchase at ${merchant.name}`,
       });
     }

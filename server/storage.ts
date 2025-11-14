@@ -1017,11 +1017,17 @@ export class DatabaseStorage implements IStorage {
 
   // Merchant Transaction Methods
   async getMerchants(organizationId: string): Promise<Merchant[]> {
-    return await db
+    const results = await db
       .select()
       .from(merchants)
       .where(and(eq(merchants.organizationId, organizationId), eq(merchants.active, true)))
       .orderBy(merchants.category, merchants.name);
+    
+    // Convert decimal fields to numbers for proper JSON serialization
+    return results.map(merchant => ({
+      ...merchant,
+      yieldRate: parseFloat(merchant.yieldRate as any),
+    }));
   }
 
   async getMerchantTransactions(
@@ -1042,7 +1048,9 @@ export class DatabaseStorage implements IStorage {
         settlementDays: merchantTransactions.settlementDays,
         yieldRate: merchantTransactions.yieldRate,
         yieldGenerated: merchantTransactions.yieldGenerated,
+        propertyYieldShare: merchantTransactions.propertyYieldShare,
         tenantYieldShare: merchantTransactions.tenantYieldShare,
+        platformYieldShare: merchantTransactions.platformYieldShare,
         description: merchantTransactions.description,
         merchantName: merchants.name,
       })
@@ -1055,7 +1063,18 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(merchantTransactions.status, filters.status as any));
     }
 
-    return await query.orderBy(desc(merchantTransactions.transactionDate));
+    const results = await query.orderBy(desc(merchantTransactions.transactionDate));
+    
+    // Convert decimal fields to numbers for proper JSON serialization
+    return results.map(tx => ({
+      ...tx,
+      amount: parseFloat(tx.amount as any),
+      yieldRate: parseFloat(tx.yieldRate as any),
+      yieldGenerated: parseFloat(tx.yieldGenerated as any),
+      propertyYieldShare: parseFloat(tx.propertyYieldShare as any),
+      tenantYieldShare: parseFloat(tx.tenantYieldShare as any),
+      platformYieldShare: parseFloat(tx.platformYieldShare as any),
+    }));
   }
 
   async createMerchantTransaction(data: InsertMerchantTransaction): Promise<MerchantTransaction> {
@@ -1081,9 +1100,10 @@ export class DatabaseStorage implements IStorage {
       // Calculate yield: amount * (settlementDays / 365) * (yieldRate / 100)
       const yieldGenerated = amount * (merchant.settlementDays / 365) * (yieldRate / 100);
 
-      // Tenant gets 1-1.5% share of yield (using 1.25% as middle ground)
-      const tenantYieldSharePercent = 1.25; // This could come from org settings
-      const tenantYieldShare = yieldGenerated * (tenantYieldSharePercent / 100);
+      // Distribute yield: Property 80%, Tenant 12.5%, Platform 7.5%
+      const propertyYieldShare = yieldGenerated * 0.80;
+      const tenantYieldShare = yieldGenerated * 0.125;
+      const platformYieldShare = yieldGenerated * 0.075;
 
       // Create transaction
       const [transaction] = await tx
@@ -1097,7 +1117,9 @@ export class DatabaseStorage implements IStorage {
           settlementDays: merchant.settlementDays,
           yieldRate: yieldRate.toFixed(2),
           yieldGenerated: yieldGenerated.toFixed(2),
+          propertyYieldShare: propertyYieldShare.toFixed(2),
           tenantYieldShare: tenantYieldShare.toFixed(2),
+          platformYieldShare: platformYieldShare.toFixed(2),
         })
         .returning();
 
@@ -1113,7 +1135,9 @@ export class DatabaseStorage implements IStorage {
           amount: amount.toFixed(2),
           settlementDays: merchant.settlementDays,
           yieldGenerated: yieldGenerated.toFixed(2),
+          propertyYieldShare: propertyYieldShare.toFixed(2),
           tenantYieldShare: tenantYieldShare.toFixed(2),
+          platformYieldShare: platformYieldShare.toFixed(2),
         }),
       });
 
