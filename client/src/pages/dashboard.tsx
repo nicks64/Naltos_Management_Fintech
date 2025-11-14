@@ -9,7 +9,9 @@ import {
   Home, 
   Landmark, 
   Percent,
-  Zap
+  Zap,
+  Coins,
+  Layers
 } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
@@ -23,6 +25,9 @@ interface KPIData {
   vendorFloatAUM: number;
   vendorFloatYield: number;
   rentFloatYield: number;
+  cryptoTreasuryAUM: number;
+  cryptoDeployedBalance: number;
+  cryptoYieldAPY: number;
   sparklineData: Array<{ value: number }>;
 }
 
@@ -103,6 +108,30 @@ export default function Dashboard() {
       trend: "up" as const,
       icon: TrendingUp,
       color: "text-emerald-600",
+    },
+    {
+      title: "Crypto Treasury AUM",
+      value: kpis?.cryptoTreasuryAUM ? `$${(kpis.cryptoTreasuryAUM / 1000).toFixed(0)}K` : "—",
+      change: "USDC+USDT+DAI",
+      trend: "up" as const,
+      icon: Coins,
+      color: "text-cyan-600",
+    },
+    {
+      title: "Crypto Deployed",
+      value: kpis?.cryptoDeployedBalance ? `$${(kpis.cryptoDeployedBalance / 1000).toFixed(0)}K` : "—",
+      change: "In Treasury",
+      trend: "up" as const,
+      icon: Layers,
+      color: "text-blue-600",
+    },
+    {
+      title: "Crypto Yield APY",
+      value: kpis?.cryptoYieldAPY ? `${kpis.cryptoYieldAPY.toFixed(2)}%` : "—",
+      change: "Annualized",
+      trend: "up" as const,
+      icon: TrendingUp,
+      color: "text-primary",
     },
   ];
 

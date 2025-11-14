@@ -36,20 +36,33 @@ interface CryptoTreasuryFlow {
   createdAt: string;
 }
 
+interface KPIData {
+  cryptoTreasuryAUM: number;
+  cryptoDeployedBalance: number;
+  cryptoYieldAPY: number;
+}
+
 export default function CryptoTreasury() {
-  const { data: positionsData, isLoading } = useQuery<{ positions: CryptoTreasuryPosition[] }>({
+  const { data: positionsData, isLoading: positionsLoading } = useQuery<{ positions: CryptoTreasuryPosition[] }>({
     queryKey: ["/api/crypto-treasury/positions"],
   });
 
-  const { data: deploymentsData } = useQuery<{ deployments: CryptoTreasuryDeployment[] }>({
+  const { data: deploymentsData, isLoading: deploymentsLoading } = useQuery<{ deployments: CryptoTreasuryDeployment[] }>({
     queryKey: ["/api/crypto-treasury/deployments"],
   });
 
-  const { data: flowsData } = useQuery<{ flows: CryptoTreasuryFlow[] }>({
+  const { data: flowsData, isLoading: flowsLoading } = useQuery<{ flows: CryptoTreasuryFlow[] }>({
     queryKey: ["/api/crypto-treasury/flows"],
   });
 
-  if (isLoading) {
+  // Fetch KPIs for correct crypto treasury summary metrics (AUM, APY)
+  const { data: kpisData, isLoading: kpisLoading } = useQuery<KPIData>({
+    queryKey: ["/api/kpis"],
+  });
+
+  // Wait for all data to be present before rendering to avoid misleading zero values
+  // Check for data presence instead of just isLoading to handle refetches correctly
+  if (!positionsData || !deploymentsData || !flowsData || !kpisData) {
     return (
       <div className="space-y-8" data-testid="page-crypto-treasury">
         <div className="h-8 w-48 bg-muted animate-pulse rounded" />
@@ -62,18 +75,18 @@ export default function CryptoTreasury() {
     );
   }
 
-  // Calculate totals
-  const positions = positionsData?.positions || [];
-  const totalAUM = positions.reduce((sum, p) => sum + p.availableBalance + p.deployedBalance + p.reservedBalance, 0);
-  const totalDeployed = positions.reduce((sum, p) => sum + p.deployedBalance, 0);
-  const totalYield = positions.reduce((sum, p) => sum + p.totalYieldAccrued, 0);
+  // Use KPI data for summary metrics (correct weighted APY calculation)
+  const totalAUM = kpisData?.cryptoTreasuryAUM || 0;
+  const totalDeployed = kpisData?.cryptoDeployedBalance || 0;
+  const estimatedAPY = kpisData?.cryptoYieldAPY || 0;
   
-  // Calculate weighted average APY based on deployments
+  // Get position and deployment data
+  const positions = positionsData?.positions || [];
   const deployments = deploymentsData?.deployments || [];
   const activeDeployments = deployments.filter(d => d.status === 'active');
-  const totalDeployedAmount = activeDeployments.reduce((sum, d) => sum + d.deploymentAmount, 0);
-  // Approximate APY: (total yield / total deployed) * (365 / 30 days) * 100
-  const estimatedAPY = totalDeployedAmount > 0 ? (totalYield / totalDeployedAmount) * (365 / 30) * 100 : 0;
+  
+  // Calculate total yield from positions for display
+  const totalYield = positions.reduce((sum, p) => sum + p.totalYieldAccrued, 0);
 
   return (
     <div className="space-y-8" data-testid="page-crypto-treasury">

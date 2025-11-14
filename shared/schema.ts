@@ -831,3 +831,11 @@ export type CryptoTreasuryDeployment = typeof cryptoTreasuryDeployments.$inferSe
 export type InsertCryptoTreasuryDeployment = z.infer<typeof insertCryptoTreasuryDeploymentSchema>;
 export type CryptoTreasuryFlow = typeof cryptoTreasuryFlows.$inferSelect;
 export type InsertCryptoTreasuryFlow = z.infer<typeof insertCryptoTreasuryFlowSchema>;
+
+export interface CryptoTreasurySummary {
+  totalAUM: number;
+  totalDeployed: number;
+  totalAvailable: number;
+  totalYield: number;
+  weightedAPY: number;
+}

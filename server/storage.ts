@@ -300,6 +300,70 @@ export class DatabaseStorage implements IStorage {
       return sum + yieldForPayment;
     }, 0);
 
+    // Calculate Crypto Treasury Metrics
+    // Get latest position for each coin (using MAX asOf per coin)
+    const allCryptoPositions = await db
+      .select()
+      .from(cryptoTreasuryPositions)
+      .where(eq(cryptoTreasuryPositions.organizationId, organizationId));
+    
+    // Group by coin and keep only the latest position for each
+    const latestPositionsByCoin = new Map<string, typeof cryptoTreasuryPositions.$inferSelect>();
+    allCryptoPositions.forEach(pos => {
+      const existing = latestPositionsByCoin.get(pos.coin);
+      if (!existing || new Date(pos.asOf) > new Date(existing.asOf)) {
+        latestPositionsByCoin.set(pos.coin, pos);
+      }
+    });
+    const cryptoPositions = Array.from(latestPositionsByCoin.values());
+    
+    const cryptoTreasuryAUM = cryptoPositions.reduce((sum, pos) => {
+      const available = safeDecimalToNumber(pos.availableBalance, 'availableBalance');
+      const deployed = safeDecimalToNumber(pos.deployedBalance, 'deployedBalance');
+      const reserved = safeDecimalToNumber(pos.reservedBalance, 'reservedBalance');
+      return sum + available + deployed + reserved;
+    }, 0);
+    
+    const cryptoDeployedBalance = cryptoPositions.reduce((sum, pos) => {
+      return sum + safeDecimalToNumber(pos.deployedBalance, 'deployedBalance');
+    }, 0);
+    
+    const cryptoTotalYield = cryptoPositions.reduce((sum, pos) => {
+      return sum + safeDecimalToNumber(pos.totalYieldAccrued, 'totalYieldAccrued');
+    }, 0);
+    
+    // Get active deployments to calculate proper APY
+    const activeDeployments = await db
+      .select()
+      .from(cryptoTreasuryDeployments)
+      .where(
+        and(
+          eq(cryptoTreasuryDeployments.organizationId, organizationId),
+          eq(cryptoTreasuryDeployments.status, 'active')
+        )
+      );
+    
+    // Calculate APY based on actual deployment duration
+    // For each deployment: (yield / principal / days) * 365 * 100
+    let totalWeightedAPY = 0;
+    let totalDeploymentAmount = 0;
+    activeDeployments.forEach(deployment => {
+      const principal = safeDecimalToNumber(deployment.deploymentAmount, 'deploymentAmount');
+      const yield_ = safeDecimalToNumber(deployment.cumulativeYield, 'cumulativeYield');
+      const deployedAt = new Date(deployment.deployedAt);
+      const daysDeployed = Math.max(1, Math.floor((now.getTime() - deployedAt.getTime()) / (24 * 60 * 60 * 1000)));
+      
+      if (principal > 0 && daysDeployed > 0) {
+        const deploymentAPY = (yield_ / principal / daysDeployed) * 365 * 100;
+        totalWeightedAPY += deploymentAPY * principal;
+        totalDeploymentAmount += principal;
+      }
+    });
+    
+    const cryptoYieldAPY = totalDeploymentAmount > 0 
+      ? totalWeightedAPY / totalDeploymentAmount 
+      : 0;
+
     // Generate sparkline data (mock for now)
     const sparklineData = Array.from({ length: 30 }, (_, i) => ({
       value: 85 + Math.random() * 10,
@@ -315,6 +379,9 @@ export class DatabaseStorage implements IStorage {
       vendorFloatAUM,
       vendorFloatYield,
       rentFloatYield,
+      cryptoTreasuryAUM,
+      cryptoDeployedBalance,
+      cryptoYieldAPY,
       sparklineData,
     };
   }
