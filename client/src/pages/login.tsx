@@ -162,7 +162,9 @@ export default function Login() {
           </div>
           <h1 className="text-4xl font-semibold tracking-tight mb-2">Naltos</h1>
           <p className="text-muted-foreground">
-            {userType === "business" ? "Business Console for Property Management" : "Resident Portal"}
+            {userType === "business" 
+              ? "Stablecoin Orchestration Platform — Generate Yield from Idle Cash Flows" 
+              : "Earn Yield on Rent & Purchases"}
           </p>
         </div>
 
@@ -284,7 +286,7 @@ export default function Login() {
             <Card>
               <CardHeader>
                 <CardTitle>Create Account</CardTitle>
-                <CardDescription>Start managing your properties with Naltos</CardDescription>
+                <CardDescription>Start orchestrating stablecoins to generate yield from idle property cash flows</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">

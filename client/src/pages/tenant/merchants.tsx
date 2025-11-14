@@ -115,7 +115,7 @@ export default function TenantMerchants() {
           Merchant Network
         </h1>
         <p className="text-base" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-          Shop with NUSD and earn yield during settlement
+          Shop with NUSD (stablecoin-backed) and earn cashback yield during merchant settlement (1-3 days). Property owners deploy settlement float to crypto treasury products, generating yield shared with you.
         </p>
       </div>
 

@@ -93,7 +93,7 @@ export default function CryptoTreasury() {
       <div>
         <h1 className="text-4xl font-semibold tracking-tight mb-2">Crypto Treasury</h1>
         <p className="text-muted-foreground">
-          Automated stablecoin orchestration: Rent flows → Bridge conversions → Treasury deployments → Yield generation
+          Orchestrating stablecoins (USDC, USDT, DAI) into yield-generating treasury products: Fiat flows → Bridge to stablecoins → Deploy to T-Bills & money-market → Generate yield for customers
         </p>
       </div>
 

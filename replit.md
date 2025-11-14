@@ -1,9 +1,21 @@
 # Naltos Platform - Project Documentation
 
 ## Overview
-Naltos transforms multifamily rent flows into a programmable financial asset by orchestrating stablecoin rails and automating treasury yield on idle cash. It converts rent, vendor invoices, and merchant transactions into NUSD, a fully-backed programmatic dollar, to deploy idle balances into short-duration, low-risk assets. This generates yield for property owners, creates incentives for tenants, and provides a seamless payment layer for vendors and merchants. The platform addresses the issue of over $35B+ idle monthly in traditional multifamily finance by treating rent as short-duration financial assets capable of producing yield through Rent Float, Vendor Float, and Merchant Settlement.
+Naltos is a **stablecoin orchestration platform** that generates yield for customers by transforming idle cash flows into programmable financial assets. Built on top of stablecoin rails (USDC, USDT, DAI), Naltos automatically deploys idle balances from rent, vendor payments, and merchant transactions into short-duration, yield-generating treasury products.
 
-The project's ambition is to evolve into MeshPay, a global stablecoin payment and settlement network, supporting multi-currency transactions and optimizing global FX routing.
+**Core Value Proposition:**
+- **For Property Owners**: Earn 2.5-3.5% APY on idle rent and vendor payment float without changing operations
+- **For Tenants**: Earn 1-1.5% cashback on rent payments and merchant purchases through yield sharing
+- **For Vendors**: Receive instant NUSD payments (stablecoin-backed, instantly redeemable 1:1 for USD) while property owners benefit from payment float yield
+
+The platform orchestrates over $35B+ in idle multifamily finance through three yield sources:
+1. **Rent Float** (5-15 days): Time between rent collection and deployment
+2. **Vendor Float** (Net30-Net90): Time between instant vendor payment and traditional due date
+3. **Merchant Settlement** (1-3 days): Time between tenant purchase and merchant settlement
+
+Naltos uses NUSD, a private, fully-backed internal accounting unit representing $1 held in short-term treasury assets, programmable for automated payouts and yield distribution.
+
+The project's ambition is to evolve into MeshPay, a global stablecoin orchestration and settlement network, supporting multi-currency transactions and optimizing global FX routing.
 
 ## User Preferences
 I prefer iterative development with a focus on delivering core functionality first. Please ask before making major changes to the architecture or core logic. I appreciate detailed explanations, especially for complex financial concepts or technical implementations. Do not make changes to the `shared/schema.ts` file without explicit approval, as it defines the core data model.
@@ -28,8 +40,9 @@ The platform features a dual-sided interface: a Business Console for property ma
 
 ### Feature Specifications
 - **Dashboard KPIs**: Displays operational (On-Time %, DSO, Delinquent), financial (Opex/Unit, Treasury AUM, Current Yield), and float yield metrics (Vendor Float AUM, Vendor Yield, Rent Float Yield) in a 3x3 grid.
-- **Treasury Engine**: Automated deployment into tokenized T-Bills, money-market equivalents, and delta-neutral credit.
-- **Stablecoin Bridge**: Bidirectional conversion layer between crypto rails (USDC/USDT/DAI) and legacy PMS systems (AppFolio/Yardi/Buildium).
+- **Treasury Orchestration Engine**: Automatically deploys stablecoins (USDC/USDT/DAI) into yield-generating products including tokenized T-Bills (NRF), money-market equivalents (NRK), and delta-neutral credit (NRC).
+- **Stablecoin Bridge**: Bidirectional orchestration layer between crypto rails (USDC/USDT/DAI) and legacy PMS systems (AppFolio/Yardi/Buildium), converting traditional payment flows into programmable stablecoin assets.
+- **Vendor Payment Flow**: Property managers pay vendors instantly via NUSD → Vendors receive stablecoin-backed payments (redeemable 1:1 for USD) → Float between instant payment and traditional due date (Net30-Net90) generates yield → Yield distributed to property owners, with platform taking small fee.
 - **Economic Model**: Yield is generated from Rent Float (5-15 days), Vendor Float (Net30-Net90), and Merchant Settlement (1-3 days), with distribution to Property Owners (2.5-3.5%), Tenants (1-1.5%), and Naltos Platform (0.5-1%).
 
 ### System Design Choices

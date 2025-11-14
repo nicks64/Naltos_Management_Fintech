@@ -191,15 +191,15 @@ export default function VendorPayments() {
           <p className="text-lg text-muted-foreground max-w-3xl" data-testid="text-hero-description">
             {paidInstantInvoices.length > 0 ? (
               <>
-                <span className="font-semibold text-foreground">{formatCurrency(totalInstantVolume)} (All-Time)</span> in vendor invoices paid instantly, 
+                <span className="font-semibold text-foreground">{formatCurrency(totalInstantVolume)} (All-Time)</span> in vendor invoices paid instantly via NUSD (stablecoin-backed), 
                 generating <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalYieldGenerated)} (All-Time Yield)</span> in 
                 amplified yield. Traditional payment (waiting Net30-90) earns <span className="font-semibold text-destructive">$0</span>. 
-                Naltos turns extended payment terms into <span className="font-semibold text-emerald-600 dark:text-emerald-400">day-zero vendor cash + 3-9× yield amplification</span>.
+                Naltos orchestrates stablecoins to turn extended payment terms into <span className="font-semibold text-emerald-600 dark:text-emerald-400">day-zero vendor cash + 3-9× yield amplification</span>.
               </>
             ) : (
               <>
-                Turn Net30-90 payment terms into <span className="font-semibold text-emerald-600 dark:text-emerald-400">instant vendor funding + amplified treasury yield</span>. 
-                Pay vendors today, deploy float for {avgFloatDuration || 30}-90 days, earn 3-9× vs rent float baseline.
+                Turn Net30-90 payment terms into <span className="font-semibold text-emerald-600 dark:text-emerald-400">instant NUSD vendor payments + amplified treasury yield</span>. 
+                Pay vendors today via stablecoin-backed NUSD, deploy float for {avgFloatDuration || 30}-90 days in crypto treasury products, earn 3-9× vs rent float baseline.
               </>
             )}
           </p>
@@ -290,15 +290,15 @@ export default function VendorPayments() {
             <div className="pt-2 space-y-2 text-sm">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Zap className="h-4 w-4" />
-                <span className="font-medium">Vendors paid instantly (same-day)</span>
+                <span className="font-medium">Vendors paid instantly via NUSD (stablecoin-backed)</span>
               </div>
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <TrendingUp className="h-4 w-4" />
-                <span className="font-medium">Float deployed for 30-90 days</span>
+                <span className="font-medium">Float deployed to crypto treasury for 30-90 days</span>
               </div>
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Check className="h-4 w-4" />
-                <span className="font-medium">{durationMultiplier.toFixed(1)}× yield vs rent float</span>
+                <span className="font-medium">{durationMultiplier.toFixed(1)}× yield vs rent float baseline</span>
               </div>
             </div>
           </CardContent>
@@ -370,12 +370,25 @@ export default function VendorPayments() {
             <div className="flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
               <div className="text-sm">
-                <p className="font-semibold mb-1">How It Works</p>
-                <p className="text-muted-foreground">
-                  When you pay a vendor instantly, Naltos holds the float until the scheduled payment date (Net30/60/90). 
-                  This extended deployment period (3-9× longer than rent float's ~10 days) generates proportionally amplified treasury yield 
-                  at the same 5.50% APY rate. Same yield rate, longer duration = higher total yield.
-                </p>
+                <p className="font-semibold mb-1">How It Works: Stablecoin Orchestration</p>
+                <div className="text-muted-foreground space-y-2">
+                  <p className="flex items-center gap-2">
+                    <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span><span className="font-medium text-foreground">1. Instant Payment:</span> Property pays vendor immediately via NUSD (stablecoin-backed, redeemable 1:1 for USD)</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span><span className="font-medium text-foreground">2. Float Deployment:</span> Funds deployed to crypto treasury products (USDC/USDT → T-Bills, money-market) until scheduled payment date (Net30/60/90)</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span><span className="font-medium text-foreground">3. Yield Generation:</span> Extended deployment period (3-9× longer than rent float's ~10 days) generates proportionally amplified treasury yield at 5.50% APY</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span><span className="font-medium text-foreground">4. Distribution:</span> Yield distributed to property owners (80%), tenants (12.5%), and platform (7.5%)</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>

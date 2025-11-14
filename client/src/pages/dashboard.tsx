@@ -140,7 +140,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-4xl font-semibold tracking-tight mb-2">Overview</h1>
         <p className="text-muted-foreground">
-          Real-time insights across your property portfolio
+          Stablecoin orchestration platform generating yield from idle cash flows across rent, vendor payments, and merchant transactions
         </p>
       </div>
 
