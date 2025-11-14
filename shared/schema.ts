@@ -17,6 +17,10 @@ export const cryptoTransactionTypeEnum = pgEnum("crypto_transaction_type", ["dep
 export const bridgeDirectionEnum = pgEnum("bridge_direction", ["inbound", "outbound"]);
 export const bridgeStatusEnum = pgEnum("bridge_status", ["pending", "converting", "awaiting_sync", "settled", "failed"]);
 export const bridgeConversionStrategyEnum = pgEnum("bridge_conversion_strategy", ["immediate", "daily", "optimal_yield"]);
+// Vendor Payment System Enums - For Net30-90 yield amplification
+export const vendorCategoryEnum = pgEnum("vendor_category", ["Maintenance", "Utilities", "Insurance", "Legal", "Marketing", "Property_Management", "Landscaping", "Cleaning", "Security", "Other"]);
+export const paymentTermsEnum = pgEnum("payment_terms", ["Net15", "Net30", "Net45", "Net60", "Net90", "Immediate"]);
+export const vendorInvoiceStatusEnum = pgEnum("vendor_invoice_status", ["pending", "paid_instant", "paid_traditional", "overdue"]);
 
 // Organizations table
 export const organizations = pgTable("organizations", {
@@ -183,6 +187,42 @@ export const organizationSettings = pgTable("organization_settings", {
   appfolioAccountId: text("appfolio_account_id"),
 });
 
+// Vendors - For Net30-90 yield amplification
+export const vendors = pgTable("vendors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  category: vendorCategoryEnum("category").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  defaultPaymentTerms: paymentTermsEnum("default_payment_terms").notNull().default("Net30"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Vendor Invoices - Showcases Net30-90 yield generation
+export const vendorInvoices = pgTable("vendor_invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  invoiceNumber: text("invoice_number").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  invoiceDate: timestamp("invoice_date").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  scheduledPaymentDate: timestamp("scheduled_payment_date").notNull(), // When vendor would be paid traditionally (Net30/60/90)
+  paymentTerms: paymentTermsEnum("payment_terms").notNull(),
+  status: vendorInvoiceStatusEnum("status").notNull().default("pending"),
+  paidDate: timestamp("paid_date"),
+  advanceDate: timestamp("advance_date"), // When instant payment was triggered
+  paidViaInstant: boolean("paid_via_instant").default(false).notNull(), // True if paid instantly via Naltos
+  instantAdvanceAmount: decimal("instant_advance_amount", { precision: 10, scale: 2 }), // Amount advanced instantly (may be partial)
+  floatDurationDays: integer("float_duration_days"), // Computed: scheduledPaymentDate - advanceDate
+  floatYieldRate: decimal("float_yield_rate", { precision: 5, scale: 2 }), // Snapshot of yield rate at payment time
+  yieldGenerated: decimal("yield_generated", { precision: 10, scale: 2 }), // Server-calculated yield
+  description: text("description"),
+}, (table) => ({
+  uniqueInvoiceNumber: sql`UNIQUE (organization_id, invoice_number)`,
+}));
+
 // Tenant Wallets - for consumer-side balance and yield accounts
 export const tenantWallets = pgTable("tenant_wallets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -298,6 +338,8 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),
   properties: many(properties),
   tenants: many(tenants),
+  vendors: many(vendors),
+  vendorInvoices: many(vendorInvoices),
   bankLedger: many(bankLedger),
   pmsImportJobs: many(pmsImportJobs),
   treasurySubscriptions: many(treasurySubscriptions),
@@ -484,8 +526,29 @@ export const bridgePaymentLinksRelations = relations(bridgePaymentLinks, ({ one 
   }),
 }));
 
+export const vendorsRelations = relations(vendors, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [vendors.organizationId],
+    references: [organizations.id],
+  }),
+  invoices: many(vendorInvoices),
+}));
+
+export const vendorInvoicesRelations = relations(vendorInvoices, ({ one }) => ({
+  vendor: one(vendors, {
+    fields: [vendorInvoices.vendorId],
+    references: [vendors.id],
+  }),
+  organization: one(organizations, {
+    fields: [vendorInvoices.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
+export const insertVendorSchema = createInsertSchema(vendors).omit({ id: true, createdAt: true });
+export const insertVendorInvoiceSchema = createInsertSchema(vendorInvoices).omit({ id: true, floatDurationDays: true, yieldGenerated: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertMagicCodeSchema = createInsertSchema(magicCodes).omit({ id: true });
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true });
@@ -570,3 +633,7 @@ export type BridgeSyncLog = typeof bridgeSyncLogs.$inferSelect;
 export type InsertBridgeSyncLog = z.infer<typeof insertBridgeSyncLogSchema>;
 export type BridgePaymentLink = typeof bridgePaymentLinks.$inferSelect;
 export type InsertBridgePaymentLink = z.infer<typeof insertBridgePaymentLinkSchema>;
+export type Vendor = typeof vendors.$inferSelect;
+export type InsertVendor = z.infer<typeof insertVendorSchema>;
+export type VendorInvoice = typeof vendorInvoices.$inferSelect;
+export type InsertVendorInvoice = z.infer<typeof insertVendorInvoiceSchema>;
