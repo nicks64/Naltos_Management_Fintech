@@ -7,7 +7,8 @@ import {
   Bot, 
   Settings,
   Building2,
-  TrendingUp
+  TrendingUp,
+  Zap
 } from "lucide-react";
 import {
   Sidebar,
@@ -62,6 +63,12 @@ const menuItems = [
     title: "Rent Float Treasury",
     url: "/rent-float",
     icon: TrendingUp,
+    roles: ["Admin", "CFO"] as UserRole[],
+  },
+  {
+    title: "Vendor Payments",
+    url: "/vendor-payments",
+    icon: Zap,
     roles: ["Admin", "CFO"] as UserRole[],
   },
   {

@@ -881,7 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all vendors for organization
   app.get("/api/vendors", requireAuth, async (req, res) => {
     try {
-      const orgId = req.user!.organizationId;
+      const orgId = req.organizationId!;
       const vendors = await storage.getVendors(orgId);
       res.json({ vendors });
     } catch (error: any) {
@@ -893,7 +893,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get vendor invoices (with optional status filter)
   app.get("/api/vendor-invoices", requireAuth, async (req, res) => {
     try {
-      const orgId = req.user!.organizationId;
+      const orgId = req.organizationId!;
       const status = req.query.status as string | undefined;
       
       const invoices = await storage.getVendorInvoices(orgId, status ? { status } : undefined);
