@@ -123,7 +123,7 @@ export interface IStorage {
     recentPayments: Array<{
       id: string;
       amount: string;
-      paidAt: Date;
+      paidAt: string; // ISO string
       daysInFloat: number;
       yieldGenerated: string;
     }>;
@@ -735,7 +735,7 @@ export class DatabaseStorage implements IStorage {
     recentPayments: Array<{
       id: string;
       amount: string;
-      paidAt: Date;
+      paidAt: string; // ISO string
       daysInFloat: number;
       yieldGenerated: string;
     }>;
@@ -760,15 +760,15 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(properties, eq(units.propertyId, properties.id))
       .where(eq(properties.organizationId, organizationId));
 
-    // Filter for recent payments with valid paidAt dates and sort
+    // Filter for recent payments with valid paymentDate and sort
     const orgPayments = allOrgPayments
       .filter((row) => {
-        const paidAt = row.payments.paidAt;
-        return paidAt && new Date(paidAt) >= thirtyDaysAgo;
+        const paymentDate = row.payments.paymentDate;
+        return paymentDate && new Date(paymentDate) >= thirtyDaysAgo;
       })
       .sort((a, b) => {
-        const dateA = a.payments.paidAt ? new Date(a.payments.paidAt).getTime() : 0;
-        const dateB = b.payments.paidAt ? new Date(b.payments.paidAt).getTime() : 0;
+        const dateA = a.payments.paymentDate ? new Date(a.payments.paymentDate).getTime() : 0;
+        const dateB = b.payments.paymentDate ? new Date(b.payments.paymentDate).getTime() : 0;
         return dateB - dateA; // desc order
       });
 
@@ -792,7 +792,7 @@ export class DatabaseStorage implements IStorage {
       return {
         id: payment.id,
         amount: payment.amount,
-        paidAt: payment.paidAt!,
+        paidAt: payment.paymentDate!.toISOString(),
         daysInFloat,
         yieldGenerated: yieldGenerated.toFixed(2),
       };

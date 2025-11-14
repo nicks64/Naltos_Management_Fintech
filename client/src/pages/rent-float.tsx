@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DollarSign, TrendingUp, Clock, Users, Building, Wallet, ArrowRight } from "lucide-react";
+import { DollarSign, TrendingUp, Clock, Users, Building, Wallet, ArrowRight, X, Check, Zap, Gift, PiggyBank } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface RentFloatPayment {
   id: string;
   amount: string;
-  paidAt: Date;
+  paidAt: string; // ISO string from server
   daysInFloat: number;
   yieldGenerated: string;
 }
@@ -54,75 +54,191 @@ export default function RentFloat() {
   const tenantPct = parseFloat(data.config.rentFloatTenantShare || "1.25");
   const naltosPct = parseFloat(data.config.rentFloatNaltosShare || "0.75");
 
+  // Guard against missing data
+  const monthlyRent = parseFloat(data.totalFloat) || 0;
+  const monthlyYield = parseFloat(data.monthlyYield) || 0;
+  
+  // Traditional baseline: $0 yield (rent sits idle earning nothing)
+  const traditionalYield = 0;
+  
+  // Naltos model: Actual yield generated
+  const annualRent = monthlyRent * 12;
+  const annualYield = monthlyYield * 12;
+  const annualizedOwnerBenefit = annualYield * (ownerPct / (ownerPct + tenantPct + naltosPct));
+  const annualizedTenantReward = annualYield * (tenantPct / (ownerPct + tenantPct + naltosPct));
+  
+  // NOI improvement: owner benefit as % of annual rent, converted to basis points (1% = 100 bps)
+  const noiBasisPoints = annualRent > 0 ? (annualizedOwnerBenefit / annualRent) * 10000 : 0;
+
   return (
     <div className="space-y-8" data-testid="page-rent-float">
-      <div>
-        <h1 className="text-3xl font-semibold text-foreground">Rent Float Treasury</h1>
-        <p className="text-muted-foreground mt-2">
-          Transform rent flows into programmable yield-generating assets through automated treasury deployment
-        </p>
+      {/* Hero: The Transformation */}
+      <div className="relative overflow-hidden rounded-lg border bg-gradient-to-br from-primary/5 via-background to-emerald-500/5 p-8">
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold text-foreground mb-3">Rent Float Treasury</h1>
+          <p className="text-lg text-muted-foreground max-w-3xl">
+            {monthlyRent > 0 ? (
+              <>
+                In the last 30 days, <span className="font-semibold text-foreground">${monthlyRent.toLocaleString()}</span> in rent flowed through the system. 
+                Traditional property management earns <span className="font-semibold text-destructive">$0</span> on this float. 
+                Naltos automated treasury generated <span className="font-semibold text-emerald-600 dark:text-emerald-400">${monthlyYield.toLocaleString()}</span> in yield.
+              </>
+            ) : (
+              "Configure your rent float settings to start generating yield on idle cash"
+            )}
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card data-testid="card-total-float">
+      {/* Before/After Comparison */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Traditional Model */}
+        <Card className="border-destructive/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Traditional Model</CardTitle>
+              <X className="h-5 w-5 text-destructive" />
+            </div>
+            <CardDescription>What you're losing every month</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-sm text-muted-foreground">30-Day Rent Flow</p>
+                <p className="text-xl font-mono font-semibold">${monthlyRent.toLocaleString()}</p>
+              </div>
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-sm text-muted-foreground">Sits Idle</p>
+                <p className="text-xl font-mono font-semibold">{data.averageDuration} days</p>
+              </div>
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-sm text-muted-foreground">Monthly Yield</p>
+                <p className="text-2xl font-mono font-bold text-destructive">${traditionalYield.toFixed(0)}</p>
+              </div>
+              <div className="flex items-baseline justify-between mb-1 pt-2 border-t">
+                <p className="text-sm text-muted-foreground">Annual Opportunity Cost</p>
+                <p className="text-xl font-mono font-bold text-muted-foreground">${annualYield.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="pt-2 space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <X className="h-4 w-4 text-destructive" />
+                <span>No tenant incentives</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <X className="h-4 w-4 text-destructive" />
+                <span>No automated deployment</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <X className="h-4 w-4 text-destructive" />
+                <span>Manual treasury management</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Naltos Model */}
+        <Card className="border-emerald-500/30 bg-emerald-500/5">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Naltos Model</CardTitle>
+              <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <CardDescription>Automated yield on every dollar</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-sm text-muted-foreground">30-Day Rent Flow</p>
+                <p className="text-xl font-mono font-semibold">${monthlyRent.toLocaleString()}</p>
+              </div>
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-sm text-muted-foreground">Auto-deployed</p>
+                <p className="text-xl font-mono font-semibold text-emerald-600 dark:text-emerald-400">{data.averageDuration} days @ {yieldRate.toFixed(2)}%</p>
+              </div>
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-sm text-muted-foreground">Monthly Yield</p>
+                <p className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400">${monthlyYield.toLocaleString()}</p>
+              </div>
+              <div className="flex items-baseline justify-between mb-1 pt-2 border-t">
+                <p className="text-sm text-muted-foreground">Annual Net Improvement</p>
+                <p className="text-xl font-mono font-bold text-emerald-600 dark:text-emerald-400">+${annualYield.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="pt-2 space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <Check className="h-4 w-4" />
+                <span className="font-medium">Tenant rewards ({tenantPct.toFixed(2)}% share)</span>
+              </div>
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <Check className="h-4 w-4" />
+                <span className="font-medium">24/7 automated treasury</span>
+              </div>
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <Check className="h-4 w-4" />
+                <span className="font-medium">Instant settlement ready</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Value Distribution */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <Card data-testid="card-owner-benefit">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Rent Float</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Owner NOI Impact</CardTitle>
+            <Building className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-mono font-semibold" data-testid="text-total-float">
-              ${parseFloat(data.totalFloat).toLocaleString()}
+            <div className="text-3xl font-mono font-bold text-primary" data-testid="text-owner-benefit">
+              +${annualizedOwnerBenefit.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Last 30 days rent payments
+              {ownerPct.toFixed(2)}% share · {noiBasisPoints.toFixed(0)} basis points NOI improvement
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              From ${annualRent.toLocaleString()} annual rent flow
             </p>
           </CardContent>
         </Card>
 
-        <Card data-testid="card-average-duration">
+        <Card data-testid="card-tenant-rewards">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Float Duration</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Tenant Rewards Pool</CardTitle>
+            <Gift className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-mono font-semibold" data-testid="text-avg-duration">
-              {data.averageDuration} days
+            <div className="text-3xl font-mono font-bold text-emerald-600 dark:text-emerald-400" data-testid="text-tenant-rewards">
+              ${annualizedTenantReward.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Payment to disbursement
+              {tenantPct.toFixed(2)}% share · Distributed as rent rebates & rewards
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Reduces effective rent cost for participants
             </p>
           </CardContent>
         </Card>
 
-        <Card data-testid="card-monthly-yield">
+        <Card data-testid="card-platform-operations">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Yield Generated</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Yield Created</CardTitle>
+            <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-mono font-semibold text-emerald-600 dark:text-emerald-400" data-testid="text-monthly-yield">
-              ${parseFloat(data.monthlyYield).toLocaleString()}
+            <div className="text-3xl font-mono font-bold" data-testid="text-total-yield">
+              ${annualYield.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              At {yieldRate.toFixed(2)}% APY
+              From ${(monthlyRent * 12).toLocaleString()} annual rent flow
             </p>
-          </CardContent>
-        </Card>
-
-        <Card data-testid="card-enabled-status">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Float Status</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Badge variant={data.config.rentFloatEnabled ? "default" : "secondary"} data-testid="badge-float-status">
-                {data.config.rentFloatEnabled ? "Enabled" : "Disabled"}
-              </Badge>
+            <div className="mt-3 pt-3 border-t">
+              <p className="text-sm font-medium">Effective yield rate on rent</p>
+              <p className="text-lg font-mono font-semibold mt-1">
+                {annualRent > 0 ? ((annualYield / annualRent) * 100).toFixed(3) : 0}% annually
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {data.recentPayments.length} payments in float
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -231,7 +347,7 @@ export default function RentFloat() {
                   <TableHead>Payment Date</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Days in Float</TableHead>
-                  <TableHead className="text-right">Yield Generated</TableHead>
+                  <TableHead className="text-right">Yield (Per Payment)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
