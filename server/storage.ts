@@ -275,6 +275,25 @@ export class DatabaseStorage implements IStorage {
     // Active vendor invoices count (currently in float period)
     const activeVendorInvoices = paidInstantInvoices.length;
 
+    // Calculate Rent Float Yield (last 30 days)
+    const config = await this.getSettings(organizationId);
+    const rentFloatDuration = config?.rentFloatDefaultDuration || 10;
+    const rentFloatYieldRate = parseFloat(config?.rentFloatYieldRate || "5.50") / 100;
+    
+    // Get recent payments (last 30 days) to calculate rent float yield
+    const recentPayments = paidInvoices.filter(inv => {
+      return inv.paidDate && inv.paidDate >= thirtyDaysAgo;
+    });
+    
+    const rentFloatYield = recentPayments.reduce((sum, inv) => {
+      const amount = parseFloat(inv.amount);
+      const yieldForPayment = amount * (rentFloatDuration / 365) * rentFloatYieldRate;
+      return sum + yieldForPayment;
+    }, 0);
+    
+    // Combined total yield across all sources (monthly for rent + all-time for vendor + treasury AUM * yield rate)
+    const combinedTotalYield = rentFloatYield + vendorFloatYield + (treasuryAUM * weightedYield / 100 / 12);
+
     // Generate sparkline data (mock for now)
     const sparklineData = Array.from({ length: 30 }, (_, i) => ({
       value: 85 + Math.random() * 10,
@@ -290,6 +309,8 @@ export class DatabaseStorage implements IStorage {
       vendorFloatAUM,
       vendorFloatYield,
       activeVendorInvoices,
+      rentFloatYield,
+      combinedTotalYield,
       sparklineData,
     };
   }
