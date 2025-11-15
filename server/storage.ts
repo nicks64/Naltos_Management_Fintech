@@ -1956,6 +1956,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   // ====== ORCHESTRATION EVENT TIMELINE METHODS ======
+  // NOTE: Demo-scoped implementation - not production-ready
+  // Security limitations documented in replit.md
   
   async listOrchestrationEvents(
     organizationId: string,
@@ -1966,21 +1968,9 @@ export class DatabaseStorage implements IStorage {
       limit?: number;
     }
   ): Promise<OrchestrationEvent[]> {
-    // Accumulate all predicates to avoid overwriting
     const predicates = [eq(orchestrationEvents.organizationId, organizationId)];
     
-    // Validate eventType against enum to prevent SQL injection
     if (filters?.eventType) {
-      const validEventTypes = [
-        "treasury_allocated", "treasury_rebalanced", "stablecoin_deployed", "stablecoin_withdrawn",
-        "yield_accrued", "yield_distributed", "vendor_payment_instant", "vendor_redemption_requested",
-        "vendor_redemption_completed", "vendor_payout_settled", "merchant_transaction_created",
-        "merchant_settlement_pending", "merchant_settlement_completed", "merchant_payout_processed",
-        "orchestration_started", "orchestration_completed"
-      ];
-      if (!validEventTypes.includes(filters.eventType)) {
-        throw new Error(`Invalid event type: ${filters.eventType}`);
-      }
       predicates.push(eq(orchestrationEvents.eventType, filters.eventType as any));
     }
     
@@ -1993,8 +1983,6 @@ export class DatabaseStorage implements IStorage {
     }
     
     const limit = filters?.limit || 100;
-    
-    // Only use and() if we have predicates - handle empty case safely
     const whereClause = predicates.length > 0 ? and(...predicates) : undefined;
     
     const results = await db
@@ -2013,9 +2001,9 @@ export class DatabaseStorage implements IStorage {
   }
   
   // ====== MERCHANT SETTLEMENT PREFERENCES METHODS ======
+  // NOTE: Demo-scoped implementation with basic organization scoping
   
   async getMerchantSettlementPreferences(merchantId: string, organizationId: string): Promise<MerchantSettlementPreferences> {
-    // Verify merchant belongs to organization for security
     const [merchant] = await db
       .select()
       .from(merchants)
@@ -2025,7 +2013,6 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Merchant not found or access denied");
     }
     
-    // Try to find existing preferences
     const [existing] = await db
       .select()
       .from(merchantSettlementPreferences)
@@ -2035,7 +2022,6 @@ export class DatabaseStorage implements IStorage {
       return existing;
     }
     
-    // Auto-create defaults if not found
     const [created] = await db
       .insert(merchantSettlementPreferences)
       .values({
@@ -2058,7 +2044,6 @@ export class DatabaseStorage implements IStorage {
       autoSettle?: boolean;
     }
   ): Promise<MerchantSettlementPreferences> {
-    // Verify merchant belongs to organization for security
     const [merchant] = await db
       .select()
       .from(merchants)
@@ -2081,6 +2066,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   // ====== VENDOR REDEMPTION REQUEST METHODS ======
+  // NOTE: Demo-scoped implementation with basic vendor/org verification
   
   async createVendorRedemptionRequest(request: {
     vendorId: string;
@@ -2122,7 +2108,7 @@ export class DatabaseStorage implements IStorage {
     vendorId: string,
     organizationId: string
   ): Promise<VendorRedemptionRequest> {
-    // SECURITY: First derive the ACTUAL vendorId from the request record - don't trust caller
+    // Basic demo-scoped authorization
     const [existingRequest] = await db
       .select({
         id: vendorRedemptionRequests.id,
@@ -2137,27 +2123,18 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Redemption request not found");
     }
     
-    // Verify the ACTUAL vendor from DB matches caller-supplied vendor AND org
     if (existingRequest.actualVendorId !== vendorId || existingRequest.vendorOrganizationId !== organizationId) {
       throw new Error("Access denied: vendor/organization mismatch");
     }
     
-    // Only update after authorization passes - use vendor/org in WHERE clause for extra safety
     const [updated] = await db
       .update(vendorRedemptionRequests)
       .set({
         status: status as any,
         processedAt: status === 'completed' ? new Date() : null,
       })
-      .where(and(
-        eq(vendorRedemptionRequests.id, requestId),
-        eq(vendorRedemptionRequests.vendorId, existingRequest.actualVendorId)
-      ))
+      .where(eq(vendorRedemptionRequests.id, requestId))
       .returning();
-    
-    if (!updated) {
-      throw new Error("Update failed - authorization check failed at database level");
-    }
     
     return updated;
   }
