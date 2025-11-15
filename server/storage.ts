@@ -22,6 +22,7 @@ import {
   vendors,
   vendorInvoices,
   vendorBalances,
+  vendorRedemptions,
   vendorUserLinks,
   merchants,
   merchantTransactions,
@@ -53,6 +54,7 @@ import {
   type Vendor,
   type VendorInvoice,
   type VendorBalance,
+  type VendorRedemption,
   type Merchant,
   type MerchantTransaction,
   type InsertMerchantTransaction,
@@ -155,6 +157,16 @@ export interface IStorage {
   // Vendor User Links methods (for multi-org vendor access)
   getVendorUserLinks(userId: string): Promise<string[]>; // Returns array of vendorIds accessible by this user
   createVendorUserLink(userId: string, vendorId: string): Promise<void>;
+  
+  // Vendor Redemption methods
+  getRedemptionsByVendorIds(vendorIds: string[]): Promise<VendorRedemption[]>;
+  createRedemption(data: {
+    vendorIds: string[];
+    rail: string;
+    nusdAmount: string;
+    payoutMethodId?: string;
+  }): Promise<VendorRedemption[]>;
+  updateRedemptionStatus(redemptionId: string, status: string, metadata?: string): Promise<VendorRedemption>;
   
   // Tenant methods
   getTenantByEmail(email: string): Promise<Tenant | undefined>;
@@ -1182,6 +1194,149 @@ export class DatabaseStorage implements IStorage {
 
   async createVendorUserLink(userId: string, vendorId: string): Promise<void> {
     await db.insert(vendorUserLinks).values({ userId, vendorId });
+  }
+
+  // Vendor Redemption Methods
+  async getRedemptionsByVendorIds(vendorIds: string[]): Promise<VendorRedemption[]> {
+    if (vendorIds.length === 0) return [];
+    
+    const results = await db
+      .select()
+      .from(vendorRedemptions)
+      .where(inArray(vendorRedemptions.vendorId, vendorIds))
+      .orderBy(desc(vendorRedemptions.createdAt));
+    
+    return results;
+  }
+
+  async createRedemption(data: {
+    vendorIds: string[];
+    rail: string;
+    nusdAmount: string;
+    payoutMethodId?: string;
+  }): Promise<VendorRedemption[]> {
+    const { vendorIds, rail, nusdAmount, payoutMethodId } = data;
+    
+    // Get all vendor balances for this vendor across organizations
+    const balances = await db
+      .select()
+      .from(vendorBalances)
+      .where(inArray(vendorBalances.vendorId, vendorIds));
+    
+    if (balances.length === 0) {
+      throw new Error("No vendor balances found");
+    }
+    
+    // Calculate total available balance
+    const totalBalance = balances.reduce((sum, b) => 
+      sum + parseFloat(b.nusdBalance || "0"), 0
+    );
+    
+    const requestedAmount = parseFloat(nusdAmount);
+    if (requestedAmount > totalBalance) {
+      throw new Error(`Insufficient balance. Available: ${totalBalance}, Requested: ${requestedAmount}`);
+    }
+    
+    // Calculate fee based on rail type
+    let feePercentage = 0;
+    let scheduledFor: Date | null = null;
+    
+    switch (rail) {
+      case "ACH":
+        feePercentage = 0; // No fee for ACH
+        // Schedule for Net30 from today (default)
+        scheduledFor = new Date();
+        scheduledFor.setDate(scheduledFor.getDate() + 30);
+        break;
+      case "PushToCard":
+        feePercentage = 0.015; // 1.5% fee for instant card payout
+        break;
+      case "OnChainStablecoin":
+        feePercentage = 0.001; // 0.1% gas fee for crypto
+        break;
+    }
+    
+    const feeAmount = requestedAmount * feePercentage;
+    const usdAmount = requestedAmount - feeAmount;
+    
+    // Proportionally deduct from each vendor balance and create redemptions
+    const createdRedemptions: VendorRedemption[] = [];
+    const allocationMetadata: Record<string, any> = {};
+    
+    for (const balance of balances) {
+      const balanceAmount = parseFloat(balance.nusdBalance || "0");
+      if (balanceAmount <= 0) continue;
+      
+      // Calculate proportional deduction
+      const proportion = balanceAmount / totalBalance;
+      const deductionAmount = requestedAmount * proportion;
+      const orgFeeAmount = feeAmount * proportion;
+      const orgUsdAmount = usdAmount * proportion;
+      
+      // Create redemption record for this organization
+      const [redemption] = await db.insert(vendorRedemptions).values({
+        vendorId: balance.vendorId,
+        organizationId: balance.organizationId,
+        payoutMethodId: payoutMethodId || null,
+        rail,
+        nusdAmount: deductionAmount.toFixed(2),
+        usdAmount: orgUsdAmount.toFixed(2),
+        feeAmount: orgFeeAmount.toFixed(2),
+        status: "pending",
+        scheduledFor,
+        metadata: JSON.stringify({
+          proportion: proportion.toFixed(4),
+          totalRedemptionAmount: nusdAmount,
+          totalFeeAmount: feeAmount.toFixed(2),
+          totalUsdAmount: usdAmount.toFixed(2),
+        }),
+      }).returning();
+      
+      // Deduct from vendor balance immediately (prevents over-redemption)
+      await db.update(vendorBalances)
+        .set({
+          nusdBalance: (balanceAmount - deductionAmount).toFixed(2),
+          totalRedeemed: sql`${vendorBalances.totalRedeemed} + ${orgUsdAmount.toFixed(2)}`,
+        })
+        .where(eq(vendorBalances.id, balance.id));
+      
+      createdRedemptions.push(redemption);
+      
+      // Track allocation for audit trail
+      allocationMetadata[balance.organizationId] = {
+        nusdDeducted: deductionAmount.toFixed(2),
+        fee: orgFeeAmount.toFixed(2),
+        netUsd: orgUsdAmount.toFixed(2),
+      };
+    }
+    
+    return createdRedemptions;
+  }
+
+  async updateRedemptionStatus(redemptionId: string, status: string, metadata?: string): Promise<VendorRedemption> {
+    const updates: any = { status };
+    
+    if (metadata) {
+      updates.metadata = metadata;
+    }
+    
+    // Update timestamps based on status
+    if (status === "processing") {
+      updates.processedAt = new Date();
+    } else if (status === "completed") {
+      updates.completedAt = new Date();
+    }
+    
+    const [redemption] = await db.update(vendorRedemptions)
+      .set(updates)
+      .where(eq(vendorRedemptions.id, redemptionId))
+      .returning();
+    
+    if (!redemption) {
+      throw new Error("Redemption not found");
+    }
+    
+    return redemption;
   }
 
   // Crypto Treasury Methods
