@@ -32,6 +32,9 @@ import {
   merchantUserLinks,
   merchantStablecoinAllocations,
   merchantTreasuryAllocations,
+  orchestrationEvents,
+  merchantSettlementPreferences,
+  vendorRedemptionRequests,
   type User,
   type InsertUser,
   type Organization,
@@ -69,6 +72,12 @@ import {
   type MerchantBalance,
   type MerchantStablecoinAllocation,
   type MerchantTreasuryAllocation,
+  type OrchestrationEvent,
+  type InsertOrchestrationEvent,
+  type MerchantSettlementPreferences,
+  type InsertMerchantSettlementPreferences,
+  type VendorRedemptionRequest,
+  type InsertVendorRedemptionRequest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lt, gte, sql, sum, inArray, isNotNull } from "drizzle-orm";
@@ -206,9 +215,35 @@ export interface IStorage {
   getMerchantTreasuryAllocations(userId: string, merchantId: string): Promise<(MerchantTreasuryAllocation & { productName: string; productSymbol: string })[]>;
   getMerchantTransactionsByMerchantId(userId: string, merchantId: string, filters?: { status?: string }): Promise<(MerchantTransaction & { merchantName: string })[]>;
   
-  // Vendor allocation methods (mirror merchant pattern)
-  getVendorStablecoinAllocations(userId: string, vendorId: string): Promise<VendorStablecoinAllocation[]>;
-  getVendorTreasuryAllocations(userId: string, vendorId: string): Promise<(VendorTreasuryAllocation & { productName: string; productSymbol: string })[]>;
+  // Orchestration Event Timeline methods
+  listOrchestrationEvents(organizationId: string, filters?: {
+    eventType?: string;
+    vendorId?: string;
+    merchantId?: string;
+    limit?: number;
+  }): Promise<OrchestrationEvent[]>;
+  createOrchestrationEvent(event: InsertOrchestrationEvent): Promise<OrchestrationEvent>;
+  
+  // Merchant Settlement Preferences methods (organization-scoped for security)
+  getMerchantSettlementPreferences(merchantId: string, organizationId: string): Promise<MerchantSettlementPreferences>;
+  updateMerchantSettlementPreferences(merchantId: string, organizationId: string, preferences: {
+    settlementSchedule?: string;
+    paymentMethod?: string;
+    autoSettle?: boolean;
+  }): Promise<MerchantSettlementPreferences>;
+  
+  // Vendor Redemption Request methods
+  createVendorRedemptionRequest(request: {
+    vendorId: string;
+    vendorBalanceId: string;
+    amount: string;
+    requestedRail: string;
+    feeAmount: string;
+    netAmount: string;
+  }): Promise<VendorRedemptionRequest>;
+  listVendorRedemptionRequests(vendorId: string): Promise<VendorRedemptionRequest[]>;
+  // Security: vendorId and organizationId are REQUIRED for authorization
+  updateRedemptionRequestStatus(requestId: string, status: string, vendorId: string, organizationId: string): Promise<VendorRedemptionRequest>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1918,6 +1953,213 @@ export class DatabaseStorage implements IStorage {
     const results = await query.orderBy(desc(merchantTransactions.transactionDate));
     
     return results;
+  }
+  
+  // ====== ORCHESTRATION EVENT TIMELINE METHODS ======
+  
+  async listOrchestrationEvents(
+    organizationId: string,
+    filters?: {
+      eventType?: string;
+      vendorId?: string;
+      merchantId?: string;
+      limit?: number;
+    }
+  ): Promise<OrchestrationEvent[]> {
+    // Accumulate all predicates to avoid overwriting
+    const predicates = [eq(orchestrationEvents.organizationId, organizationId)];
+    
+    // Validate eventType against enum to prevent SQL injection
+    if (filters?.eventType) {
+      const validEventTypes = [
+        "treasury_allocated", "treasury_rebalanced", "stablecoin_deployed", "stablecoin_withdrawn",
+        "yield_accrued", "yield_distributed", "vendor_payment_instant", "vendor_redemption_requested",
+        "vendor_redemption_completed", "vendor_payout_settled", "merchant_transaction_created",
+        "merchant_settlement_pending", "merchant_settlement_completed", "merchant_payout_processed",
+        "orchestration_started", "orchestration_completed"
+      ];
+      if (!validEventTypes.includes(filters.eventType)) {
+        throw new Error(`Invalid event type: ${filters.eventType}`);
+      }
+      predicates.push(eq(orchestrationEvents.eventType, filters.eventType as any));
+    }
+    
+    if (filters?.vendorId) {
+      predicates.push(eq(orchestrationEvents.vendorId, filters.vendorId));
+    }
+    
+    if (filters?.merchantId) {
+      predicates.push(eq(orchestrationEvents.merchantId, filters.merchantId));
+    }
+    
+    const limit = filters?.limit || 100;
+    
+    // Only use and() if we have predicates - handle empty case safely
+    const whereClause = predicates.length > 0 ? and(...predicates) : undefined;
+    
+    const results = await db
+      .select()
+      .from(orchestrationEvents)
+      .where(whereClause)
+      .orderBy(desc(orchestrationEvents.createdAt))
+      .limit(limit);
+    
+    return results;
+  }
+  
+  async createOrchestrationEvent(event: InsertOrchestrationEvent): Promise<OrchestrationEvent> {
+    const [created] = await db.insert(orchestrationEvents).values(event).returning();
+    return created;
+  }
+  
+  // ====== MERCHANT SETTLEMENT PREFERENCES METHODS ======
+  
+  async getMerchantSettlementPreferences(merchantId: string, organizationId: string): Promise<MerchantSettlementPreferences> {
+    // Verify merchant belongs to organization for security
+    const [merchant] = await db
+      .select()
+      .from(merchants)
+      .where(and(eq(merchants.id, merchantId), eq(merchants.organizationId, organizationId)));
+    
+    if (!merchant) {
+      throw new Error("Merchant not found or access denied");
+    }
+    
+    // Try to find existing preferences
+    const [existing] = await db
+      .select()
+      .from(merchantSettlementPreferences)
+      .where(eq(merchantSettlementPreferences.merchantId, merchantId));
+    
+    if (existing) {
+      return existing;
+    }
+    
+    // Auto-create defaults if not found
+    const [created] = await db
+      .insert(merchantSettlementPreferences)
+      .values({
+        merchantId,
+        settlementSchedule: 'weekly',
+        paymentMethod: 'ach',
+        autoSettle: true,
+      })
+      .returning();
+    
+    return created;
+  }
+  
+  async updateMerchantSettlementPreferences(
+    merchantId: string,
+    organizationId: string,
+    preferences: {
+      settlementSchedule?: string;
+      paymentMethod?: string;
+      autoSettle?: boolean;
+    }
+  ): Promise<MerchantSettlementPreferences> {
+    // Verify merchant belongs to organization for security
+    const [merchant] = await db
+      .select()
+      .from(merchants)
+      .where(and(eq(merchants.id, merchantId), eq(merchants.organizationId, organizationId)));
+    
+    if (!merchant) {
+      throw new Error("Merchant not found or access denied");
+    }
+    
+    const [updated] = await db
+      .update(merchantSettlementPreferences)
+      .set({
+        ...preferences,
+        updatedAt: new Date(),
+      })
+      .where(eq(merchantSettlementPreferences.merchantId, merchantId))
+      .returning();
+    
+    return updated;
+  }
+  
+  // ====== VENDOR REDEMPTION REQUEST METHODS ======
+  
+  async createVendorRedemptionRequest(request: {
+    vendorId: string;
+    vendorBalanceId: string;
+    amount: string;
+    requestedRail: string;
+    feeAmount: string;
+    netAmount: string;
+  }): Promise<VendorRedemptionRequest> {
+    const [created] = await db
+      .insert(vendorRedemptionRequests)
+      .values({
+        vendorId: request.vendorId,
+        vendorBalanceId: request.vendorBalanceId,
+        amount: request.amount,
+        requestedRail: request.requestedRail as any,
+        feeAmount: request.feeAmount,
+        netAmount: request.netAmount,
+        status: 'pending',
+      })
+      .returning();
+    
+    return created;
+  }
+  
+  async listVendorRedemptionRequests(vendorId: string): Promise<VendorRedemptionRequest[]> {
+    const results = await db
+      .select()
+      .from(vendorRedemptionRequests)
+      .where(eq(vendorRedemptionRequests.vendorId, vendorId))
+      .orderBy(desc(vendorRedemptionRequests.requestedAt));
+    
+    return results;
+  }
+  
+  async updateRedemptionRequestStatus(
+    requestId: string,
+    status: string,
+    vendorId: string,
+    organizationId: string
+  ): Promise<VendorRedemptionRequest> {
+    // SECURITY: First derive the ACTUAL vendorId from the request record - don't trust caller
+    const [existingRequest] = await db
+      .select({
+        id: vendorRedemptionRequests.id,
+        actualVendorId: vendorRedemptionRequests.vendorId,
+        vendorOrganizationId: vendors.organizationId,
+      })
+      .from(vendorRedemptionRequests)
+      .innerJoin(vendors, eq(vendorRedemptionRequests.vendorId, vendors.id))
+      .where(eq(vendorRedemptionRequests.id, requestId));
+    
+    if (!existingRequest) {
+      throw new Error("Redemption request not found");
+    }
+    
+    // Verify the ACTUAL vendor from DB matches caller-supplied vendor AND org
+    if (existingRequest.actualVendorId !== vendorId || existingRequest.vendorOrganizationId !== organizationId) {
+      throw new Error("Access denied: vendor/organization mismatch");
+    }
+    
+    // Only update after authorization passes - use vendor/org in WHERE clause for extra safety
+    const [updated] = await db
+      .update(vendorRedemptionRequests)
+      .set({
+        status: status as any,
+        processedAt: status === 'completed' ? new Date() : null,
+      })
+      .where(and(
+        eq(vendorRedemptionRequests.id, requestId),
+        eq(vendorRedemptionRequests.vendorId, existingRequest.actualVendorId)
+      ))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Update failed - authorization check failed at database level");
+    }
+    
+    return updated;
   }
 }
 

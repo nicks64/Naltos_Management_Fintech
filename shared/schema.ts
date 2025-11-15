@@ -1143,6 +1143,148 @@ export type MerchantStablecoinAllocation = typeof merchantStablecoinAllocations.
 export type MerchantTreasuryAllocation = typeof merchantTreasuryAllocations.$inferSelect;
 export type MerchantUserLink = typeof merchantUserLinks.$inferSelect;
 
+// ====== ORCHESTRATION EVENT TIMELINE ======
+// Tracks key workflow activities across business/vendor/merchant portals for unified orchestration view
+
+export const orchestrationEventTypeEnum = pgEnum("orchestration_event_type", [
+  // Treasury & Allocation Events
+  "treasury_allocated",
+  "treasury_rebalanced",
+  "stablecoin_deployed",
+  "stablecoin_withdrawn",
+  "yield_accrued",
+  "yield_distributed",
+  // Vendor Payment Events
+  "vendor_payment_instant",
+  "vendor_redemption_requested",
+  "vendor_redemption_completed",
+  "vendor_payout_settled",
+  // Merchant Settlement Events
+  "merchant_transaction_created",
+  "merchant_settlement_pending",
+  "merchant_settlement_completed",
+  "merchant_payout_processed",
+  // System Events
+  "orchestration_started",
+  "orchestration_completed"
+]);
+
+export const orchestrationEvents = pgTable("orchestration_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  eventType: orchestrationEventTypeEnum("event_type").notNull(),
+  eventTitle: text("event_title").notNull(), // Human-readable title
+  eventDescription: text("event_description"), // Optional detailed description
+  
+  // Associated entities (nullable, depending on event type)
+  vendorId: varchar("vendor_id").references(() => vendors.id, { onDelete: "set null" }),
+  merchantId: varchar("merchant_id").references(() => merchants.id, { onDelete: "set null" }),
+  treasuryProductId: varchar("treasury_product_id").references(() => treasuryProducts.id, { onDelete: "set null" }),
+  deploymentId: varchar("deployment_id").references(() => cryptoTreasuryDeployments.id, { onDelete: "set null" }),
+  vendorRedemptionId: varchar("vendor_redemption_id").references(() => vendorRedemptions.id, { onDelete: "set null" }),
+  merchantTransactionId: varchar("merchant_transaction_id").references(() => merchantTransactions.id, { onDelete: "set null" }),
+  
+  // Financial amounts
+  amount: decimal("amount", { precision: 18, scale: 8 }), // Amount in USD or NUSD
+  coin: cryptoCoinEnum("coin"), // Stablecoin type if applicable
+  
+  // Metadata for additional context
+  metadata: text("metadata"), // JSON string for flexible additional data
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Merchant Settlement Preferences - Persisted backend for Payment Method Manager
+export const merchantSettlementPreferences = pgTable("merchant_settlement_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  merchantId: varchar("merchant_id").notNull().unique().references(() => merchants.id, { onDelete: "cascade" }),
+  
+  // Settlement schedule: daily, weekly, monthly
+  settlementSchedule: text("settlement_schedule").notNull().default("weekly"),
+  
+  // Payment method: ach, wire
+  paymentMethod: text("payment_method").notNull().default("ach"),
+  
+  // Auto-settlement toggle
+  autoSettle: boolean("auto_settle").notNull().default(true),
+  
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Vendor Redemption Requests - Enhanced tracking for redemption calculator
+export const vendorRedemptionRequests = pgTable("vendor_redemption_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }),
+  vendorBalanceId: varchar("vendor_balance_id").notNull().references(() => vendorBalances.id, { onDelete: "cascade" }),
+  
+  // Redemption details
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  requestedRail: payoutRailEnum("requested_rail").notNull(), // ACH, PushToCard, OnChainStablecoin
+  feeAmount: decimal("fee_amount", { precision: 18, scale: 8 }).notNull(),
+  netAmount: decimal("net_amount", { precision: 18, scale: 8 }).notNull(),
+  
+  status: redemptionStatusEnum("status").notNull().default("pending"),
+  
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+});
+
+// Relations
+export const orchestrationEventsRelations = relations(orchestrationEvents, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [orchestrationEvents.organizationId],
+    references: [organizations.id],
+  }),
+  vendor: one(vendors, {
+    fields: [orchestrationEvents.vendorId],
+    references: [vendors.id],
+  }),
+  merchant: one(merchants, {
+    fields: [orchestrationEvents.merchantId],
+    references: [merchants.id],
+  }),
+  treasuryProduct: one(treasuryProducts, {
+    fields: [orchestrationEvents.treasuryProductId],
+    references: [treasuryProducts.id],
+  }),
+  deployment: one(cryptoTreasuryDeployments, {
+    fields: [orchestrationEvents.deploymentId],
+    references: [cryptoTreasuryDeployments.id],
+  }),
+}));
+
+export const merchantSettlementPreferencesRelations = relations(merchantSettlementPreferences, ({ one }) => ({
+  merchant: one(merchants, {
+    fields: [merchantSettlementPreferences.merchantId],
+    references: [merchants.id],
+  }),
+}));
+
+export const vendorRedemptionRequestsRelations = relations(vendorRedemptionRequests, ({ one }) => ({
+  vendor: one(vendors, {
+    fields: [vendorRedemptionRequests.vendorId],
+    references: [vendors.id],
+  }),
+  vendorBalance: one(vendorBalances, {
+    fields: [vendorRedemptionRequests.vendorBalanceId],
+    references: [vendorBalances.id],
+  }),
+}));
+
+// Insert schemas
+export const insertOrchestrationEventSchema = createInsertSchema(orchestrationEvents).omit({ id: true, createdAt: true });
+export const insertMerchantSettlementPreferencesSchema = createInsertSchema(merchantSettlementPreferences).omit({ id: true, updatedAt: true });
+export const insertVendorRedemptionRequestSchema = createInsertSchema(vendorRedemptionRequests).omit({ id: true, requestedAt: true, processedAt: true });
+
+// Types
+export type OrchestrationEvent = typeof orchestrationEvents.$inferSelect;
+export type InsertOrchestrationEvent = z.infer<typeof insertOrchestrationEventSchema>;
+export type OrchestrationEventType = "treasury_allocated" | "treasury_rebalanced" | "stablecoin_deployed" | "stablecoin_withdrawn" | "yield_accrued" | "yield_distributed" | "vendor_payment_instant" | "vendor_redemption_requested" | "vendor_redemption_completed" | "vendor_payout_settled" | "merchant_transaction_created" | "merchant_settlement_pending" | "merchant_settlement_completed" | "merchant_payout_processed" | "orchestration_started" | "orchestration_completed";
+export type MerchantSettlementPreferences = typeof merchantSettlementPreferences.$inferSelect;
+export type InsertMerchantSettlementPreferences = z.infer<typeof insertMerchantSettlementPreferencesSchema>;
+export type VendorRedemptionRequest = typeof vendorRedemptionRequests.$inferSelect;
+export type InsertVendorRedemptionRequest = z.infer<typeof insertVendorRedemptionRequestSchema>;
+
 export interface CryptoTreasurySummary {
   totalAUM: number;
   totalDeployed: number;
