@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, skipToken } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard, Coins, PiggyBank, ArrowRight, Shield } from "lucide-react";
+import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard, Coins, PiggyBank, ArrowRight, Shield, Info, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -85,6 +86,22 @@ export default function VendorPortal() {
   const [rail, setRail] = useState<"ACH" | "PushToCard" | "OnChainStablecoin">("ACH");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  
+  // Explainer card state (localStorage-persisted)
+  const [showExplainer, setShowExplainer] = useState(true);
+  const [explainerOpen, setExplainerOpen] = useState(true);
+  
+  useEffect(() => {
+    const dismissed = localStorage.getItem('vendor-explainer-dismissed');
+    if (dismissed === 'true') {
+      setShowExplainer(false);
+    }
+  }, []);
+  
+  const dismissExplainer = () => {
+    localStorage.setItem('vendor-explainer-dismissed', 'true');
+    setShowExplainer(false);
+  };
 
   const { data: balances, isLoading: balancesLoading } = useQuery<{ balances: VendorBalance[] }>({
     queryKey: ["/api/vendor/balances"],
@@ -260,6 +277,70 @@ export default function VendorPortal() {
           </CardContent>
         </Card>
       </div>
+
+      {/* NUSD Orchestration Explainer Card */}
+      {showExplainer && (
+        <Collapsible open={explainerOpen} onOpenChange={setExplainerOpen}>
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Info className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">How NUSD & Stablecoin Orchestration Works</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" data-testid="button-toggle-explainer">
+                      {explainerOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <Button variant="ghost" size="sm" onClick={dismissExplainer} data-testid="button-dismiss-explainer">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-green-600" />
+                      <h4 className="font-semibold">1:1 Stablecoin Backing</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Every $1 NUSD you receive is backed 1:1 by stablecoins (USDC, USDT, DAI) held in secure treasury accounts. Your balance is fully redeemable anytime.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <PiggyBank className="h-4 w-4 text-blue-600" />
+                      <h4 className="font-semibold">Yield Generation</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      When property managers pay you instantly, they deploy your payment into short-term treasury products (NRF, NRK, NRC) generating 3-5% APY until you redeem.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-4 w-4 text-purple-600" />
+                      <h4 className="font-semibold">Flexible Redemption</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Choose ACH (Net30 due date, no fee), Push-to-Card (instant, 1.5% fee), or On-Chain Stablecoin (instant crypto, 0.1% fee). You control when and how you get paid.
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="text-sm">
+                    <strong>Example:</strong> You receive $10,000 NUSD for an invoice. Property manager backs it with $10,000 USDC deployed into NRF (4.5% APY). After 30 days, you redeem via ACH receiving $10,000 + your share of yield generated during the float period.
+                  </p>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
 
       {/* Request Payout Button */}
       <div className="flex justify-end">

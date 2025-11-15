@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DollarSign, TrendingUp, Clock, Download, Store, Coins, PiggyBank } from "lucide-react";
+import { DollarSign, TrendingUp, Clock, Download, Store, Coins, PiggyBank, Info, X, ChevronDown, ChevronUp, ArrowRight, Shield } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface MerchantBalance {
   merchantId: string;
@@ -87,6 +88,22 @@ function formatPercent(value: string | number | null | undefined): string {
 
 export default function MerchantPortal() {
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
+  
+  // Explainer card state (localStorage-persisted)
+  const [showExplainer, setShowExplainer] = useState(true);
+  const [explainerOpen, setExplainerOpen] = useState(true);
+  
+  useEffect(() => {
+    const dismissed = localStorage.getItem('merchant-explainer-dismissed');
+    if (dismissed === 'true') {
+      setShowExplainer(false);
+    }
+  }, []);
+  
+  const dismissExplainer = () => {
+    localStorage.setItem('merchant-explainer-dismissed', 'true');
+    setShowExplainer(false);
+  };
 
   // Fetch merchant balances
   const { data: balances, isLoading: balancesLoading } = useQuery<{ balances: MerchantBalance[] }>({
@@ -196,6 +213,70 @@ export default function MerchantPortal() {
           </CardContent>
         </Card>
       </div>
+
+      {/* NUSD Orchestration Explainer Card */}
+      {showExplainer && (
+        <Collapsible open={explainerOpen} onOpenChange={setExplainerOpen}>
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Info className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">How Merchant NUSD Payments Work</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" data-testid="button-toggle-merchant-explainer">
+                      {explainerOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <Button variant="ghost" size="sm" onClick={dismissExplainer} data-testid="button-dismiss-merchant-explainer">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Store className="h-4 w-4 text-blue-600" />
+                      <h4 className="font-semibold">NUSD Payments</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Tenants pay you with NUSD, backed 1:1 by stablecoins (USDC/USDT/DAI). You receive instant settlement notification while actual fund transfer occurs within 1-3 days.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <PiggyBank className="h-4 w-4 text-green-600" />
+                      <h4 className="font-semibold">Settlement Float Yield</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      During the 1-3 day settlement period, property owners deploy your pending payment into treasury products generating 3-5% APY. Yield is shared with tenants as cashback.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-4 w-4 text-purple-600" />
+                      <h4 className="font-semibold">Automatic Settlement</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Funds automatically settle to your bank account via ACH within the agreed timeframe. No action needed - the stablecoin orchestration handles everything automatically.
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="text-sm">
+                    <strong>Example:</strong> A tenant pays $500 for a purchase. You receive instant NUSD confirmation backed by $500 USDC. During 2-day settlement, the property manager deploys it into NRK (4% APY) generating ~$0.11 yield. Tenant gets $0.06 cashback, property owner keeps $0.04, platform takes $0.01. You receive $500 via ACH on settlement date.
+                  </p>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
 
       {/* Balances by Property Manager */}
       <Card>
