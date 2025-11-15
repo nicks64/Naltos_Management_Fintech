@@ -78,7 +78,7 @@ function formatPercent(value: string | number | null | undefined): string {
 // Custom hook to gate queries until vendorId is available
 function useVendorQuery<T>(endpoint: string, vendorId?: string | null) {
   return useQuery<T>({
-    queryKey: vendorId ? [endpoint, vendorId] : skipToken,
+    queryKey: vendorId ? [endpoint, vendorId] as const : (skipToken as any),
   });
 }
 
@@ -133,11 +133,7 @@ export default function VendorPortal() {
 
   const createRedemptionMutation = useMutation({
     mutationFn: async (data: { rail: string; nusdAmount: string }) => {
-      return await apiRequest("/api/vendor/redemptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      return await apiRequest("POST", "/api/vendor/redemptions", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/redemptions"] });

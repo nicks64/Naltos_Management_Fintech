@@ -546,6 +546,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/vendor/stablecoin-allocations/:vendorId", requireVendor(storage), async (req, res) => {
+    try {
+      const vendorIds = req.vendorIds!;
+      const { vendorId } = req.params;
+      const userId = req.userId!;
+      
+      // Verify vendor access
+      if (!vendorIds.includes(vendorId)) {
+        return res.status(403).json({ 
+          error: "Access denied",
+          message: "You don't have access to this vendor"
+        });
+      }
+      
+      const allocations = await storage.getVendorStablecoinAllocations(userId, vendorId);
+      
+      res.json({ allocations });
+    } catch (error: any) {
+      console.error("Vendor stablecoin allocations error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vendor/treasury-allocations/:vendorId", requireVendor(storage), async (req, res) => {
+    try {
+      const vendorIds = req.vendorIds!;
+      const { vendorId } = req.params;
+      const userId = req.userId!;
+      
+      // Verify vendor access
+      if (!vendorIds.includes(vendorId)) {
+        return res.status(403).json({ 
+          error: "Access denied",
+          message: "You don't have access to this vendor"
+        });
+      }
+      
+      const allocations = await storage.getVendorTreasuryAllocations(userId, vendorId);
+      
+      res.json({ allocations });
+    } catch (error: any) {
+      console.error("Vendor treasury allocations error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Merchant Portal Routes ============
   app.get("/api/merchant/balances", requireMerchant(storage), async (req, res) => {
     try {
