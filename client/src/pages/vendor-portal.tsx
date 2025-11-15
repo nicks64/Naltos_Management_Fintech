@@ -101,6 +101,123 @@ function generateYieldChartData(balances: VendorBalance[]): Array<{date: string,
   return data;
 }
 
+// Redemption Calculator Component
+function RedemptionCalculator({ maxAmount }: { maxAmount: number }) {
+  const [amount, setAmount] = useState("1000");
+  
+  const calculatedAmount = parseFloat(amount) || 0;
+  
+  const payoutOptions = [
+    {
+      name: "ACH (Next-Day)",
+      icon: DollarSign,
+      feePercent: 0,
+      fixedFee: 0,
+      processingTime: "Next business day",
+      description: "Scheduled for Net30/60/90 due date",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50 dark:bg-blue-950"
+    },
+    {
+      name: "Push-to-Card",
+      icon: CreditCard,
+      feePercent: 1.5,
+      fixedFee: 0,
+      processingTime: "Instant (1-2 minutes)",
+      description: "Early redemption with convenience fee",
+      color: "text-purple-600",
+      bgColor: "bg-purple-50 dark:bg-purple-950"
+    },
+    {
+      name: "On-Chain Stablecoin",
+      icon: Coins,
+      feePercent: 0.1,
+      fixedFee: 2,
+      processingTime: "Instant (on-chain)",
+      description: "Withdraw to your crypto wallet",
+      color: "text-green-600",
+      bgColor: "bg-green-50 dark:bg-green-950"
+    }
+  ];
+  
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="calc-amount">Amount to Redeem</Label>
+        <Input
+          id="calc-amount"
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Enter amount"
+          min="0"
+          max={maxAmount}
+          step="10"
+          data-testid="input-calculator-amount"
+        />
+        <p className="text-xs text-muted-foreground">
+          Available: ${maxAmount.toFixed(2)}
+        </p>
+      </div>
+      
+      <div className="grid md:grid-cols-3 gap-4">
+        {payoutOptions.map((option) => {
+          const Icon = option.icon;
+          const fee = (calculatedAmount * option.feePercent / 100) + option.fixedFee;
+          const netAmount = calculatedAmount - fee;
+          
+          return (
+            <div 
+              key={option.name} 
+              className={`p-4 rounded-lg border ${option.bgColor}`}
+              data-testid={`calculator-option-${option.name.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Icon className={`h-5 w-5 ${option.color}`} />
+                <h4 className="font-semibold">{option.name}</h4>
+              </div>
+              
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Gross Amount:</span>
+                  <span className="font-mono">${calculatedAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Fee:</span>
+                  <span className="font-mono text-red-600 dark:text-red-400">
+                    -${fee.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm border-t pt-2">
+                  <span className="font-medium">Net Amount:</span>
+                  <span className="font-mono font-bold text-green-600 dark:text-green-400">
+                    ${netAmount.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">{option.processingTime}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{option.description}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      <div className="bg-muted/50 p-3 rounded-lg">
+        <p className="text-xs text-muted-foreground">
+          <strong>Note:</strong> ACH has no fees but follows the standard Net30/60/90 payment schedule. 
+          Push-to-Card and On-Chain options allow early redemption with a small convenience fee.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 
 export default function VendorPortal() {
   const { toast } = useToast();
@@ -583,6 +700,17 @@ export default function VendorPortal() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Interactive Redemption Calculator */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Redemption Calculator</CardTitle>
+              <CardDescription>Compare payout options and calculate fees</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RedemptionCalculator maxAmount={totalAvailable} />
             </CardContent>
           </Card>
 
