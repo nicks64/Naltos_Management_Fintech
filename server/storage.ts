@@ -24,8 +24,14 @@ import {
   vendorBalances,
   vendorRedemptions,
   vendorUserLinks,
+  vendorStablecoinAllocations,
+  vendorTreasuryAllocations,
   merchants,
   merchantTransactions,
+  merchantBalances,
+  merchantUserLinks,
+  merchantStablecoinAllocations,
+  merchantTreasuryAllocations,
   type User,
   type InsertUser,
   type Organization,
@@ -55,9 +61,14 @@ import {
   type VendorInvoice,
   type VendorBalance,
   type VendorRedemption,
+  type VendorStablecoinAllocation,
+  type VendorTreasuryAllocation,
   type Merchant,
   type MerchantTransaction,
   type InsertMerchantTransaction,
+  type MerchantBalance,
+  type MerchantStablecoinAllocation,
+  type MerchantTreasuryAllocation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lt, gte, sql, sum, inArray, isNotNull } from "drizzle-orm";
@@ -158,6 +169,11 @@ export interface IStorage {
   getVendorUserLinks(userId: string): Promise<string[]>; // Returns array of vendorIds accessible by this user
   createVendorUserLink(userId: string, vendorId: string): Promise<void>;
   
+  // Vendor Orchestration methods (for enhanced vendor portal)
+  // Note: organizationId is derived from vendor record, not passed as parameter
+  getVendorStablecoinAllocations(userId: string, vendorId: string): Promise<VendorStablecoinAllocation[]>;
+  getVendorTreasuryAllocations(userId: string, vendorId: string): Promise<(VendorTreasuryAllocation & { productName: string; productSymbol: string })[]>;
+  
   // Vendor Redemption methods
   getRedemptionsByVendorIds(vendorIds: string[]): Promise<VendorRedemption[]>;
   createRedemption(data: {
@@ -175,6 +191,20 @@ export interface IStorage {
   getMerchants(organizationId: string): Promise<Merchant[]>;
   getMerchantTransactions(tenantId: string, filters?: { status?: string }): Promise<(MerchantTransaction & { merchantName: string })[]>;
   createMerchantTransaction(data: InsertMerchantTransaction, userId: string): Promise<MerchantTransaction>;
+  
+  // Merchant Balance & Orchestration methods (merchant portal side)
+  getMerchantUserLinks(userId: string): Promise<string[]>; // Returns array of merchantIds accessible by this user
+  createMerchantUserLink(userId: string, merchantId: string): Promise<void>;
+  getMerchantOverview(merchantIds: string[]): Promise<Array<{
+    merchant: Merchant;
+    balance: MerchantBalance | null;
+    organization: Organization;
+  }>>;
+  // Note: organizationId is derived from merchant record, not passed as parameter
+  getMerchantBalance(userId: string, merchantId: string): Promise<MerchantBalance | undefined>;
+  getMerchantStablecoinAllocations(userId: string, merchantId: string): Promise<MerchantStablecoinAllocation[]>;
+  getMerchantTreasuryAllocations(userId: string, merchantId: string): Promise<(MerchantTreasuryAllocation & { productName: string; productSymbol: string })[]>;
+  getMerchantTransactionsByMerchantId(userId: string, merchantId: string, filters?: { status?: string }): Promise<(MerchantTransaction & { merchantName: string })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1195,6 +1225,61 @@ export class DatabaseStorage implements IStorage {
   async createVendorUserLink(userId: string, vendorId: string): Promise<void> {
     await db.insert(vendorUserLinks).values({ userId, vendorId });
   }
+  
+  // Vendor Orchestration Methods
+  async getVendorStablecoinAllocations(userId: string, vendorId: string): Promise<VendorStablecoinAllocation[]> {
+    // Verify user has access to this vendor via vendorUserLinks, derive organizationId from vendor record
+    const results = await db
+      .select({
+        id: vendorStablecoinAllocations.id,
+        vendorBalanceId: vendorStablecoinAllocations.vendorBalanceId,
+        coin: vendorStablecoinAllocations.coin,
+        allocatedAmount: vendorStablecoinAllocations.allocatedAmount,
+        nusdEquivalent: vendorStablecoinAllocations.nusdEquivalent,
+        lastUpdated: vendorStablecoinAllocations.lastUpdated,
+      })
+      .from(vendorStablecoinAllocations)
+      .innerJoin(vendorBalances, eq(vendorStablecoinAllocations.vendorBalanceId, vendorBalances.id))
+      .innerJoin(vendors, eq(vendorBalances.vendorId, vendors.id))
+      .innerJoin(vendorUserLinks, and(eq(vendors.id, vendorUserLinks.vendorId), eq(vendorBalances.vendorId, vendorUserLinks.vendorId)))
+      .where(and(
+        eq(vendorUserLinks.userId, userId),
+        eq(vendors.id, vendorId)
+      ))
+      .orderBy(vendorStablecoinAllocations.coin);
+    
+    return results;
+  }
+  
+  async getVendorTreasuryAllocations(userId: string, vendorId: string): Promise<(VendorTreasuryAllocation & { productName: string; productSymbol: string })[]> {
+    // Verify user has access to this vendor via vendorUserLinks, derive organizationId from vendor record
+    const results = await db
+      .select({
+        id: vendorTreasuryAllocations.id,
+        vendorBalanceId: vendorTreasuryAllocations.vendorBalanceId,
+        treasuryProductId: vendorTreasuryAllocations.treasuryProductId,
+        coin: vendorTreasuryAllocations.coin,
+        allocatedAmount: vendorTreasuryAllocations.allocatedAmount,
+        currentYield: vendorTreasuryAllocations.currentYield,
+        yieldAccrued: vendorTreasuryAllocations.yieldAccrued,
+        deployedAt: vendorTreasuryAllocations.deployedAt,
+        lastUpdated: vendorTreasuryAllocations.lastUpdated,
+        productName: treasuryProducts.name,
+        productSymbol: treasuryProducts.productType,
+      })
+      .from(vendorTreasuryAllocations)
+      .innerJoin(vendorBalances, eq(vendorTreasuryAllocations.vendorBalanceId, vendorBalances.id))
+      .innerJoin(vendors, eq(vendorBalances.vendorId, vendors.id))
+      .innerJoin(vendorUserLinks, and(eq(vendors.id, vendorUserLinks.vendorId), eq(vendorBalances.vendorId, vendorUserLinks.vendorId)))
+      .innerJoin(treasuryProducts, eq(vendorTreasuryAllocations.treasuryProductId, treasuryProducts.id))
+      .where(and(
+        eq(vendorUserLinks.userId, userId),
+        eq(vendors.id, vendorId)
+      ))
+      .orderBy(vendorTreasuryAllocations.treasuryProductId, vendorTreasuryAllocations.coin);
+    
+    return results;
+  }
 
   // Vendor Redemption Methods
   
@@ -1663,6 +1748,172 @@ export class DatabaseStorage implements IStorage {
 
       return transaction;
     });
+  }
+  
+  // Merchant User Links Methods (for multi-org merchant access)
+  async getMerchantUserLinks(userId: string): Promise<string[]> {
+    const links = await db
+      .select({ merchantId: merchantUserLinks.merchantId })
+      .from(merchantUserLinks)
+      .where(eq(merchantUserLinks.userId, userId));
+    return links.map(link => link.merchantId);
+  }
+
+  async createMerchantUserLink(userId: string, merchantId: string): Promise<void> {
+    await db.insert(merchantUserLinks).values({ userId, merchantId });
+  }
+  
+  // Merchant Balance & Orchestration Methods
+  async getMerchantOverview(merchantIds: string[]): Promise<Array<{
+    merchant: Merchant;
+    balance: MerchantBalance | null;
+    organization: Organization;
+  }>> {
+    if (merchantIds.length === 0) return [];
+    
+    const results = await db
+      .select({
+        merchant: merchants,
+        balance: merchantBalances,
+        organization: organizations,
+      })
+      .from(merchants)
+      .leftJoin(merchantBalances, eq(merchants.id, merchantBalances.merchantId))
+      .innerJoin(organizations, eq(merchants.organizationId, organizations.id))
+      .where(inArray(merchants.id, merchantIds));
+    
+    return results.map(r => ({
+      merchant: r.merchant,
+      balance: r.balance,
+      organization: r.organization,
+    }));
+  }
+
+  async getMerchantBalance(userId: string, merchantId: string): Promise<MerchantBalance | undefined> {
+    // Verify user has access to this merchant via merchantUserLinks, derive organizationId from merchant record
+    const [balance] = await db
+      .select({
+        id: merchantBalances.id,
+        merchantId: merchantBalances.merchantId,
+        organizationId: merchantBalances.organizationId,
+        nusdBalance: merchantBalances.nusdBalance,
+        pendingSettlement: merchantBalances.pendingSettlement,
+        totalReceived: merchantBalances.totalReceived,
+        totalSettled: merchantBalances.totalSettled,
+        totalYieldGenerated: merchantBalances.totalYieldGenerated,
+        createdAt: merchantBalances.createdAt,
+        updatedAt: merchantBalances.updatedAt,
+      })
+      .from(merchantBalances)
+      .innerJoin(merchants, eq(merchantBalances.merchantId, merchants.id))
+      .innerJoin(merchantUserLinks, and(eq(merchants.id, merchantUserLinks.merchantId), eq(merchantBalances.merchantId, merchantUserLinks.merchantId)))
+      .where(and(
+        eq(merchantUserLinks.userId, userId),
+        eq(merchants.id, merchantId)
+      ));
+    return balance || undefined;
+  }
+  
+  async getMerchantStablecoinAllocations(userId: string, merchantId: string): Promise<MerchantStablecoinAllocation[]> {
+    // Verify user has access to this merchant via merchantUserLinks, derive organizationId from merchant record
+    const results = await db
+      .select({
+        id: merchantStablecoinAllocations.id,
+        merchantBalanceId: merchantStablecoinAllocations.merchantBalanceId,
+        coin: merchantStablecoinAllocations.coin,
+        allocatedAmount: merchantStablecoinAllocations.allocatedAmount,
+        nusdEquivalent: merchantStablecoinAllocations.nusdEquivalent,
+        lastUpdated: merchantStablecoinAllocations.lastUpdated,
+      })
+      .from(merchantStablecoinAllocations)
+      .innerJoin(merchantBalances, eq(merchantStablecoinAllocations.merchantBalanceId, merchantBalances.id))
+      .innerJoin(merchants, eq(merchantBalances.merchantId, merchants.id))
+      .innerJoin(merchantUserLinks, and(eq(merchants.id, merchantUserLinks.merchantId), eq(merchantBalances.merchantId, merchantUserLinks.merchantId)))
+      .where(and(
+        eq(merchantUserLinks.userId, userId),
+        eq(merchants.id, merchantId)
+      ))
+      .orderBy(merchantStablecoinAllocations.coin);
+    
+    return results;
+  }
+  
+  async getMerchantTreasuryAllocations(userId: string, merchantId: string): Promise<(MerchantTreasuryAllocation & { productName: string; productSymbol: string })[]> {
+    // Verify user has access to this merchant via merchantUserLinks, derive organizationId from merchant record
+    const results = await db
+      .select({
+        id: merchantTreasuryAllocations.id,
+        merchantBalanceId: merchantTreasuryAllocations.merchantBalanceId,
+        treasuryProductId: merchantTreasuryAllocations.treasuryProductId,
+        coin: merchantTreasuryAllocations.coin,
+        allocatedAmount: merchantTreasuryAllocations.allocatedAmount,
+        currentYield: merchantTreasuryAllocations.currentYield,
+        yieldAccrued: merchantTreasuryAllocations.yieldAccrued,
+        deployedAt: merchantTreasuryAllocations.deployedAt,
+        lastUpdated: merchantTreasuryAllocations.lastUpdated,
+        productName: treasuryProducts.name,
+        productSymbol: treasuryProducts.productType,
+      })
+      .from(merchantTreasuryAllocations)
+      .innerJoin(merchantBalances, eq(merchantTreasuryAllocations.merchantBalanceId, merchantBalances.id))
+      .innerJoin(merchants, eq(merchantBalances.merchantId, merchants.id))
+      .innerJoin(merchantUserLinks, and(eq(merchants.id, merchantUserLinks.merchantId), eq(merchantBalances.merchantId, merchantUserLinks.merchantId)))
+      .innerJoin(treasuryProducts, eq(merchantTreasuryAllocations.treasuryProductId, treasuryProducts.id))
+      .where(and(
+        eq(merchantUserLinks.userId, userId),
+        eq(merchants.id, merchantId)
+      ))
+      .orderBy(merchantTreasuryAllocations.treasuryProductId, merchantTreasuryAllocations.coin);
+    
+    return results;
+  }
+  
+  async getMerchantTransactionsByMerchantId(
+    userId: string,
+    merchantId: string,
+    filters?: { status?: string }
+  ): Promise<(MerchantTransaction & { merchantName: string })[]> {
+    // Verify user has access to this merchant via merchantUserLinks, derive organizationId from merchant record
+    let query = db
+      .select({
+        id: merchantTransactions.id,
+        merchantId: merchantTransactions.merchantId,
+        tenantId: merchantTransactions.tenantId,
+        organizationId: merchantTransactions.organizationId,
+        amount: merchantTransactions.amount,
+        transactionDate: merchantTransactions.transactionDate,
+        settlementDate: merchantTransactions.settlementDate,
+        status: merchantTransactions.status,
+        settledAt: merchantTransactions.settledAt,
+        settlementDays: merchantTransactions.settlementDays,
+        yieldRate: merchantTransactions.yieldRate,
+        yieldGenerated: merchantTransactions.yieldGenerated,
+        propertyYieldShare: merchantTransactions.propertyYieldShare,
+        tenantYieldShare: merchantTransactions.tenantYieldShare,
+        platformYieldShare: merchantTransactions.platformYieldShare,
+        description: merchantTransactions.description,
+        merchantName: merchants.name,
+      })
+      .from(merchantTransactions)
+      .innerJoin(merchants, eq(merchantTransactions.merchantId, merchants.id))
+      .innerJoin(merchantUserLinks, and(eq(merchants.id, merchantUserLinks.merchantId), eq(merchantTransactions.merchantId, merchantUserLinks.merchantId)))
+      .where(and(
+        eq(merchantUserLinks.userId, userId),
+        eq(merchants.id, merchantId)
+      ))
+      .$dynamic();
+
+    if (filters?.status) {
+      query = query.where(and(
+        eq(merchantUserLinks.userId, userId),
+        eq(merchants.id, merchantId),
+        eq(merchantTransactions.status, filters.status as any)
+      ));
+    }
+
+    const results = await query.orderBy(desc(merchantTransactions.transactionDate));
+    
+    return results;
   }
 }
 

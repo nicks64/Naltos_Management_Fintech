@@ -1136,6 +1136,12 @@ export type VendorComplianceStatus = typeof vendorComplianceStatus.$inferSelect;
 export type InsertVendorComplianceStatus = z.infer<typeof insertVendorComplianceStatusSchema>;
 export type VendorUserLink = typeof vendorUserLinks.$inferSelect;
 export type InsertVendorUserLink = z.infer<typeof insertVendorUserLinkSchema>;
+export type VendorStablecoinAllocation = typeof vendorStablecoinAllocations.$inferSelect;
+export type VendorTreasuryAllocation = typeof vendorTreasuryAllocations.$inferSelect;
+export type MerchantBalance = typeof merchantBalances.$inferSelect;
+export type MerchantStablecoinAllocation = typeof merchantStablecoinAllocations.$inferSelect;
+export type MerchantTreasuryAllocation = typeof merchantTreasuryAllocations.$inferSelect;
+export type MerchantUserLink = typeof merchantUserLinks.$inferSelect;
 
 export interface CryptoTreasurySummary {
   totalAUM: number;
