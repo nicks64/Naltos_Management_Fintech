@@ -38,6 +38,7 @@ import VendorLogin from "@/pages/vendor-login";
 import VendorPortal from "@/pages/vendor-portal";
 
 // Merchant pages
+import MerchantLogin from "@/pages/merchant-login";
 import MerchantPortal from "@/pages/merchant-portal";
 
 function ProtectedRoute({ component: Component, path }: { component: React.ComponentType; path: string }): React.ReactElement {
@@ -94,9 +95,19 @@ function AppContent() {
     return <Redirect to="/vendor-portal" />;
   }
 
+  // Redirect authenticated merchants away from login page
+  if (user && user.role === "Merchant" && location === "/merchant-login") {
+    return <Redirect to="/merchant-portal" />;
+  }
+
   // Show vendor login page for /vendor-login route (only if not authenticated)
   if (location === "/vendor-login") {
     return <VendorLogin />;
+  }
+
+  // Show merchant login page for /merchant-login route (only if not authenticated)
+  if (location === "/merchant-login") {
+    return <MerchantLogin />;
   }
 
   // Show login page if not authenticated
@@ -122,6 +133,28 @@ function AppContent() {
             <Route path="/vendor-portal">
               {ProtectedRouteRenderer(VendorPortal, "/vendor-portal")}
             </Route>
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+    );
+  }
+
+  // Merchant users have different UI - no sidebar
+  if (user.role === "Merchant") {
+    return (
+      <div className="flex flex-col h-screen">
+        <header className="flex items-center justify-between px-8 py-4 border-b">
+          <div className="text-xl font-semibold">Merchant Portal</div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto">
+          <Switch>
             <Route path="/merchant-portal">
               {ProtectedRouteRenderer(MerchantPortal, "/merchant-portal")}
             </Route>
