@@ -2,58 +2,56 @@
 
 ## Executive Summary
 
-**Naltos** is a stablecoin orchestration platform that transforms idle cash flows in the multifamily property management industry into programmable, yield-generating financial assets. The platform operates on top of stablecoin rails (USDC, USDT, DAI) to capture and monetize payment float periods that traditionally sit idle in bank accounts.
+**Naltos** is a USD-based yield orchestration platform that transforms idle cash flows in multifamily property management into yield-generating assets. **Everything is in USD** — tenants pay in USD, vendors receive USD, merchants settle in USD. Stablecoins are used purely as invisible backend rails for speed, automation, and treasury optimization.
 
 **Market Opportunity**: $35B+ in idle multifamily finance across three distinct float periods:
-- Rent Float (5-15 days)
+- Rent Float (10 days average)
 - Vendor Payment Float (Net30-Net90)
 - Merchant Settlement Float (1-3 days)
 
-**Core Innovation**: NUSD, a private, fully-backed internal accounting unit representing $1 held in short-term treasury products, instantly redeemable 1:1 for USD, programmable for automated yield distribution.
+**Core Innovation**: Using stablecoin rails as infrastructure to make USD smarter — capturing payment float that traditionally sits idle in bank accounts and deploying it into yield-generating treasury products (T-Bills, money markets), then distributing earnings back to all stakeholders in USD.
+
+> **The key insight: The currency never changes — everything is always in USD. Naltos simply moves USD over stablecoin rails in the backend for speed, automation, and yield optimization. Users never touch crypto. Naltos just uses better infrastructure to make USD smarter.**
 
 ---
 
 ## Capital Flow Architecture
 
-### Tenant Rent Flow: The Foundation
+### EXAMPLE 1 — Rent Flow (Tenant → Property Owner)
 
-**The Core Transaction Loop**:
-```
-Tenant → Pays Rent ($1,500/month) → AppFolio/Buildium PMS
-                                           ↓
-                              Stablecoin Bridge Converts
-                                           ↓
-                              USDC/USDT/DAI Stablecoins
-                                           ↓
-                              NUSD Minted (1:1 backing)
-                                           ↓
-                      Deployed to Treasury Products (NRF/NRK/NRC)
-                                           ↓
-                      Held 5-15 days (Rent Float Period)
-                                           ↓
-                      Generates Yield @ 3% APY = ~$6/month
-                                           ↓
-              Distributed: Owner ($5.40), Tenant ($0.60 cashback)
-                                           ↓
-              Property deploys funds to operations (day 15)
-```
+**What the tenant sees:**
+- Logs into AppFolio
+- Pays **$1,500 USD**
+- Gets confirmation: "Rent paid."
+- Sees **$0.12 cashback** in their rewards balance
 
-**Key Integration Points**:
-1. **Legacy PMS Systems** (AppFolio, Buildium, Yardi):
-   - Tenant submits rent payment via existing PMS portal
-   - Property receives notification of payment
-   - Naltos Bridge intercepts payment metadata
+**No crypto, no stablecoins, nothing unusual. Just USD.**
 
-2. **Stablecoin Conversion**:
-   - Bidirectional bridge converts USD → USDC/USDT/DAI
-   - NUSD minted against stablecoin backing
-   - 1:1 redemption guarantee maintained
+**What happens under the hood (Naltos invisible rails):**
 
-3. **Float Period Management**:
-   - Property sets deployment schedule (e.g., deploy on 15th)
-   - Rent collected 1st-5th held in treasury products
-   - Automatic yield accrual during hold period
-   - Funds released on schedule for operations
+1. Tenant pays **$1,500 USD** → property bank account
+2. Naltos converts **$1,500 USD → stablecoins (USDC/USDT/DAI)** *(only used as rails)*
+3. Naltos mints **1,500 NUSD** internally *(internal ledger, never exposed to user)*
+4. Money enters **Rent Float Bucket (10 days)**
+5. **Treasury deployment**:
+   - 75% into **T-bills (NRF)**
+   - 25% into **money-market (NRK)**
+6. **Yield generated in 10 days**:
+   - **$1.23 total yield**
+7. **Yield distribution**:
+   - Owner: **$1.11 USD** (90%)
+   - Tenant cashback: **$0.12 USD** (10%)
+   - Naltos: included in rounding
+8. **On payout day**:
+   - NUSD → stablecoins → **USD → owner's bank account**
+
+**Final state:**
+- Owner receives **$1,501.11 USD** to bank account
+- Tenant receives **$0.12 USD** in cashback wallet
+- Naltos earns its share of micro-yield
+- **All transactions: USD**
+
+*Stablecoins only served as faster, programmable rails under the hood.*
 
 ### Collection Rate Incentives
 
@@ -106,50 +104,87 @@ Property Owner → Collects Rent → Held 5-15 days before deployment
 - 15-day float @ 3% APY = ~$123 yield
 - Owner earns $111, Platform earns $12
 
-#### 2. Vendor Payment Float (Net30-Net90) - **Primary Value Driver**
-```
-Property Manager → Vendor Invoice ($10K, Net30 due date)
-        ↓
-Instant NUSD Payment to Vendor (Day 0)
-        ↓
-Vendor receives $10K NUSD immediately (vs. waiting 30 days)
-        ↓
-$10K deployed to Treasury Products for 30 days
-        ↓
-Generates yield @ 4.5% APY = $37 per invoice
-        ↓
-Distributed: Property Owner ($33), Vendor ($2 cashback), Platform ($2)
-        ↓
-Day 30: Traditional payment due date, vendor can redeem via:
-  - ACH (free, scheduled for Net30/60/90)
-  - Push-to-Card (1-2% fee, instant)
-  - On-Chain Stablecoin (minimal gas, instant)
-```
+#### 2. EXAMPLE 2 — Vendor Payment (Net30) - **Primary Value Driver**
 
-**Key Benefit**: Vendors get instant liquidity, property owners earn yield on float, zero cost to operations.
+**What vendor sees:**
+- Sends invoice for **$10,000 USD**
+- Usually waits 30 days for payment
+- With Naltos → gets **$10,000 USD instantly**
+- Sees note: "Paid early — Net30 auto-settlement scheduled."
 
-#### 3. Merchant Settlement Float (1-3 days)
-```
-Tenant → Purchases at Merchant ($500)
-           ↓
-    Payment in NUSD
-           ↓
-Merchant holds $500 NUSD for 1-3 days settlement period
-           ↓
-Deployed to Treasury Products
-           ↓
-Generates yield @ 4.5% APY = ~$0.18 per transaction
-           ↓
-Distributed: Property Owner (50%), Tenant (40%), Platform (10%)
-           ↓
-Merchant settles on schedule (daily/weekly/monthly)
-```
+**Everything in USD. No crypto mentioned.**
+
+**Backend (Naltos invisible rails):**
+
+1. Vendor issues **$10k USD invoice**
+2. PM approves in Buildium
+3. Naltos immediately pays vendor **$10k USD-equivalent**
+   - Vendor sees USD balance in their portal
+4. **Under the hood**:
+   - Naltos converts $10k USD → stablecoin rails
+   - Mints 10k NUSD *(internal ledger only)*
+5. **Treasury float window = 30 days**
+6. **Treasury deployment**:
+   - 50% → NRF (T-bills)
+   - 30% → NRK (money market)
+   - 20% → NRC (delta-neutral credit)
+7. **Yield generated in 30 days**:
+   - **$37.50 USD total**
+8. **Yield split**:
+   - Property owner: **$33.75 USD** (90%)
+   - Vendor cashback: **$1.88 USD** (5%)
+   - Naltos: **$1.88 USD** (5%)
+9. **On day 30**:
+   - Vendor's USD payout processed through ACH (free)
+   - NUSD → stablecoins → USD → Vendor bank
+   - *(OR vendor redeemed early via Card/Crypto with fee)*
+
+**Final state:**
+- Vendor gets **full $10,000 USD** to bank account
+- Property earns **$33.75 USD extra yield**
+- Vendor earns **$1.88 USD cashback**
+- Platform earns **$1.88 USD**
+- **Everything is in USD**
+
+*Stablecoins were simply transport rails — invisible to vendor.*
+
+#### 3. EXAMPLE 3 — Merchant Transaction + Settlement
+
+**Merchant Purchase (Tenant → Merchant)**
+
+**What they see:**
+1. Tenant buys food at clubhouse cafe for **$20 USD**
+2. Merchant sees: **"Payment received: $20 USD"**
+
+**Everything in USD. No crypto visible.**
+
+**Backend Rails:**
+
+1. Naltos updates ledger
+2. Converts small USD amounts → stablecoins to settle instantly
+3. Mints NUSD internally *(never shown to users)*
+4. Merchant settlement window = 2 days
+5. NUSD sits in **Micro Float Bucket**
+
+**Yield generated (example)**:
+- 2-day float → **$0.006 USD**
+
+**Split**:
+- Property Owner (50%) → **$0.003**
+- Tenant (40%) → **$0.0024 cashback**
+- Naltos (10%) → **$0.0006**
+
+**Merchant Settlement:**
+- Merchant settles weekly
+- Receives **USD** to their bank
 
 **Example Monthly Flow** (100-unit property):
 - Tenant spend: $50K/month
 - Average 2-day settlement float
 - Monthly yield: ~$12
 - Tenant earns $4.80 cashback, Owner earns $6
+
+**Everything denominated in USD** — stablecoins used only as instant settlement rails.
 
 ---
 

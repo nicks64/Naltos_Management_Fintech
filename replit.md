@@ -1,19 +1,21 @@
 # Naltos Platform - Project Documentation
 
 ## Overview
-Naltos is a **stablecoin orchestration platform** that generates yield for customers by transforming idle cash flows into programmable financial assets. Built on top of stablecoin rails (USDC, USDT, DAI), Naltos automatically deploys idle balances from rent, vendor payments, and merchant transactions into short-duration, yield-generating treasury products.
+Naltos is a **USD-based yield orchestration platform** that makes idle cash flows smarter by deploying them into yield-generating treasury products. **Everything is in USD** — tenants pay in USD, vendors receive USD, merchants settle in USD. Stablecoins (USDC, USDT, DAI) are used purely as invisible backend rails for speed, automation, and yield optimization.
 
 **Core Value Proposition:**
-- **For Property Owners**: Earn 2.5-3.5% APY on idle rent and vendor payment float without changing operations
-- **For Tenants**: Earn 1-1.5% cashback on rent payments and merchant purchases through yield sharing
-- **For Vendors**: Receive instant NUSD payments (stablecoin-backed, instantly redeemable 1:1 for USD) while property owners benefit from payment float yield
+- **For Property Owners**: Earn extra yield on idle rent and vendor payment float without changing operations — just better infrastructure
+- **For Tenants**: Earn USD cashback on rent payments and merchant purchases through yield sharing (10% of rent float yield)
+- **For Vendors**: Receive instant USD payments instead of waiting Net30-Net90, plus earn USD cashback (5% of float yield)
+
+**The Key Insight**: The currency never changes — everything is always in USD. Naltos simply moves USD over stablecoin rails in the backend for speed, automation, and yield optimization. Users never touch crypto. Naltos just uses better infrastructure to make USD smarter.
 
 The platform orchestrates over $35B+ in idle multifamily finance through three yield sources:
-1. **Rent Float** (5-15 days): Time between rent collection and deployment
-2. **Vendor Float** (Net30-Net90): Time between instant vendor payment and traditional due date
-3. **Merchant Settlement** (1-3 days): Time between tenant purchase and merchant settlement
+1. **Rent Float** (10 days average): $1,500 rent → 10-day float → $1.23 yield → Owner gets $1.11, Tenant gets $0.12 cashback
+2. **Vendor Float** (Net30-Net90): $10K invoice → Instant payment → 30-day float → $37.50 yield → Owner gets $33.75, Vendor gets $1.88 cashback
+3. **Merchant Settlement** (1-3 days): $20 purchase → 2-day float → $0.006 yield → Split between owner/tenant/platform
 
-Naltos uses NUSD, a private, fully-backed internal accounting unit representing $1 held in short-term treasury assets, programmable for automated payouts and yield distribution.
+NUSD is a private, internal accounting unit (never exposed to users) representing $1 held in short-term treasury assets, used for backend ledger management and automated yield distribution.
 
 ## User Preferences
 I prefer iterative development with a focus on delivering core functionality first. Please ask before making major changes to the architecture or core logic. I appreciate detailed explanations, especially for complex financial concepts or technical implementations. Do not make changes to the `shared/schema.ts` file without explicit approval, as it defines the core data model.

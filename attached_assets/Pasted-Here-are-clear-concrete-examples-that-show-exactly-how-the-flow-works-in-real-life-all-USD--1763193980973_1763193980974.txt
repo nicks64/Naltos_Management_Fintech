@@ -1,0 +1,218 @@
+Here are **clear, concrete examples** that show exactly how the flow works in real life — **all USD**, with stablecoins used only as invisible rails.
+
+I’ll give you **3 examples**:
+
+1. **Rent flow (tenant → owner)**
+2. **Vendor payment flow (Net30)**
+3. **Merchant transaction + P2P flow**
+
+Each example shows the **USD-first experience** + the **stablecoin-rail backend** + **where yield is generated**.
+
+---
+
+# ✅ **EXAMPLE 1 — Rent Flow (Tenant → Property Owner)**
+
+### ✔ **What the tenant sees:**
+
+* Tenant logs into AppFolio
+* Pays **$1,500 USD**
+* Gets a confirmation: “Rent paid.”
+* Sees **$3.50 cashback** in their rewards balance
+
+No crypto, no stablecoins, nothing unusual.
+
+### ✔ **What happens under the hood (Naltos rails):**
+
+1. Tenant pays **$1,500 USD** → property bank account
+2. Naltos converts **$1,500 USD → stablecoins (USDC/USDT/DAI)**
+
+   * Only used as *rails*
+3. Naltos mints **1,500 NUSD** internally
+4. Money enters **Rent Float Bucket (10 days)**
+5. Treasury deployment:
+
+   * 75% into **T-bills** (NRF)
+   * 25% into **money-market** (NRK)
+6. Yield generated in 10 days:
+
+   * **$1.23 in yield**
+7. Yield distribution:
+
+   * Owner: **$1.11 USD**
+   * Tenant cashback: **$0.12 USD**
+   * Naltos: included in rounding
+8. On payout day:
+
+   * NUSD → stablecoins → **USD → owner’s bank account**
+
+### ✔ **Final state:**
+
+* Owner receives **$1,501.11 USD**
+* Tenant receives **$0.12 USD** in cashback
+* Naltos earns its share of micro-yield
+* All transactions: **USD**
+
+Stablecoins only served as faster, programmable rails.
+
+---
+
+# ✅ **EXAMPLE 2 — Vendor Payment (Net30)**
+
+### ✔ **What vendor sees:**
+
+* Vendor sends invoice for **$10,000 USD**
+* Usually waits 30 days
+* With Naltos → gets **$10,000 USD instantly**
+* Sees a note: “Paid early — Net30 auto-settlement scheduled.”
+
+Everything in **USD**.
+
+### ✔ **Backend (Naltos rails):**
+
+1. Vendor issues **$10k USD invoice**
+
+2. PM approves in Buildium
+
+3. Naltos immediately pays vendor **$10k USD-equivalent**
+
+   * Vendor sees USD balance
+
+4. Under the hood:
+
+   * Naltos converts $10k USD → stablecoin rails
+   * Mints 10k NUSD
+
+5. Treasury float window = **30 days**
+
+6. Treasury deployment:
+
+   * 50% → NRF (T-bills)
+   * 30% → NRK (money market)
+   * 20% → NRC (delta-neutral credit)
+
+7. Yield generated in 30 days:
+
+   * **$37.50 USD**
+
+8. Yield split:
+
+   * Property owner: **$33.75 USD**
+   * Vendor cashback: **$1.88 USD**
+   * Naltos: **$1.88 USD**
+
+9. On day 30:
+
+   * Vendor’s USD payout is processed through ACH
+   * NUSD → stablecoins → USD → Vendor bank
+
+### ✔ **Final state:**
+
+* Vendor → gets **full $10,000 USD**
+* Property earns **$33.75 USD extra yield**
+* Vendor earns **$1.88 USD cashback**
+* Platform earns **$1.88 USD**
+* Everything is **in USD**
+
+Stablecoins were simply transport rails.
+
+---
+
+# ✅ **EXAMPLE 3 — Merchant Transaction + P2P Flow**
+
+This shows tenant → merchant → tenant, and how USD continues to be USD.
+
+### ✔ **Merchant Purchase (Tenant → Merchant)**
+
+1. Tenant buys food at clubhouse cafe for **$20 USD**
+2. Merchant sees:
+   **“Payment received: $20 USD”**
+
+### Backend Rails
+
+1. Naltos updates ledger
+2. Converts small USD amounts → stablecoins to settle instantly
+3. Mints NUSD internally
+4. Merchant settlement window = 2 days
+5. NUSD sits in **Micro Float Bucket**
+
+Yield generated (example):
+
+* 2-day float → **$0.006 USD**
+
+Split:
+
+* Property Owner (50%) → **$0.003**
+* Tenant (40%) → **$0.0024 cashback**
+* Naltos (10%) → **$0.0006**
+
+### Merchant Settlement
+
+* Merchant settles weekly
+* Receives **USD** to their bank
+
+Everything denominated in **USD**.
+
+---
+
+# ✔ **P2P Example (Tenant → Roommate in USD)**
+
+Tenant sends **$50 USD** to roommate.
+
+### Tenant sees:
+
+* “$50 sent.”
+
+### Roommate sees:
+
+* “$50 received.”
+
+### Backend:
+
+1. Internal NUSD ledger updated
+2. If needed, stablecoin rails facilitate instant reconciliation
+3. NUSD balances sit in liquidity bucket
+4. Idle USD creates micro-float → yields pocket change
+5. All balances are redeemed in USD if final settlement needed
+
+---
+
+# 🔥 **COMBINED EXAMPLE — All Flows at Once**
+
+Here’s a full real-world scenario in plain English:
+
+1. Tenant pays **$1,500 USD rent**
+2. Naltos routes it through stablecoin rails internally
+3. Float earns yield
+4. Vendor invoices **$5,000 USD**
+5. Vendor is paid instantly in **USD**
+6. Naltos holds $5k for 30 days (Net30) → earns yield
+7. Tenant spends **$25 USD** at onsite cafe
+8. Merchant settles weekly in **USD**
+9. Tenant sends roommate **$200 USD** through P2P
+10. Idle NUSD balances earn micro-float
+11. All participants see **only USD**
+12. Stablecoin rails only optimize treasury & speed
+
+---
+
+# ⭐ **THE KEY TAKEAWAY (Use This Anywhere)**
+
+> **The currency never changes — everything is always in USD.
+> Naltos simply moves USD over stablecoin rails in the backend for speed, automation, and yield optimization.
+> Users never touch crypto. Naltos just uses better infrastructure to make USD smarter.**
+
+---
+
+If you'd like, I can now turn these examples into:
+
+### ✔ Landing page copy
+
+### ✔ A “How It Works” explainer
+
+### ✔ A diagram
+
+### ✔ Pitch deck slides
+
+### ✔ A short version for property managers
+
+Just tell me which format you need next.
