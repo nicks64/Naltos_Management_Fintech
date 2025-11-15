@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, skipToken } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard } from "lucide-react";
+import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard, Coins, PiggyBank, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -39,12 +40,55 @@ type VendorRedemption = {
   completedAt: string | null;
 };
 
+type StablecoinAllocation = {
+  id: string;
+  vendorBalanceId: string;
+  coin: "USDC" | "USDT" | "DAI";
+  allocatedAmount: string;
+  nusdEquivalent: string;
+  lastUpdated: string;
+};
+
+type TreasuryAllocation = {
+  id: string;
+  vendorBalanceId: string;
+  productCode: "NRF" | "NRK" | "NRC";
+  productName: string;
+  allocatedAmount: string;
+  currentYield: string;
+  yieldGenerated: string;
+  lastUpdated: string;
+  productSymbol: string;
+};
+
+// Helper function to safely format currency
+function formatCurrency(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "0.00";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  return isNaN(num) ? "0.00" : num.toFixed(2);
+}
+
+// Helper function to safely format percentage
+function formatPercent(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "0.00";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  return isNaN(num) ? "0.00" : num.toFixed(2);
+}
+
+// Custom hook to gate queries until vendorId is available
+function useVendorQuery<T>(endpoint: string, vendorId?: string | null) {
+  return useQuery<T>({
+    queryKey: vendorId ? [endpoint, vendorId] : skipToken,
+  });
+}
+
 export default function VendorPortal() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [rail, setRail] = useState<"ACH" | "PushToCard" | "OnChainStablecoin">("ACH");
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
 
   const { data: balances, isLoading: balancesLoading } = useQuery<{ balances: VendorBalance[] }>({
     queryKey: ["/api/vendor/balances"],
@@ -57,6 +101,21 @@ export default function VendorPortal() {
   const { data: redemptions, isLoading: redemptionsLoading } = useQuery<{ redemptions: VendorRedemption[] }>({
     queryKey: ["/api/vendor/redemptions"],
   });
+
+  // Auto-select first vendor if available
+  const firstVendorId = balances?.balances?.[0]?.vendorId;
+  const effectiveVendorId = selectedVendorId || firstVendorId;
+
+  // Fetch vendor-specific orchestration data
+  const { data: stablecoinAllocations, isLoading: stablecoinLoading } = useVendorQuery<{ allocations: StablecoinAllocation[] }>(
+    "/api/vendor/stablecoin-allocations",
+    effectiveVendorId
+  );
+
+  const { data: treasuryAllocations, isLoading: treasuryLoading } = useVendorQuery<{ allocations: TreasuryAllocation[] }>(
+    "/api/vendor/treasury-allocations",
+    effectiveVendorId
+  );
 
   const totalBalance = balances?.balances.reduce((sum, b) => sum + b.totalBalance, 0) || 0;
   const totalAvailable = balances?.balances.reduce((sum, b) => sum + b.availableBalance, 0) || 0;
