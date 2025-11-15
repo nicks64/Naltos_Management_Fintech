@@ -15,6 +15,78 @@
 
 ## Capital Flow Architecture
 
+### Tenant Rent Flow: The Foundation
+
+**The Core Transaction Loop**:
+```
+Tenant → Pays Rent ($1,500/month) → AppFolio/Buildium PMS
+                                           ↓
+                              Stablecoin Bridge Converts
+                                           ↓
+                              USDC/USDT/DAI Stablecoins
+                                           ↓
+                              NUSD Minted (1:1 backing)
+                                           ↓
+                      Deployed to Treasury Products (NRF/NRK/NRC)
+                                           ↓
+                      Held 5-15 days (Rent Float Period)
+                                           ↓
+                      Generates Yield @ 3% APY = ~$6/month
+                                           ↓
+              Distributed: Owner ($5.40), Tenant ($0.60 cashback)
+                                           ↓
+              Property deploys funds to operations (day 15)
+```
+
+**Key Integration Points**:
+1. **Legacy PMS Systems** (AppFolio, Buildium, Yardi):
+   - Tenant submits rent payment via existing PMS portal
+   - Property receives notification of payment
+   - Naltos Bridge intercepts payment metadata
+
+2. **Stablecoin Conversion**:
+   - Bidirectional bridge converts USD → USDC/USDT/DAI
+   - NUSD minted against stablecoin backing
+   - 1:1 redemption guarantee maintained
+
+3. **Float Period Management**:
+   - Property sets deployment schedule (e.g., deploy on 15th)
+   - Rent collected 1st-5th held in treasury products
+   - Automatic yield accrual during hold period
+   - Funds released on schedule for operations
+
+### Collection Rate Incentives
+
+**Problem**: Traditional multifamily averages 92-95% on-time rent collection, with 5-8% delinquency rates costing properties $50-200K annually per 100 units.
+
+**Naltos Solution**: Yield-sharing creates financial incentive for on-time payment.
+
+**Incentive Structure**:
+| Payment Timing | Tenant Cashback | Property Yield | Total APY |
+|----------------|-----------------|----------------|-----------|
+| **Days 1-5** (On-time) | 0.4% cashback | 2.6% | 3.0% |
+| **Days 6-10** (Late) | 0.2% cashback | 2.8% | 3.0% |
+| **Days 11+** (Delinquent) | 0% cashback | 3.0% | 3.0% |
+
+**Example** (100-unit property, $1,500/month avg rent):
+- **Before Naltos**: 
+  - 92% on-time rate
+  - 8% delinquent (12 days avg)
+  - Lost rent: $14,400/year
+  - Collection costs: $8,000/year
+  
+- **After Naltos**:
+  - 97% on-time rate (5% improvement from cashback incentive)
+  - 3% delinquent (8 days avg)
+  - Tenant cashback earned: $8,640/year
+  - Property yield earned: $46,800/year
+  - **Net gain**: $55K+ in combined stakeholder value
+
+**DSO (Days Sales Outstanding) Improvement**:
+- Traditional: 12-15 days average collection time
+- With Naltos: 6-8 days (cashback incentive drives early payment)
+- **Result**: Improved cashflow, reduced delinquency costs
+
 ### The Three Revenue Streams
 
 #### 1. Rent Float Revenue (5-15 days)
@@ -227,29 +299,178 @@ Generates: 3-5% APY yield
 
 ---
 
-## Stablecoin Bridge: Legacy ↔ Crypto
+## Stablecoin Bridge: Legacy PMS Integration
 
 ### The Integration Challenge
-Traditional property management systems (AppFolio, Yardi, Buildium) use legacy banking rails. MeshPay bridges this gap:
+Traditional property management systems (AppFolio, Yardi, Buildium) use legacy banking rails and proprietary APIs. Naltos bridges this gap with a bidirectional orchestration layer that preserves existing workflows while adding yield generation.
+
+**Supported PMS Systems**:
+- **AppFolio**: API integration for rent collection, vendor payments, reporting
+- **Buildium**: Webhook-based sync for transactions and tenant data
+- **Yardi**: XML/SOAP integration for enterprise portfolios
+
+### Integration Architecture
 
 ```
-Legacy PMS (Yardi) ← → Stablecoin Bridge ← → USDC/USDT/DAI ← → Treasury Products
-         ↓                      ↓                     ↓                    ↓
-    ACH/Wire           Bidirectional           Blockchain          Yield Generation
-                       Conversion
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Legacy PMS Layer                              │
+│  (AppFolio/Buildium/Yardi - Existing tenant/vendor workflows)       │
+└─────────────────────────────────┬───────────────────────────────────┘
+                                  │
+                    ┌─────────────▼──────────────┐
+                    │   Naltos Bridge Layer      │
+                    │  - Transaction Monitoring  │
+                    │  - Metadata Extraction     │
+                    │  - Reconciliation Engine   │
+                    └─────────────┬──────────────┘
+                                  │
+            ┌─────────────────────┼─────────────────────┐
+            │                     │                     │
+     ┌──────▼──────┐      ┌──────▼──────┐      ┌──────▼──────┐
+     │  USD → USDC │      │  USD → USDT │      │  USD → DAI  │
+     │  Conversion │      │  Conversion │      │  Conversion │
+     └──────┬──────┘      └──────┬──────┘      └──────┬──────┘
+            │                     │                     │
+            └─────────────────────┼─────────────────────┘
+                                  │
+                    ┌─────────────▼──────────────┐
+                    │      NUSD Minting          │
+                    │   (1:1 Stablecoin Backed)  │
+                    └─────────────┬──────────────┘
+                                  │
+            ┌─────────────────────┼─────────────────────┐
+            │                     │                     │
+     ┌──────▼──────┐      ┌──────▼──────┐      ┌──────▼──────┐
+     │  NRF (T-Bill)│     │ NRK (Money   │     │  NRC (Credit)│
+     │  3.5% APY   │      │  Market) 4.5%│     │   5% APY    │
+     └─────────────┘      └──────────────┘     └─────────────┘
 ```
 
-**Inbound Flow** (Fiat → Crypto):
-1. Tenant pays rent via ACH to property
-2. Bridge converts USD → USDC
-3. NUSD minted 1:1 against USDC
-4. Deployed to treasury products
+### Rent Collection Flow (AppFolio Example)
 
-**Outbound Flow** (Crypto → Fiat):
-1. Vendor requests redemption
-2. NUSD burned, USDC released
-3. Bridge converts USDC → USD
-4. ACH payout to vendor bank account
+**Step 1: Tenant Payment Initiation**
+- Tenant logs into AppFolio portal
+- Selects "Pay Rent" ($1,500 due on 1st)
+- Chooses payment method (ACH, Card, Crypto)
+- AppFolio processes payment normally
+
+**Step 2: Bridge Intercept & Enrichment**
+- Naltos monitors AppFolio webhook for payment event
+- Extracts metadata: `tenantId`, `propertyId`, `amount`, `paymentDate`
+- Checks tenant opt-in status for yield program
+- Calculates cashback eligibility based on payment timing
+
+**Step 3: Stablecoin Conversion**
+- USD payment received by property's bank account
+- Bridge initiates parallel stablecoin purchase:
+  - 40% → USDC (Circle)
+  - 35% → USDT (Tether)
+  - 25% → DAI (MakerDAO)
+- Total: $1,500 in stablecoins acquired
+
+**Step 4: NUSD Minting & Treasury Deployment**
+- 1,500 NUSD minted against stablecoin backing
+- Deployed to treasury products:
+  - 50% → NRF (Tokenized T-Bills)
+  - 30% → NRK (Money Market)
+  - 20% → NRC (Delta-Neutral Credit)
+- Float period begins (5-15 days until property needs funds)
+
+**Step 5: Yield Accrual & Distribution**
+- Daily yield accrues across treasury products
+- Example: 10-day float @ 3% APY = $1.23 total yield
+- Distribution:
+  - Property Owner: $1.11 (90%)
+  - Tenant Cashback: $0.12 (10%, if paid on-time)
+
+**Step 6: Fund Release to Operations**
+- Day 15: Property needs funds for expenses
+- NUSD redeemed → Stablecoins → USD conversion
+- $1,500 + property's $1.11 yield = $1,501.11 available
+- Funds deployed to property operations via AppFolio
+
+**Step 7: Tenant Cashback**
+- Tenant's $0.12 cashback posted to Naltos wallet
+- Can be used for next rent payment or merchant purchases
+- Incentivizes on-time payment next month
+
+### Vendor Payment Flow (Buildium Example)
+
+**Traditional Flow** (without Naltos):
+```
+Vendor invoices property → Net30 payment terms → Vendor waits 30 days
+→ Property pays on day 30 → Vendor receives funds
+```
+
+**Naltos-Enhanced Flow**:
+```
+Step 1: Vendor submits invoice in Buildium ($10,000, Net30)
+Step 2: Property approves invoice in Buildium
+Step 3: Naltos Bridge detects approval event
+Step 4: Instant NUSD payment to vendor ($10,000)
+         - Vendor receives notification
+         - Funds available immediately in Vendor Portal
+Step 5: Property's $10K deployed to treasury for 30 days
+         - Generates $37 yield @ 4.5% APY
+Step 6: Yield distributed:
+         - Property: $33.30 (90%)
+         - Vendor cashback: $1.85 (5%)
+         - Platform: $1.85 (5%)
+Step 7: Day 30 (Net30 due date)
+         - Vendor's default ACH redemption processes (free)
+         - OR vendor redeemed early via Card/Crypto (with fee)
+Step 8: Buildium reconciliation
+         - Payment marked as completed
+         - Vendor balance zeroed
+```
+
+**Bridge Reconciliation**:
+- Nightly sync between Naltos and Buildium
+- Ensures invoice statuses match
+- Flags discrepancies for manual review
+- Maintains audit trail for accounting
+
+### Key Integration Benefits
+
+**For Properties Using AppFolio**:
+- Zero workflow changes for staff
+- Automatic yield on rent float
+- Improved collection rates via tenant incentives
+- Real-time reconciliation dashboard
+
+**For Properties Using Buildium**:
+- Instant vendor payments improve relationships
+- Float yield offsets vendor payment acceleration
+- Webhook-based sync requires no manual data entry
+- Vendor cashback reduces future invoice amounts
+
+**For Properties Using Yardi** (Enterprise):
+- XML/SOAP integration for large portfolios
+- Batch processing for 1,000+ unit properties
+- Multi-property consolidated reporting
+- GL code mapping for accounting teams
+
+### Implementation Approach
+
+**Phase 1: Read-Only Integration** (Weeks 1-2)
+- Connect to PMS API for transaction monitoring
+- Build reconciliation engine
+- Test metadata extraction accuracy
+
+**Phase 2: Write-Back Integration** (Weeks 3-4)
+- Post yield earnings back to PMS as credit memos
+- Update tenant/vendor balances
+- Generate accounting reports
+
+**Phase 3: Workflow Automation** (Weeks 5-6)
+- Auto-approve vendor payments under threshold
+- Scheduled treasury rebalancing
+- Automated cashback distribution
+
+**Phase 4: Advanced Features** (Ongoing)
+- Predictive cashflow forecasting
+- Yield optimization recommendations
+- Custom reporting for CFOs
 
 ---
 
