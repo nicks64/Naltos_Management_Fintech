@@ -94,7 +94,11 @@ function formatPercent(value: string | number | null | undefined): string {
 }
 
 // Generate mock settlement analytics data for demonstration
-function generateSettlementChartData(balances: MerchantBalance[]): Array<{date: string, volume: number, yield: number}> {
+function generateSettlementChartData(balances: MerchantBalance[] | undefined): Array<{date: string, volume: number, yield: number}> {
+  if (!balances || balances.length === 0) {
+    return [];
+  }
+  
   const totalPending = balances.reduce((sum, b) => sum + b.pendingSettlement, 0);
   const totalReceived = balances.reduce((sum, b) => sum + b.totalReceived, 0);
   const days = 30;
@@ -369,7 +373,7 @@ export default function MerchantPortal() {
     if (parseFloat(settlementAmount) > totalPending) {
       toast({
         title: "Insufficient Balance",
-        description: `You can only settle up to $${totalPending.toFixed(2)}`,
+        description: `You can only settle up to $${formatCurrency(totalPending)}`,
         variant: "destructive",
       });
       return;
@@ -524,7 +528,7 @@ export default function MerchantPortal() {
                   data-testid="input-settlement-amount"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Available for settlement: ${totalPending.toFixed(2)}
+                  Available for settlement: ${formatCurrency(totalPending)}
                 </p>
               </div>
 
