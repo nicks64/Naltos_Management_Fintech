@@ -15,8 +15,6 @@ The platform orchestrates over $35B+ in idle multifamily finance through three y
 
 Naltos uses NUSD, a private, fully-backed internal accounting unit representing $1 held in short-term treasury assets, programmable for automated payouts and yield distribution.
 
-The project's ambition is to evolve into MeshPay, a global stablecoin orchestration and settlement network, supporting multi-currency transactions and optimizing global FX routing.
-
 ## User Preferences
 I prefer iterative development with a focus on delivering core functionality first. Please ask before making major changes to the architecture or core logic. I appreciate detailed explanations, especially for complex financial concepts or technical implementations. Do not make changes to the `shared/schema.ts` file without explicit approval, as it defines the core data model.
 

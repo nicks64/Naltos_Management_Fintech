@@ -4,8 +4,6 @@
 
 **Naltos** is a stablecoin orchestration platform that transforms idle cash flows in the multifamily property management industry into programmable, yield-generating financial assets. The platform operates on top of stablecoin rails (USDC, USDT, DAI) to capture and monetize payment float periods that traditionally sit idle in bank accounts.
 
-**Future Vision**: The project's ambition is to evolve into **MeshPay**, a global stablecoin orchestration and settlement network supporting multi-currency transactions and optimizing global FX routing. The current Naltos Platform serves as the foundation for this larger vision, proving the orchestration model in the multifamily real estate vertical before expanding globally.
-
 **Market Opportunity**: $35B+ in idle multifamily finance across three distinct float periods:
 - Rent Float (5-15 days)
 - Vendor Payment Float (Net30-Net90)
@@ -297,24 +295,6 @@ Legacy PMS (Yardi) ← → Stablecoin Bridge ← → USDC/USDT/DAI ← → Treas
 - **Float Monetization**: Capture settlement float yield
 - **Stakeholder Alignment**: Everyone earns (owners, vendors, tenants)
 - **Multi-Party Orchestration**: Not just merchant processing
-
----
-
-## Evolution to MeshPay
-
-### Current: Naltos (Vertical Focus)
-- **Market**: U.S. Multifamily Real Estate
-- **Geography**: Domestic operations
-- **Currency**: USD + Stablecoins (USDC/USDT/DAI)
-- **Proof Point**: Demonstrating orchestration model viability
-
-### Future: MeshPay (Global Expansion)
-- **Market**: Cross-border payments, global commerce
-- **Geography**: International, multi-region
-- **Currency**: Multi-currency support (EUR, GBP, CAD, etc.)
-- **Vision**: Global stablecoin settlement network with optimized FX routing
-
-The Naltos Platform validates the core orchestration technology, proving that idle payment float can be systematically monetized and distributed to all stakeholders. Once proven in multifamily finance, this model scales to global payments orchestration as MeshPay.
 
 ---
 
