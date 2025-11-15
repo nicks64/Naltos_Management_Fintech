@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import bcrypt from "bcrypt";
 import OpenAI from "openai";
-import { requireAuth, requireRole, extractOrganizationId } from "./middleware";
+import { requireAuth, requireRole, extractOrganizationId, requireVendor } from "./middleware";
 
 // Reference: blueprint:javascript_openai_ai_integrations
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
@@ -231,12 +231,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find magic code
       const magicCode = await storage.getMagicCode(email, code);
       if (!magicCode) {
-        return res.status(401).json({ error: "Invalid magic code" });
+        return res.status(401).json({ 
+          error: "Invalid magic code",
+          message: "Invalid magic code"
+        });
       }
 
       // Check expiration
       if (new Date() > magicCode.expiresAt) {
-        return res.status(401).json({ error: "Magic code expired" });
+        return res.status(401).json({ 
+          error: "Magic code expired",
+          message: "Magic code expired"
+        });
       }
 
       // Mark as used
@@ -269,10 +275,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Store user info in session for secure authentication
-      // NOTE: organizationId is undefined for vendor users (they span multiple orgs)
+      // NOTE: organizationId is null for vendor users (they span multiple orgs)
       req.session.userId = user.id;
       req.session.userRole = "Vendor";
-      req.session.organizationId = undefined as any; // Vendor users have no single organization
+      req.session.organizationId = null as any; // Vendor users have no single organization (use null, not undefined)
 
       // Return user with vendor metadata (linked vendor count)
       res.json({ 
@@ -284,6 +290,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Vendor login error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Vendor Portal Routes ============
+  app.get("/api/vendor/balances", requireVendor(storage), async (req, res) => {
+    try {
+      const vendorIds = req.vendorIds!;
+      
+      // Get vendor overview with balances and organization info
+      const overview = await storage.getVendorOverview(vendorIds);
+      
+      const balances = overview.map(({ vendor, balance, organization }) => {
+        // Calculate available vs pending from balance record
+        const nusdBalance = parseFloat(balance?.nusdBalance || "0");
+        const totalRedeemed = parseFloat(balance?.totalRedeemed || "0");
+        
+        return {
+          vendorId: vendor.id,
+          organizationName: organization.name,
+          totalBalance: nusdBalance,
+          availableBalance: nusdBalance, // Simplified: all balance is available
+          pendingBalance: 0, // Would be calculated from pending redemptions
+        };
+      });
+      
+      res.json({ balances });
+    } catch (error: any) {
+      console.error("Vendor balances error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vendor/invoices", requireVendor(storage), async (req, res) => {
+    try {
+      const vendorIds = req.vendorIds!;
+      
+      // Get invoices filtered by vendor IDs with organization names
+      const invoicesData = await storage.getInvoicesForVendorIds(vendorIds);
+      
+      const invoices = invoicesData.map(inv => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        amount: parseFloat(inv.amount),
+        status: inv.status,
+        dueDate: inv.dueDate.toISOString(),
+        organizationName: inv.organizationName,
+      }));
+      
+      res.json({ invoices });
+    } catch (error: any) {
+      console.error("Vendor invoices error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/vendor/redemptions", requireVendor(storage), async (req, res) => {
+    try {
+      const vendorIds = req.vendorIds!;
+      
+      // Mock redemption data for demonstration (task 4 will implement real persistence)
+      const mockRedemptions = vendorIds.flatMap((vendorId, index) => [
+        {
+          id: `${vendorId}-redemption-1`,
+          amount: 2500.00,
+          status: "completed",
+          payoutMethod: "ACH (Next-Day)",
+          requestedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          completedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: `${vendorId}-redemption-2`,
+          amount: 1250.50,
+          status: "processing",
+          payoutMethod: "Push-to-Card (Instant)",
+          requestedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          completedAt: null,
+        },
+      ]);
+      
+      res.json({ redemptions: mockRedemptions });
+    } catch (error: any) {
+      console.error("Vendor redemptions error:", error);
       res.status(500).json({ error: error.message });
     }
   });

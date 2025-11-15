@@ -33,14 +33,18 @@ import TenantReports from "@/pages/tenant/reports";
 import TenantSettings from "@/pages/tenant/settings";
 import { TenantSidebar } from "@/components/tenant-sidebar";
 
-function ProtectedRoute({ component: Component, path }: { component: () => JSX.Element; path: string }) {
+// Vendor pages
+import VendorLogin from "@/pages/vendor-login";
+import VendorPortal from "@/pages/vendor-portal";
+
+function ProtectedRoute({ component: Component, path }: { component: React.ComponentType; path: string }): React.ReactElement {
   const { user } = useAuth();
   const { canAccessPage } = useRBAC();
   const [, setLocation] = useLocation();
   
   if (!user) {
     setLocation("/");
-    return null;
+    return <></>;
   }
 
   if (!canAccessPage(path)) {
@@ -61,6 +65,10 @@ function ProtectedRoute({ component: Component, path }: { component: () => JSX.E
   return <Component />;
 }
 
+const ProtectedRouteRenderer = (Component: React.ComponentType, path: string) => () => (
+  <ProtectedRoute component={Component} path={path} />
+) as React.ReactElement;
+
 function AppContent() {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -72,13 +80,49 @@ function AppContent() {
 
   // Redirect based on user role
   if (user && location === "/") {
-    const redirectPath = user.role === "Tenant" ? "/tenant/home" : "/dashboard";
+    const redirectPath = user.role === "Vendor" ? "/vendor-portal" :
+                        user.role === "Tenant" ? "/tenant/home" : "/dashboard";
     return <Redirect to={redirectPath} />;
+  }
+
+  // Redirect authenticated vendors away from login page
+  if (user && user.role === "Vendor" && location === "/vendor-login") {
+    return <Redirect to="/vendor-portal" />;
+  }
+
+  // Show vendor login page for /vendor-login route (only if not authenticated)
+  if (location === "/vendor-login") {
+    return <VendorLogin />;
   }
 
   // Show login page if not authenticated
   if (!user) {
     return <Login />;
+  }
+
+  // Vendor users have different UI - no sidebar
+  if (user.role === "Vendor") {
+    return (
+      <div className="flex flex-col h-screen">
+        <header className="flex items-center justify-between px-8 py-4 border-b">
+          <div className="text-xl font-semibold">Vendor Portal</div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto">
+          <Switch>
+            <Route path="/vendor-portal">
+              {ProtectedRouteRenderer(VendorPortal, "/vendor-portal")}
+            </Route>
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+    );
   }
 
   const style = {
@@ -107,54 +151,54 @@ function AppContent() {
               <Switch>
                 {/* Business routes */}
                 <Route path="/dashboard">
-                  {() => <ProtectedRoute component={Dashboard} path="/dashboard" />}
+                  {ProtectedRouteRenderer(Dashboard, "/dashboard")}
                 </Route>
                 <Route path="/collections">
-                  {() => <ProtectedRoute component={Collections} path="/collections" />}
+                  {ProtectedRouteRenderer(Collections, "/collections")}
                 </Route>
                 <Route path="/reconciliation">
-                  {() => <ProtectedRoute component={Reconciliation} path="/reconciliation" />}
+                  {ProtectedRouteRenderer(Reconciliation, "/reconciliation")}
                 </Route>
                 <Route path="/treasury">
-                  {() => <ProtectedRoute component={Treasury} path="/treasury" />}
+                  {ProtectedRouteRenderer(Treasury, "/treasury")}
                 </Route>
                 <Route path="/crypto-treasury">
-                  {() => <ProtectedRoute component={CryptoTreasury} path="/crypto-treasury" />}
+                  {ProtectedRouteRenderer(CryptoTreasury, "/crypto-treasury")}
                 </Route>
                 <Route path="/rent-float">
-                  {() => <ProtectedRoute component={RentFloat} path="/rent-float" />}
+                  {ProtectedRouteRenderer(RentFloat, "/rent-float")}
                 </Route>
                 <Route path="/vendor-payments">
-                  {() => <ProtectedRoute component={VendorPayments} path="/vendor-payments" />}
+                  {ProtectedRouteRenderer(VendorPayments, "/vendor-payments")}
                 </Route>
                 <Route path="/reports">
-                  {() => <ProtectedRoute component={Reports} path="/reports" />}
+                  {ProtectedRouteRenderer(Reports, "/reports")}
                 </Route>
                 <Route path="/agent">
-                  {() => <ProtectedRoute component={Agent} path="/agent" />}
+                  {ProtectedRouteRenderer(Agent, "/agent")}
                 </Route>
                 <Route path="/settings">
-                  {() => <ProtectedRoute component={Settings} path="/settings" />}
+                  {ProtectedRouteRenderer(Settings, "/settings")}
                 </Route>
                 
                 {/* Tenant routes */}
                 <Route path="/tenant/home">
-                  {() => <ProtectedRoute component={TenantHome} path="/tenant/home" />}
+                  {ProtectedRouteRenderer(TenantHome, "/tenant/home")}
                 </Route>
                 <Route path="/tenant/wallet">
-                  {() => <ProtectedRoute component={TenantWallet} path="/tenant/wallet" />}
+                  {ProtectedRouteRenderer(TenantWallet, "/tenant/wallet")}
                 </Route>
                 <Route path="/tenant/merchants">
-                  {() => <ProtectedRoute component={TenantMerchants} path="/tenant/merchants" />}
+                  {ProtectedRouteRenderer(TenantMerchants, "/tenant/merchants")}
                 </Route>
                 <Route path="/tenant/agent">
-                  {() => <ProtectedRoute component={TenantAgent} path="/tenant/agent" />}
+                  {ProtectedRouteRenderer(TenantAgent, "/tenant/agent")}
                 </Route>
                 <Route path="/tenant/reports">
-                  {() => <ProtectedRoute component={TenantReports} path="/tenant/reports" />}
+                  {ProtectedRouteRenderer(TenantReports, "/tenant/reports")}
                 </Route>
                 <Route path="/tenant/settings">
-                  {() => <ProtectedRoute component={TenantSettings} path="/tenant/settings" />}
+                  {ProtectedRouteRenderer(TenantSettings, "/tenant/settings")}
                 </Route>
                 
                 <Route component={NotFound} />

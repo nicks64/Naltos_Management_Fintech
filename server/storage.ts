@@ -21,6 +21,7 @@ import {
   cryptoTreasuryFlows,
   vendors,
   vendorInvoices,
+  vendorBalances,
   vendorUserLinks,
   merchants,
   merchantTransactions,
@@ -51,6 +52,7 @@ import {
   type CryptoTreasuryFlow,
   type Vendor,
   type VendorInvoice,
+  type VendorBalance,
   type Merchant,
   type MerchantTransaction,
   type InsertMerchantTransaction,
@@ -970,6 +972,61 @@ export class DatabaseStorage implements IStorage {
       .from(vendors)
       .where(eq(vendors.organizationId, organizationId))
       .orderBy(vendors.name);
+  }
+
+  async getVendorBalance(vendorId: string): Promise<VendorBalance | undefined> {
+    const [balance] = await db
+      .select()
+      .from(vendorBalances)
+      .where(eq(vendorBalances.vendorId, vendorId));
+    return balance;
+  }
+
+  async getVendorOverview(vendorIds: string[]): Promise<Array<{
+    vendor: Vendor;
+    balance: VendorBalance | null;
+    organization: Organization;
+  }>> {
+    if (vendorIds.length === 0) return [];
+    
+    const results = await db
+      .select({
+        vendor: vendors,
+        balance: vendorBalances,
+        organization: organizations,
+      })
+      .from(vendors)
+      .leftJoin(vendorBalances, eq(vendors.id, vendorBalances.vendorId))
+      .innerJoin(organizations, eq(vendors.organizationId, organizations.id))
+      .where(inArray(vendors.id, vendorIds));
+    
+    return results.map(r => ({
+      vendor: r.vendor,
+      balance: r.balance,
+      organization: r.organization,
+    }));
+  }
+
+  async getInvoicesForVendorIds(vendorIds: string[]): Promise<Array<VendorInvoice & { vendorName: string; organizationName: string }>> {
+    if (vendorIds.length === 0) return [];
+    
+    const results = await db
+      .select({
+        invoice: vendorInvoices,
+        vendorName: vendors.name,
+        organizationName: organizations.name,
+      })
+      .from(vendorInvoices)
+      .innerJoin(vendors, eq(vendorInvoices.vendorId, vendors.id))
+      .innerJoin(organizations, eq(vendorInvoices.organizationId, organizations.id))
+      .where(inArray(vendorInvoices.vendorId, vendorIds))
+      .orderBy(desc(vendorInvoices.invoiceDate));
+    
+    return results.map(r => ({
+      ...r.invoice,
+      vendorName: r.vendorName,
+      organizationName: r.organizationName,
+    }));
   }
 
   async getVendorInvoices(

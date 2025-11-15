@@ -59,8 +59,8 @@ export function requireRole(...allowedRoles: UserRole[]) {
 
 // Middleware to extract organization ID (uses session, not headers)
 export function extractOrganizationId(req: Request, res: Response, next: NextFunction) {
-  // Skip for auth routes
-  if (req.path.includes("/auth/")) {
+  // Skip for auth routes and vendor-specific routes (but NOT vendor-payments which is for property managers)
+  if (req.path.includes("/auth/") || req.path.startsWith("/api/vendor-auth") || req.path.startsWith("/api/vendor/")) {
     return next();
   }
   

@@ -17,18 +17,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const storedOrg = localStorage.getItem("organization");
-    if (storedUser && storedOrg) {
+    if (storedUser) {
       setUser(JSON.parse(storedUser));
-      setOrganization(JSON.parse(storedOrg));
+      if (storedOrg) {
+        setOrganization(JSON.parse(storedOrg));
+      }
     }
   }, []);
 
   const setAuth = (newUser: User | null, newOrg: Organization | null) => {
     setUser(newUser);
     setOrganization(newOrg);
-    if (newUser && newOrg) {
+    if (newUser) {
       localStorage.setItem("user", JSON.stringify(newUser));
-      localStorage.setItem("organization", JSON.stringify(newOrg));
+      if (newOrg) {
+        localStorage.setItem("organization", JSON.stringify(newOrg));
+      } else {
+        localStorage.removeItem("organization");
+      }
     } else {
       localStorage.removeItem("user");
       localStorage.removeItem("organization");
