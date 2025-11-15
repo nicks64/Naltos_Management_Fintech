@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { VendorStablecoinAllocation, VendorTreasuryAllocation } from "@shared/schema";
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 type VendorInvoice = {
   id: string;
@@ -76,6 +77,28 @@ function formatPercent(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "0.00";
   const num = typeof value === "string" ? parseFloat(value) : value;
   return isNaN(num) ? "0.00" : num.toFixed(2);
+}
+
+// Generate mock yield chart data for demonstration
+function generateYieldChartData(balances: VendorBalance[]): Array<{date: string, yield: number}> {
+  const totalBalance = balances.reduce((sum, b) => sum + b.totalBalance, 0);
+  const days = 30;
+  const data = [];
+  
+  const avgDailyYield = (totalBalance * 0.04) / 365;
+  
+  for (let i = days; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const cumulativeYield = avgDailyYield * (days - i);
+    
+    data.push({
+      date: `${date.getMonth() + 1}/${date.getDate()}`,
+      yield: Math.max(0, cumulativeYield)
+    });
+  }
+  
+  return data;
 }
 
 
@@ -519,6 +542,49 @@ export default function VendorPortal() {
           )}
         </CardContent>
       </Card>
+
+          {/* Yield Analytics Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Cumulative Yield Generated</CardTitle>
+              <CardDescription>Payment float yield accumulation over the last 30 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {balancesLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={generateYieldChartData(balances?.balances || [])} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="yieldGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(value) => `$${value.toFixed(2)}`} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number) => [`$${value.toFixed(2)}`, 'Yield']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="yield" 
+                      stroke="hsl(var(--primary))" 
+                      fillOpacity={1} 
+                      fill="url(#yieldGradient)" 
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Recent Invoices */}
           <Card>

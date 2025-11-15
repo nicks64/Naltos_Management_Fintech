@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DollarSign, TrendingUp, Clock, Download, Store, Coins, PiggyBank, Info, X, ChevronDown, ChevronUp, ArrowRight, Shield } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 
 interface MerchantBalance {
   merchantId: string;
