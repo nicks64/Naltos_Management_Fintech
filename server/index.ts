@@ -141,6 +141,39 @@ app.use((req, res, next) => {
         .where(eq(magicCodes.email, "demo@naltos.com"));
     }
 
+    // ============ Vendor Demo User Setup ============
+    // Check if vendor demo user exists
+    let [vendorDemoUser] = await db.select().from(users).where(eq(users.email, "vendor@demo.com"));
+    if (!vendorDemoUser) {
+      const hashedPassword = await bcrypt.hash("vendor123", 10);
+      [vendorDemoUser] = await db.insert(users).values({
+        email: "vendor@demo.com",
+        password: hashedPassword,
+        organizationId: null, // Vendors can access multiple orgs
+        role: "Vendor",
+      }).returning();
+    }
+
+    // Ensure vendor magic code exists
+    const existingVendorCodes = await db.select().from(magicCodes)
+      .where(eq(magicCodes.email, "vendor@demo.com"));
+    
+    if (existingVendorCodes.length === 0) {
+      await db.insert(magicCodes).values({
+        email: "vendor@demo.com",
+        code: "111111",
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        used: false,
+      });
+    } else {
+      await db.update(magicCodes)
+        .set({ 
+          used: false,
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        })
+        .where(eq(magicCodes.email, "vendor@demo.com"));
+    }
+
     log("Demo setup complete");
   } catch (error) {
     console.error("Failed to ensure demo setup:", error);
