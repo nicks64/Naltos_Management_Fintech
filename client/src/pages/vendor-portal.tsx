@@ -3,9 +3,10 @@ import { useQuery, useMutation, skipToken } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard, Coins, PiggyBank, ArrowRight } from "lucide-react";
+import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard, Coins, PiggyBank, ArrowRight, Shield } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -13,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { VendorStablecoinAllocation, VendorTreasuryAllocation } from "@shared/schema";
 
 type VendorInvoice = {
   id: string;
@@ -75,12 +77,6 @@ function formatPercent(value: string | number | null | undefined): string {
   return isNaN(num) ? "0.00" : num.toFixed(2);
 }
 
-// Custom hook to gate queries until vendorId is available
-function useVendorQuery<T>(endpoint: string, vendorId?: string | null) {
-  return useQuery<T>({
-    queryKey: vendorId ? [endpoint, vendorId] as const : (skipToken as any),
-  });
-}
 
 export default function VendorPortal() {
   const { toast } = useToast();
@@ -105,17 +101,6 @@ export default function VendorPortal() {
   // Auto-select first vendor if available
   const firstVendorId = balances?.balances?.[0]?.vendorId;
   const effectiveVendorId = selectedVendorId || firstVendorId;
-
-  // Fetch vendor-specific orchestration data
-  const { data: stablecoinAllocations, isLoading: stablecoinLoading } = useVendorQuery<{ allocations: StablecoinAllocation[] }>(
-    "/api/vendor/stablecoin-allocations",
-    effectiveVendorId
-  );
-
-  const { data: treasuryAllocations, isLoading: treasuryLoading } = useVendorQuery<{ allocations: TreasuryAllocation[] }>(
-    "/api/vendor/treasury-allocations",
-    effectiveVendorId
-  );
 
   const totalBalance = balances?.balances.reduce((sum, b) => sum + b.totalBalance, 0) || 0;
   const totalAvailable = balances?.balances.reduce((sum, b) => sum + b.availableBalance, 0) || 0;
@@ -399,13 +384,23 @@ export default function VendorPortal() {
         </Dialog>
       </div>
 
-      {/* Balances by Organization */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Balances by Property Manager</CardTitle>
-          <CardDescription>Your NUSD balances across organizations</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Tabbed Interface for Orchestration Views */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3" data-testid="tabs-list">
+          <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+          <TabsTrigger value="stablecoin" data-testid="tab-stablecoin">Stablecoin Backing</TabsTrigger>
+          <TabsTrigger value="treasury" data-testid="tab-treasury">Treasury Products</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Balances by Organization */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Balances by Property Manager</CardTitle>
+              <CardDescription>Your NUSD balances across organizations</CardDescription>
+            </CardHeader>
+            <CardContent>
           {balancesLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -419,7 +414,8 @@ export default function VendorPortal() {
               {balances?.balances.map((balance) => (
                 <div 
                   key={balance.vendorId} 
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between p-4 border rounded-lg hover-elevate cursor-pointer"
+                  onClick={() => setSelectedVendorId(balance.vendorId)}
                   data-testid={`balance-${balance.vendorId}`}
                 >
                   <div>
@@ -432,111 +428,411 @@ export default function VendorPortal() {
                     <p className="text-lg font-semibold font-mono">
                       ${balance.totalBalance.toFixed(2)}
                     </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Invoices */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div>
-            <CardTitle>Recent Invoices</CardTitle>
-            <CardDescription>Payments received from property managers</CardDescription>
-          </div>
-          <Button variant="outline" size="sm" data-testid="button-export-invoices">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {invoicesLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : invoices?.invoices.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No invoices yet</p>
-          ) : (
-            <div className="space-y-3">
-              {invoices?.invoices.map((invoice) => (
-                <div 
-                  key={invoice.id} 
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                  data-testid={`invoice-${invoice.id}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">{invoice.invoiceNumber}</p>
-                      <p className="text-sm text-muted-foreground">{invoice.organizationName}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-semibold font-mono">${invoice.amount.toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>
-                    </div>
-                    {getStatusBadge(invoice.status)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Redemption History */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div>
-            <CardTitle>Redemption History</CardTitle>
-            <CardDescription>Your payment withdrawal requests</CardDescription>
-          </div>
-          <Button data-testid="button-request-redemption">
-            <CreditCard className="mr-2 h-4 w-4" />
-            Request Redemption
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {redemptionsLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : redemptions?.redemptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No redemptions yet</p>
-          ) : (
-            <div className="space-y-3">
-              {redemptions?.redemptions.map((redemption) => (
-                <div 
-                  key={redemption.id} 
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                  data-testid={`redemption-${redemption.id}`}
-                >
-                  <div>
-                    <p className="font-medium">${redemption.amount.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {redemption.payoutMethod} • Requested {new Date(redemption.requestedAt).toLocaleDateString()}
+                    <p className="text-xs text-muted-foreground">
+                      {selectedVendorId === balance.vendorId && "Selected"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {redemption.completedAt && (
-                      <p className="text-sm text-muted-foreground">
-                        Completed {new Date(redemption.completedAt).toLocaleDateString()}
-                      </p>
-                    )}
-                    {getStatusBadge(redemption.status)}
-                  </div>
                 </div>
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+          {/* Recent Invoices */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-2">
+              <div>
+                <CardTitle>Recent Invoices</CardTitle>
+                <CardDescription>Payments received from property managers</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" data-testid="button-export-invoices">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {invoicesLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : invoices?.invoices.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No invoices yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {invoices?.invoices.map((invoice) => (
+                    <div 
+                      key={invoice.id} 
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                      data-testid={`invoice-${invoice.id}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{invoice.invoiceNumber}</p>
+                          <p className="text-sm text-muted-foreground">{invoice.organizationName}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-semibold font-mono">${invoice.amount.toFixed(2)}</p>
+                          <p className="text-sm text-muted-foreground">Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                        </div>
+                        {getStatusBadge(invoice.status)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Redemption History */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-2">
+              <div>
+                <CardTitle>Redemption History</CardTitle>
+                <CardDescription>Your payment withdrawal requests</CardDescription>
+              </div>
+              <Button data-testid="button-request-redemption">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Request Redemption
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {redemptionsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : redemptions?.redemptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No redemptions yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {redemptions?.redemptions.map((redemption) => (
+                    <div 
+                      key={redemption.id} 
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                      data-testid={`redemption-${redemption.id}`}
+                    >
+                      <div>
+                        <p className="font-medium">${redemption.amount.toFixed(2)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {redemption.payoutMethod} • Requested {new Date(redemption.requestedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {redemption.completedAt && (
+                          <p className="text-sm text-muted-foreground">
+                            Completed {new Date(redemption.completedAt).toLocaleDateString()}
+                          </p>
+                        )}
+                        {getStatusBadge(redemption.status)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Stablecoin Backing Tab */}
+        <TabsContent value="stablecoin" className="space-y-6">
+          <VendorStablecoinTab 
+            vendorId={effectiveVendorId} 
+            organizationName={balances?.balances.find(b => b.vendorId === effectiveVendorId)?.organizationName}
+          />
+        </TabsContent>
+
+        {/* Treasury Products Tab */}
+        <TabsContent value="treasury" className="space-y-6">
+          <VendorTreasuryTab 
+            vendorId={effectiveVendorId}
+            organizationName={balances?.balances.find(b => b.vendorId === effectiveVendorId)?.organizationName}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// Stablecoin Backing Tab Component
+function VendorStablecoinTab({ vendorId, organizationName }: { vendorId?: string | null; organizationName?: string }) {
+  const { data, isLoading } = useQuery(
+    vendorId
+      ? {
+          queryKey: ["/api/vendor/stablecoin-allocations", vendorId],
+        }
+      : skipToken
+  );
+
+  const allocations = data?.allocations;
+  const totalBacking = allocations?.reduce((sum, a) => sum + parseFloat(a.allocatedAmount), 0) || 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Stablecoin Backing Overview</CardTitle>
+          <CardDescription>
+            Your NUSD is 1:1 backed by stablecoins (USDC/USDT/DAI) held in secure custody
+            {vendorId && organizationName && ` - ${organizationName}`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!vendorId ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Select a property manager to view stablecoin backing
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Total Stablecoin Backing</p>
+                <p className="text-3xl font-bold font-mono">${totalBacking.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Backing Ratio</p>
+                <p className="text-3xl font-bold">100%</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Allocations by Coin */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Stablecoin Allocations</CardTitle>
+          <CardDescription>Breakdown of backing by stablecoin type</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          ) : !vendorId ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Select a property manager to view allocations
+            </p>
+          ) : !allocations || allocations.length === 0 ? (
+            <div className="text-center py-8">
+              <Coins className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">No stablecoin allocations yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {allocations.map((allocation) => {
+                const percentage = totalBacking > 0 ? (parseFloat(allocation.allocatedAmount) / totalBacking) * 100 : 0;
+                return (
+                  <div
+                    key={allocation.id}
+                    className="p-5 border rounded-lg space-y-3"
+                    data-testid={`stablecoin-${allocation.coin}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Coins className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="font-semibold">{allocation.coin}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Last updated: {new Date(allocation.lastUpdated).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold font-mono">
+                          ${parseFloat(allocation.allocatedAmount).toFixed(2)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{percentage.toFixed(1)}% of total</p>
+                      </div>
+                    </div>
+                    <Progress value={percentage} className="h-2" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Info Card */}
+      <Card className="bg-muted/30">
+        <CardContent className="pt-6">
+          <div className="flex gap-3">
+            <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="font-medium">Secure & Transparent Backing</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Every NUSD in your account is backed 1:1 by stablecoins (USDC, USDT, DAI) held in secure
+                custody. This ensures instant redemption and full transparency of your backing assets.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Treasury Products Tab Component
+function VendorTreasuryTab({ vendorId, organizationName }: { vendorId?: string | null; organizationName?: string }) {
+  const { data, isLoading } = useQuery(
+    vendorId
+      ? {
+          queryKey: ["/api/vendor/treasury-allocations", vendorId],
+        }
+      : skipToken
+  );
+
+  const allocations = data?.allocations;
+  const totalAUM = allocations?.reduce((sum, a) => sum + parseFloat(a.allocatedAmount), 0) || 0;
+  const totalYield = allocations?.reduce((sum, a) => sum + parseFloat(a.yieldAccrued), 0) || 0;
+  const weightedYield = totalAUM > 0
+    ? (allocations?.reduce((sum, a) => sum + (parseFloat(a.currentYield) * parseFloat(a.allocatedAmount)), 0) || 0) / totalAUM
+    : 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Treasury Deployment Overview</CardTitle>
+          <CardDescription>
+            Your stablecoin backing is automatically deployed into yield-generating treasury products
+            {vendorId && organizationName && ` - ${organizationName}`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!vendorId ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Select a property manager to view treasury deployments
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Total Assets Under Management</p>
+                <p className="text-3xl font-bold font-mono">${totalAUM.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Current Yield Rate</p>
+                <p className="text-3xl font-bold">{weightedYield.toFixed(2)}%</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Total Yield Accrued</p>
+                <p className="text-3xl font-bold font-mono text-green-600 dark:text-green-400">
+                  ${totalYield.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Treasury Product Allocations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Treasury Positions</CardTitle>
+          <CardDescription>Breakdown by treasury product type</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : !vendorId ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Select a property manager to view allocations
+            </p>
+          ) : !allocations || allocations.length === 0 ? (
+            <div className="text-center py-8">
+              <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">No treasury deployments yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {allocations.map((allocation) => {
+                const percentage = totalAUM > 0 ? (parseFloat(allocation.allocatedAmount) / totalAUM) * 100 : 0;
+                return (
+                  <div
+                    key={allocation.id}
+                    className="p-5 border rounded-lg space-y-4"
+                    data-testid={`treasury-${allocation.productSymbol}-${allocation.coin}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold">{allocation.productName}</p>
+                            <Badge variant="secondary">{allocation.productSymbol}</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {allocation.coin} • Deployed {new Date(allocation.deployedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold font-mono">
+                          ${parseFloat(allocation.allocatedAmount).toFixed(2)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{percentage.toFixed(1)}% of AUM</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Current Yield</p>
+                        <p className="text-lg font-semibold">{parseFloat(allocation.currentYield).toFixed(2)}%</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Yield Accrued</p>
+                        <p className="text-lg font-semibold font-mono text-green-600 dark:text-green-400">
+                          ${parseFloat(allocation.yieldAccrued).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Product Descriptions */}
+      <Card className="bg-muted/30">
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <TrendingUp className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="font-medium">Treasury Product Types</p>
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <div>
+                    <span className="font-semibold">NRF (Rent Float):</span> Tokenized T-Bills with 5-15 day maturities,
+                    optimized for short-duration rent collection float.
+                  </div>
+                  <div>
+                    <span className="font-semibold">NRK (Rent Kredit):</span> Money-market equivalent instruments
+                    providing stable yields with daily liquidity.
+                  </div>
+                  <div>
+                    <span className="font-semibold">NRC (Rent Credit):</span> Delta-neutral credit positions
+                    generating enhanced yields from Net30-Net90 vendor payment float.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -205,6 +205,10 @@ export interface IStorage {
   getMerchantStablecoinAllocations(userId: string, merchantId: string): Promise<MerchantStablecoinAllocation[]>;
   getMerchantTreasuryAllocations(userId: string, merchantId: string): Promise<(MerchantTreasuryAllocation & { productName: string; productSymbol: string })[]>;
   getMerchantTransactionsByMerchantId(userId: string, merchantId: string, filters?: { status?: string }): Promise<(MerchantTransaction & { merchantName: string })[]>;
+  
+  // Vendor allocation methods (mirror merchant pattern)
+  getVendorStablecoinAllocations(userId: string, vendorId: string): Promise<VendorStablecoinAllocation[]>;
+  getVendorTreasuryAllocations(userId: string, vendorId: string): Promise<(VendorTreasuryAllocation & { productName: string; productSymbol: string })[]>;
 }
 
 export class DatabaseStorage implements IStorage {

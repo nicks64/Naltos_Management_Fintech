@@ -83,11 +83,15 @@ function formatPercent(value: string | number | null | undefined): string {
   return isNaN(num) ? "0.00" : num.toFixed(2);
 }
 
-// Custom hook to gate queries until merchantId is available
+// Custom hook to gate queries until merchantId is available  
 function useMerchantQuery<T>(endpoint: string, merchantId?: string | null) {
-  return useQuery<T>({
-    queryKey: merchantId ? [endpoint, merchantId] : skipToken,
-  });
+  return useQuery<T>(
+    merchantId
+      ? {
+          queryKey: [endpoint, merchantId],
+        }
+      : skipToken
+  );
 }
 
 export default function MerchantPortal() {
