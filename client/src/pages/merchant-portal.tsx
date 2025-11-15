@@ -485,12 +485,12 @@ export default function MerchantPortal() {
                     <div>
                       <p className="font-medium">{balance.organizationName}</p>
                       <p className="text-sm text-muted-foreground">
-                        Pending: ${formatCurrency(balance.pendingSettlement)} | Yield: ${formatCurrency(balance.totalYieldGenerated)}
+                        Pending: ${formatCurrency(balance.pendingSettlement)} USD | Yield: ${formatCurrency(balance.totalYieldGenerated)} USD
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold font-mono">
-                        ${formatCurrency(balance.nusdBalance)}
+                        ${formatCurrency(balance.nusdBalance)} USD
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {selectedMerchantId === balance.merchantId && "Selected"}
@@ -663,9 +663,9 @@ export default function MerchantPortal() {
         <TabsContent value="stablecoin">
           <Card>
             <CardHeader>
-              <CardTitle>Stablecoin Backing</CardTitle>
+              <CardTitle>How Your USD is Backed (Technical Details)</CardTitle>
               <CardDescription>
-                NUSD is 1:1 backed by stablecoins (USDC/USDT/DAI)
+                Your USD balance is backed 1:1 by stablecoins (USDC/USDT/DAI) — the invisible rails that enable instant settlement
                 {effectiveMerchantId && balances?.balances.find(b => b.merchantId === effectiveMerchantId) && 
                   ` - ${balances.balances.find(b => b.merchantId === effectiveMerchantId)?.organizationName}`
                 }
@@ -704,7 +704,7 @@ export default function MerchantPortal() {
                           {formatCurrency(allocation.allocatedAmount)} {allocation.coin}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          ≈ ${formatCurrency(allocation.nusdEquivalent)} NUSD
+                          ≈ ${formatCurrency(allocation.nusdEquivalent)} USD
                         </p>
                       </div>
                     </div>
@@ -719,9 +719,9 @@ export default function MerchantPortal() {
         <TabsContent value="treasury">
           <Card>
             <CardHeader>
-              <CardTitle>Treasury Product Allocations</CardTitle>
+              <CardTitle>How Your USD Generates Yield</CardTitle>
               <CardDescription>
-                Stablecoins deployed into yield-generating products (NRF/NRK/NRC)
+                Your idle USD is deployed into T-Bills and money markets (NRF/NRK/NRC) during the 1-3 day settlement period
                 {effectiveMerchantId && balances?.balances.find(b => b.merchantId === effectiveMerchantId) && 
                   ` - ${balances.balances.find(b => b.merchantId === effectiveMerchantId)?.organizationName}`
                 }
