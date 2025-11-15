@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DollarSign, TrendingUp, Clock, Download, Store, Coins, PiggyBank, Info, X, ChevronDown, ChevronUp, ArrowRight, Shield } from "lucide-react";
+import { DollarSign, TrendingUp, Clock, Download, Store, Coins, PiggyBank, Info, X, ChevronDown, ChevronUp, ArrowRight, Shield, Filter, CreditCard, ArrowUpDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface MerchantBalance {
   merchantId: string;
@@ -261,11 +266,21 @@ function PaymentMethodManager() {
 // Removed custom hook - use skipToken pattern directly at call sites instead
 
 export default function MerchantPortal() {
+  const { toast } = useToast();
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
   
   // Explainer card state (localStorage-persisted)
   const [showExplainer, setShowExplainer] = useState(true);
   const [explainerOpen, setExplainerOpen] = useState(true);
+  
+  // Settlement dialog state
+  const [settlementOpen, setSettlementOpen] = useState(false);
+  const [settlementAmount, setSettlementAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"ach" | "wire">("ach");
+  
+  // Transaction filter state
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("date-desc");
   
   useEffect(() => {
     const dismissed = localStorage.getItem('merchant-explainer-dismissed');
@@ -308,6 +323,91 @@ export default function MerchantPortal() {
   const totalBalance = balances?.balances.reduce((sum, b) => sum + b.nusdBalance, 0) || 0;
   const totalPending = balances?.balances.reduce((sum, b) => sum + b.pendingSettlement, 0) || 0;
   const totalYield = balances?.balances.reduce((sum, b) => sum + b.totalYieldGenerated, 0) || 0;
+
+  // Settlement mutation
+  const settlementMutation = useMutation({
+    mutationFn: async (data: { merchantId: string; amount: string; paymentMethod: string }) => {
+      return await apiRequest("POST", "/api/merchant/settlements", data);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/merchant/balances"] });
+      toast({
+        title: "Settlement Initiated",
+        description: data.message || `Settlement of $${settlementAmount} has been initiated successfully.`,
+      });
+      setSettlementOpen(false);
+      setSettlementAmount("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Settlement Failed",
+        description: error.message || "Failed to initiate settlement. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSettlement = () => {
+    if (!settlementAmount || parseFloat(settlementAmount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid settlement amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!effectiveMerchantId) {
+      toast({
+        title: "No Merchant Selected",
+        description: "Please select a merchant first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (parseFloat(settlementAmount) > totalPending) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You can only settle up to $${totalPending.toFixed(2)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    settlementMutation.mutate({
+      merchantId: effectiveMerchantId,
+      amount: settlementAmount,
+      paymentMethod,
+    });
+  };
+
+  // Handle transaction export (demo - just shows toast)
+  const handleExport = () => {
+    toast({
+      title: "Export Started",
+      description: `Exporting ${filteredTransactions.length} transactions to CSV. Download will begin shortly.`,
+    });
+  };
+
+  // Filter and sort transactions
+  const filteredTransactions = transactions?.transactions
+    ? transactions.transactions.filter((tx) => {
+        if (statusFilter === "all") return true;
+        return tx.status === statusFilter;
+      }).sort((a, b) => {
+        if (sortBy === "date-desc") {
+          return new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime();
+        } else if (sortBy === "date-asc") {
+          return new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime();
+        } else if (sortBy === "amount-desc") {
+          return parseFloat(b.amount) - parseFloat(a.amount);
+        } else if (sortBy === "amount-asc") {
+          return parseFloat(a.amount) - parseFloat(b.amount);
+        }
+        return 0;
+      })
+    : [];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -386,6 +486,104 @@ export default function MerchantPortal() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Settle Now Button */}
+      <div className="flex justify-end">
+        <Dialog open={settlementOpen} onOpenChange={setSettlementOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              size="lg" 
+              disabled={totalPending <= 0 || balancesLoading || settlementMutation.isPending} 
+              data-testid="button-settle-now"
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              {settlementMutation.isPending ? "Processing..." : "Settle Now"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Initiate Settlement</DialogTitle>
+              <DialogDescription>
+                Settle your pending USD balance to your bank account
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              {/* Amount Input */}
+              <div className="space-y-2">
+                <Label htmlFor="settlement-amount">Amount (USD)</Label>
+                <Input
+                  id="settlement-amount"
+                  type="number"
+                  placeholder="0.00"
+                  value={settlementAmount}
+                  onChange={(e) => setSettlementAmount(e.target.value)}
+                  min="0"
+                  max={totalPending}
+                  step="0.01"
+                  data-testid="input-settlement-amount"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Available for settlement: ${totalPending.toFixed(2)}
+                </p>
+              </div>
+
+              {/* Payment Method Selector */}
+              <div className="space-y-3">
+                <Label>Payment Method</Label>
+                <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg cursor-pointer hover-elevate" onClick={() => setPaymentMethod("ach")}>
+                    <RadioGroupItem value="ach" id="ach-settlement" data-testid="radio-ach-settlement" />
+                    <div className="flex-1">
+                      <Label htmlFor="ach-settlement" className="cursor-pointer font-medium">ACH Transfer</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Standard bank transfer • 1-2 business days • No fee
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg cursor-pointer hover-elevate" onClick={() => setPaymentMethod("wire")}>
+                    <RadioGroupItem value="wire" id="wire-settlement" data-testid="radio-wire-settlement" />
+                    <div className="flex-1">
+                      <Label htmlFor="wire-settlement" className="cursor-pointer font-medium">Wire Transfer</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Same-day transfer • $25 fee
+                      </p>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Summary */}
+              {settlementAmount && parseFloat(settlementAmount) > 0 && (
+                <div className="p-4 bg-muted rounded-lg space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Settlement Amount:</span>
+                    <span className="font-mono font-semibold">${parseFloat(settlementAmount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Fee:</span>
+                    <span className="font-mono">${paymentMethod === "wire" ? "25.00" : "0.00"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm border-t pt-2">
+                    <span className="font-medium">Net Amount:</span>
+                    <span className="font-mono font-bold text-green-600 dark:text-green-400">
+                      ${(parseFloat(settlementAmount) - (paymentMethod === "wire" ? 25 : 0)).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <Button 
+                onClick={handleSettlement} 
+                className="w-full" 
+                disabled={settlementMutation.isPending}
+                data-testid="button-confirm-settlement"
+              >
+                {settlementMutation.isPending ? "Processing..." : "Confirm Settlement"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* How Your USD Payments Work */}
@@ -602,23 +800,60 @@ export default function MerchantPortal() {
                 <CardTitle>Recent Transactions</CardTitle>
                 <CardDescription>Purchases and settlements from tenants</CardDescription>
               </div>
-              <Button variant="outline" size="sm" data-testid="button-export-transactions">
+              <Button variant="outline" size="sm" onClick={handleExport} data-testid="button-export-transactions">
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* Filters and Sorting */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="settled">Settled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-[180px]" data-testid="select-sort-by">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="date-desc">Date (Newest First)</SelectItem>
+                      <SelectItem value="date-asc">Date (Oldest First)</SelectItem>
+                      <SelectItem value="amount-desc">Amount (High to Low)</SelectItem>
+                      <SelectItem value="amount-asc">Amount (Low to High)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="ml-auto text-sm text-muted-foreground">
+                  Showing {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+
+              {/* Transaction List */}
               {transactionsLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : transactions?.transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No transactions yet</p>
+              ) : filteredTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No transactions found</p>
               ) : (
                 <div className="space-y-3">
-                  {transactions?.transactions.slice(0, 10).map((tx) => (
+                  {filteredTransactions.slice(0, 10).map((tx) => (
                     <div 
                       key={tx.id} 
                       className="flex items-center justify-between p-4 border rounded-lg"

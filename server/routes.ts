@@ -694,6 +694,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Merchant instant settlement (demo - simulates immediate settlement to bank)
+  app.post("/api/merchant/settlements", requireMerchant(storage), async (req, res) => {
+    try {
+      const merchantIds = req.merchantIds!;
+      const { amount, merchantId, paymentMethod } = req.body;
+      
+      // Verify merchant access
+      if (!merchantIds.includes(merchantId)) {
+        return res.status(403).json({ 
+          error: "Access denied",
+          message: "You don't have access to this merchant"
+        });
+      }
+      
+      // For demo purposes, just return success with simulated data
+      // In production, this would create actual settlement records
+      const settlement = {
+        id: Math.random().toString(36).substring(7),
+        merchantId,
+        amount: parseFloat(amount),
+        paymentMethod: paymentMethod || 'ach',
+        status: 'processing',
+        requestedAt: new Date().toISOString(),
+        estimatedCompletion: paymentMethod === 'wire' 
+          ? new Date().toISOString() 
+          : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Next day for ACH
+      };
+      
+      res.json({ 
+        settlement,
+        message: `Settlement of $${amount} initiated via ${paymentMethod.toUpperCase()}. Funds will arrive in your bank account ${paymentMethod === 'wire' ? 'today' : '1-2 business days'}.`
+      });
+    } catch (error: any) {
+      console.error("Merchant settlement error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ KPI Routes ============
   // All roles can access KPIs
   app.get("/api/kpis", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {

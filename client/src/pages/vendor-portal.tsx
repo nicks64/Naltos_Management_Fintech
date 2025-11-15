@@ -3,7 +3,7 @@ import { useQuery, useMutation, skipToken } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard, Coins, PiggyBank, ArrowRight, Shield, Info, X, ChevronDown, ChevronUp } from "lucide-react";
+import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard, Coins, PiggyBank, ArrowRight, Shield, Info, X, ChevronDown, ChevronUp, Filter, ArrowUpDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { VendorStablecoinAllocation, VendorTreasuryAllocation } from "@shared/schema";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type VendorInvoice = {
   id: string;
@@ -44,24 +45,10 @@ type VendorRedemption = {
   completedAt: string | null;
 };
 
-type StablecoinAllocation = {
-  id: string;
-  vendorBalanceId: string;
-  coin: "USDC" | "USDT" | "DAI";
-  allocatedAmount: string;
-  nusdEquivalent: string;
-  lastUpdated: string;
-};
+type StablecoinAllocation = VendorStablecoinAllocation;
 
-type TreasuryAllocation = {
-  id: string;
-  vendorBalanceId: string;
-  productCode: "NRF" | "NRK" | "NRC";
+type TreasuryAllocation = VendorTreasuryAllocation & {
   productName: string;
-  allocatedAmount: string;
-  currentYield: string;
-  yieldGenerated: string;
-  lastUpdated: string;
   productSymbol: string;
 };
 
@@ -227,6 +214,10 @@ export default function VendorPortal() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   
+  // Invoice filter state
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>("all");
+  const [invoiceSortBy, setInvoiceSortBy] = useState<string>("date-desc");
+  
   // Explainer card state (localStorage-persisted)
   const [showExplainer, setShowExplainer] = useState(true);
   const [explainerOpen, setExplainerOpen] = useState(true);
@@ -342,6 +333,33 @@ export default function VendorPortal() {
     };
     return <Badge variant={variants[status.toLowerCase()] || "outline"}>{status}</Badge>;
   };
+
+  // Handle invoice export (demo - just shows toast)
+  const handleInvoiceExport = () => {
+    toast({
+      title: "Export Started",
+      description: `Exporting ${filteredInvoices.length} invoices to CSV. Download will begin shortly.`,
+    });
+  };
+
+  // Filter and sort invoices
+  const filteredInvoices = invoices?.invoices
+    ? invoices.invoices.filter((inv) => {
+        if (invoiceStatusFilter === "all") return true;
+        return inv.status.toLowerCase() === invoiceStatusFilter.toLowerCase();
+      }).sort((a, b) => {
+        if (invoiceSortBy === "date-desc") {
+          return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+        } else if (invoiceSortBy === "date-asc") {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        } else if (invoiceSortBy === "amount-desc") {
+          return b.amount - a.amount;
+        } else if (invoiceSortBy === "amount-asc") {
+          return a.amount - b.amount;
+        }
+        return 0;
+      })
+    : [];
 
   return (
     <div className="p-6 space-y-6">
@@ -726,23 +744,61 @@ export default function VendorPortal() {
                 <CardTitle>Recent Invoices</CardTitle>
                 <CardDescription>Payments received from property managers</CardDescription>
               </div>
-              <Button variant="outline" size="sm" data-testid="button-export-invoices">
+              <Button variant="outline" size="sm" onClick={handleInvoiceExport} data-testid="button-export-invoices">
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* Filters and Sorting */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter}>
+                    <SelectTrigger className="w-[150px]" data-testid="select-invoice-status-filter">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  <Select value={invoiceSortBy} onValueChange={setInvoiceSortBy}>
+                    <SelectTrigger className="w-[180px]" data-testid="select-invoice-sort-by">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="date-desc">Due Date (Newest First)</SelectItem>
+                      <SelectItem value="date-asc">Due Date (Oldest First)</SelectItem>
+                      <SelectItem value="amount-desc">Amount (High to Low)</SelectItem>
+                      <SelectItem value="amount-asc">Amount (Low to High)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="ml-auto text-sm text-muted-foreground">
+                  Showing {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+
+              {/* Invoice List */}
               {invoicesLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : invoices?.invoices.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No invoices yet</p>
+              ) : filteredInvoices.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No invoices found</p>
               ) : (
                 <div className="space-y-3">
-                  {invoices?.invoices.map((invoice) => (
+                  {filteredInvoices.slice(0, 10).map((invoice) => (
                     <div 
                       key={invoice.id} 
                       className="flex items-center justify-between p-4 border rounded-lg"
@@ -842,16 +898,13 @@ export default function VendorPortal() {
 
 // Stablecoin Backing Tab Component
 function VendorStablecoinTab({ vendorId, organizationName }: { vendorId?: string | null; organizationName?: string }) {
-  const { data, isLoading } = useQuery(
-    vendorId
-      ? {
-          queryKey: ["/api/vendor/stablecoin-allocations", vendorId],
-        }
-      : skipToken
-  );
+  const { data, isLoading } = useQuery<{ allocations: StablecoinAllocation[] }>({
+    queryKey: ["/api/vendor/stablecoin-allocations", vendorId],
+    enabled: !!vendorId,
+  });
 
   const allocations = data?.allocations;
-  const totalBacking = allocations?.reduce((sum, a) => sum + parseFloat(a.allocatedAmount), 0) || 0;
+  const totalBacking = allocations?.reduce((sum: number, a: StablecoinAllocation) => sum + parseFloat(a.allocatedAmount), 0) || 0;
 
   return (
     <div className="space-y-6">
@@ -914,7 +967,7 @@ function VendorStablecoinTab({ vendorId, organizationName }: { vendorId?: string
             </div>
           ) : (
             <div className="space-y-4">
-              {allocations.map((allocation) => {
+              {allocations.map((allocation: StablecoinAllocation) => {
                 const percentage = totalBacking > 0 ? (parseFloat(allocation.allocatedAmount) / totalBacking) * 100 : 0;
                 return (
                   <div
@@ -970,19 +1023,16 @@ function VendorStablecoinTab({ vendorId, organizationName }: { vendorId?: string
 
 // Treasury Products Tab Component
 function VendorTreasuryTab({ vendorId, organizationName }: { vendorId?: string | null; organizationName?: string }) {
-  const { data, isLoading } = useQuery(
-    vendorId
-      ? {
-          queryKey: ["/api/vendor/treasury-allocations", vendorId],
-        }
-      : skipToken
-  );
+  const { data, isLoading } = useQuery<{ allocations: TreasuryAllocation[] }>({
+    queryKey: ["/api/vendor/treasury-allocations", vendorId],
+    enabled: !!vendorId,
+  });
 
   const allocations = data?.allocations;
-  const totalAUM = allocations?.reduce((sum, a) => sum + parseFloat(a.allocatedAmount), 0) || 0;
-  const totalYield = allocations?.reduce((sum, a) => sum + parseFloat(a.yieldAccrued), 0) || 0;
+  const totalAUM = allocations?.reduce((sum: number, a: TreasuryAllocation) => sum + parseFloat(a.allocatedAmount), 0) || 0;
+  const totalYield = allocations?.reduce((sum: number, a: TreasuryAllocation) => sum + parseFloat(a.yieldAccrued), 0) || 0;
   const weightedYield = totalAUM > 0
-    ? (allocations?.reduce((sum, a) => sum + (parseFloat(a.currentYield) * parseFloat(a.allocatedAmount)), 0) || 0) / totalAUM
+    ? (allocations?.reduce((sum: number, a: TreasuryAllocation) => sum + (parseFloat(a.currentYield) * parseFloat(a.allocatedAmount)), 0) || 0) / totalAUM
     : 0;
 
   return (
@@ -1055,7 +1105,7 @@ function VendorTreasuryTab({ vendorId, organizationName }: { vendorId?: string |
             </div>
           ) : (
             <div className="space-y-4">
-              {allocations.map((allocation) => {
+              {allocations.map((allocation: TreasuryAllocation) => {
                 const percentage = totalAUM > 0 ? (parseFloat(allocation.allocatedAmount) / totalAUM) * 100 : 0;
                 return (
                   <div
