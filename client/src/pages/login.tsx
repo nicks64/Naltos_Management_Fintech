@@ -15,7 +15,7 @@ export default function Login() {
   const { setAuth } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [userType, setUserType] = useState<"business" | "tenant" | "vendor">("business");
+  const [userType, setUserType] = useState<"business" | "tenant" | "vendor" | "merchant">("business");
 
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
@@ -40,6 +40,11 @@ export default function Login() {
         code = "111111";
         endpoint = "/api/vendor-auth/login";
         redirectPath = "/vendor-portal";
+      } else if (userType === "merchant") {
+        email = "merchant@demo.com";
+        code = "222222";
+        endpoint = "/api/merchant-auth/login";
+        redirectPath = "/merchant-portal";
       } else if (userType === "tenant") {
         email = "tenant@demo.com";
         code = "000000";
@@ -54,8 +59,8 @@ export default function Login() {
 
       const response = await apiRequest("POST", endpoint, { email, code });
       
-      // Vendor auth doesn't return organization
-      if (userType === "vendor") {
+      // Vendor and merchant auth don't return organization
+      if (userType === "vendor" || userType === "merchant") {
         setAuth(response.user, null);
       } else {
         setAuth(response.user, response.organization);
@@ -89,8 +94,12 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const endpoint = userType === "vendor" ? "/api/vendor-auth/send-code" : "/api/auth/send-code";
-      const demoCode = userType === "vendor" ? "111111" : "000000";
+      const endpoint = userType === "vendor" ? "/api/vendor-auth/send-code" 
+                     : userType === "merchant" ? "/api/merchant-auth/send-code"
+                     : "/api/auth/send-code";
+      const demoCode = userType === "vendor" ? "111111" 
+                     : userType === "merchant" ? "222222"
+                     : "000000";
       
       await apiRequest("POST", endpoint, { email: loginEmail });
       setCodeSent(true);
@@ -121,20 +130,23 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const endpoint = userType === "vendor" ? "/api/vendor-auth/login" : "/api/auth/login";
+      const endpoint = userType === "vendor" ? "/api/vendor-auth/login"
+                     : userType === "merchant" ? "/api/merchant-auth/login"
+                     : "/api/auth/login";
       const response = await apiRequest("POST", endpoint, {
         email: loginEmail,
         code: loginCode,
       });
       
-      // Vendor auth doesn't return organization
-      if (response.user.role === "Vendor") {
+      // Vendor and merchant auth don't return organization
+      if (response.user.role === "Vendor" || response.user.role === "Merchant") {
         setAuth(response.user, null);
       } else {
         setAuth(response.user, response.organization);
       }
       
       const redirectPath = response.user.role === "Vendor" ? "/vendor-portal" :
+                          response.user.role === "Merchant" ? "/merchant-portal" :
                           response.user.role === "Tenant" ? "/tenant/home" : 
                           "/dashboard";
       toast({
@@ -201,6 +213,8 @@ export default function Login() {
               ? "Stablecoin Orchestration Platform — Generate Yield from Idle Cash Flows" 
               : userType === "vendor"
               ? "Instant NUSD Payments — Redeem on Your Schedule"
+              : userType === "merchant"
+              ? "Accept NUSD Payments — Earn Yield on Settlement Float"
               : "Earn Yield on Rent & Purchases"}
           </p>
         </div>
@@ -208,7 +222,7 @@ export default function Login() {
         {/* User Type Selector */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-center gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 variant={userType === "business" ? "default" : "outline"}
                 onClick={() => {
@@ -217,7 +231,6 @@ export default function Login() {
                   setLoginEmail("");
                   setLoginCode("");
                 }}
-                className="flex-1"
                 data-testid="button-select-business"
               >
                 Business
@@ -230,7 +243,6 @@ export default function Login() {
                   setLoginEmail("");
                   setLoginCode("");
                 }}
-                className="flex-1"
                 data-testid="button-select-tenant"
               >
                 Tenant
@@ -243,10 +255,21 @@ export default function Login() {
                   setLoginEmail("");
                   setLoginCode("");
                 }}
-                className="flex-1"
                 data-testid="button-select-vendor"
               >
                 Vendor
+              </Button>
+              <Button
+                variant={userType === "merchant" ? "default" : "outline"}
+                onClick={() => {
+                  setUserType("merchant");
+                  setCodeSent(false);
+                  setLoginEmail("");
+                  setLoginCode("");
+                }}
+                data-testid="button-select-merchant"
+              >
+                Merchant
               </Button>
             </div>
           </CardContent>
@@ -255,7 +278,7 @@ export default function Login() {
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
-            <TabsTrigger value="signup" data-testid="tab-signup" disabled={userType === "tenant" || userType === "vendor"}>
+            <TabsTrigger value="signup" data-testid="tab-signup" disabled={userType === "tenant" || userType === "vendor" || userType === "merchant"}>
               Sign Up
             </TabsTrigger>
           </TabsList>

@@ -83,16 +83,7 @@ function formatPercent(value: string | number | null | undefined): string {
   return isNaN(num) ? "0.00" : num.toFixed(2);
 }
 
-// Custom hook to gate queries until merchantId is available  
-function useMerchantQuery<T>(endpoint: string, merchantId?: string | null) {
-  return useQuery<T>(
-    merchantId
-      ? {
-          queryKey: [endpoint, merchantId],
-        }
-      : skipToken
-  );
-}
+// Removed custom hook - use skipToken pattern directly at call sites instead
 
 export default function MerchantPortal() {
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
@@ -106,20 +97,29 @@ export default function MerchantPortal() {
   const firstMerchantId = balances?.balances?.[0]?.merchantId;
   const effectiveMerchantId = selectedMerchantId || firstMerchantId;
 
-  // Fetch merchant-specific data using custom hook
-  const { data: transactions, isLoading: transactionsLoading } = useMerchantQuery<{ transactions: MerchantTransaction[] }>(
-    "/api/merchant/transactions",
+  // Fetch merchant-specific data using skipToken pattern
+  const { data: transactions, isLoading: transactionsLoading } = useQuery(
     effectiveMerchantId
+      ? {
+          queryKey: ["/api/merchant/transactions", effectiveMerchantId],
+        }
+      : skipToken
   );
 
-  const { data: stablecoinAllocations, isLoading: stablecoinLoading } = useMerchantQuery<{ allocations: StablecoinAllocation[] }>(
-    "/api/merchant/stablecoin-allocations",
+  const { data: stablecoinAllocations, isLoading: stablecoinLoading } = useQuery(
     effectiveMerchantId
+      ? {
+          queryKey: ["/api/merchant/stablecoin-allocations", effectiveMerchantId],
+        }
+      : skipToken
   );
 
-  const { data: treasuryAllocations, isLoading: treasuryLoading } = useMerchantQuery<{ allocations: TreasuryAllocation[] }>(
-    "/api/merchant/treasury-allocations",
+  const { data: treasuryAllocations, isLoading: treasuryLoading } = useQuery(
     effectiveMerchantId
+      ? {
+          queryKey: ["/api/merchant/treasury-allocations", effectiveMerchantId],
+        }
+      : skipToken
   );
 
   // Calculate totals
