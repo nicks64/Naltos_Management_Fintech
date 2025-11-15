@@ -100,7 +100,7 @@ export async function seedDatabase() {
       await db.delete(leases).where(inArray(leases.unitId, unitIds));
       
       // Get tenants from leases to delete them
-      const tenantIds = [...new Set(orgLeases.map(l => l.tenantId))];
+      const tenantIds = Array.from(new Set(orgLeases.map(l => l.tenantId)));
       if (tenantIds.length > 0) {
         await db.delete(tenants).where(inArray(tenants.id, tenantIds));
       }
@@ -686,14 +686,88 @@ export async function seedDatabase() {
   const seededMerchantTxs = await db.insert(merchantTransactions).values(merchantTxData).returning();
   console.log(`${seededMerchantTxs.length} merchant transactions created (showcasing 1-3 day settlement float)!`);
 
+  // ============ Vendor Portal Demo User ============
+  console.log("Seeding demo vendor user...");
+  
+  // Create vendor demo user (organizationId=null for cross-org access)
+  let vendorDemoUser = (await db.select().from(users).where(eq(users.email, "vendor@demo.com")))[0];
+  if (!vendorDemoUser) {
+    const hashedVendorPassword = await bcrypt.hash("vendor123", 10);
+    [vendorDemoUser] = await db.insert(users).values({
+      email: "vendor@demo.com",
+      password: hashedVendorPassword,
+      organizationId: null, // Vendors can access multiple orgs via vendor_user_links
+      role: "Vendor",
+    }).returning();
+  }
+
+  // Create vendor_user_links to associate demo vendor user with seeded vendor records
+  // Link to first 2 vendors (ABC Maintenance and City Power & Light)
+  const { vendorUserLinks } = await import("@shared/schema");
+  const existingLinks = await db.select().from(vendorUserLinks).where(eq(vendorUserLinks.userId, vendorDemoUser.id));
+  
+  if (existingLinks.length === 0) {
+    // Insert vendor links one at a time to avoid type issues
+    await db.insert(vendorUserLinks).values({
+      userId: vendorDemoUser.id,
+      vendorId: seededVendors[0].id, // ABC Maintenance Co.
+    });
+    await db.insert(vendorUserLinks).values({
+      userId: vendorDemoUser.id,
+      vendorId: seededVendors[1].id, // City Power & Light
+    });
+    console.log("Created vendor_user_links for demo vendor");
+  }
+
+  // Create vendor balances with NUSD (from instant payments received)
+  const { vendorBalances } = await import("@shared/schema");
+  const existingVendorBalances = await db.select().from(vendorBalances)
+    .where(eq(vendorBalances.vendorId, seededVendors[0].id));
+  
+  if (existingVendorBalances.length === 0) {
+    await db.insert(vendorBalances).values([
+      {
+        vendorId: seededVendors[0].id, // ABC Maintenance Co.
+        organizationId: demoOrg.id,
+        nusdBalance: "12500.00", // From instant payment received
+        totalReceived: "25000.00",
+        totalRedeemed: "12500.00",
+      },
+      {
+        vendorId: seededVendors[1].id, // City Power & Light
+        organizationId: demoOrg.id,
+        nusdBalance: "8900.00",
+        totalReceived: "17800.00",
+        totalRedeemed: "8900.00",
+      },
+    ]);
+    console.log("Created vendor balances with NUSD");
+  }
+
+  // Create magic code for vendor demo login
+  const existingVendorCode = await db.select().from(magicCodes)
+    .where(eq(magicCodes.email, "vendor@demo.com"));
+  
+  if (existingVendorCode.length === 0) {
+    await db.insert(magicCodes).values({
+      email: "vendor@demo.com",
+      code: "111111",
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+      used: false,
+    });
+    console.log("Created magic code for vendor demo user");
+  }
+
   console.log("Database seeded successfully!");
   console.log(`- Organization: ${demoOrg.name}`);
-  console.log(`- Demo user: demo@naltos.com (code: 000000)`);
+  console.log(`- Demo business user: demo@naltos.com (code: 000000)`);
+  console.log(`- Demo tenant user: tenant@demo.com (code: 000000)`);
+  console.log(`- Demo vendor user: vendor@demo.com (code: 111111)`);
   console.log(`- Properties: 3`);
   console.log(`- Units: 200`);
   console.log(`- Leases: 120`);
   console.log(`- Invoices: 300`);
   console.log(`- Payments: 220`);
-  console.log(`- Bank ledger: 30`);
-  console.log(`- Treasury products: 3`);
+  console.log(`- Vendors: ${seededVendors.length}`);
+  console.log(`- Vendor invoices: ${seededInvoices.length}`);
 }
