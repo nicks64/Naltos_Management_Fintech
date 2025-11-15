@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, skipToken } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -97,30 +97,21 @@ export default function MerchantPortal() {
   const firstMerchantId = balances?.balances?.[0]?.merchantId;
   const effectiveMerchantId = selectedMerchantId || firstMerchantId;
 
-  // Fetch merchant-specific data using skipToken pattern
-  const { data: transactions, isLoading: transactionsLoading } = useQuery(
-    effectiveMerchantId
-      ? {
-          queryKey: ["/api/merchant/transactions", effectiveMerchantId],
-        }
-      : skipToken
-  );
+  // Fetch merchant-specific data using enabled option
+  const { data: transactions, isLoading: transactionsLoading } = useQuery<{ transactions: MerchantTransaction[] }>({
+    queryKey: ["/api/merchant/transactions", effectiveMerchantId],
+    enabled: !!effectiveMerchantId,
+  });
 
-  const { data: stablecoinAllocations, isLoading: stablecoinLoading } = useQuery(
-    effectiveMerchantId
-      ? {
-          queryKey: ["/api/merchant/stablecoin-allocations", effectiveMerchantId],
-        }
-      : skipToken
-  );
+  const { data: stablecoinAllocations, isLoading: stablecoinLoading } = useQuery<{ allocations: StablecoinAllocation[] }>({
+    queryKey: ["/api/merchant/stablecoin-allocations", effectiveMerchantId],
+    enabled: !!effectiveMerchantId,
+  });
 
-  const { data: treasuryAllocations, isLoading: treasuryLoading } = useQuery(
-    effectiveMerchantId
-      ? {
-          queryKey: ["/api/merchant/treasury-allocations", effectiveMerchantId],
-        }
-      : skipToken
-  );
+  const { data: treasuryAllocations, isLoading: treasuryLoading } = useQuery<{ allocations: TreasuryAllocation[] }>({
+    queryKey: ["/api/merchant/treasury-allocations", effectiveMerchantId],
+    enabled: !!effectiveMerchantId,
+  });
 
   // Calculate totals
   const totalBalance = balances?.balances.reduce((sum, b) => sum + b.nusdBalance, 0) || 0;
