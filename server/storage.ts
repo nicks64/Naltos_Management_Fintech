@@ -1197,6 +1197,69 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Vendor Redemption Methods
+  
+  // Helper function to compute vendor balance state (total, available, pending)
+  // Used by both createRedemption validation and API responses for consistency
+  async computeVendorBalanceState(vendorIds: string[], tx?: any): Promise<Map<string, {
+    vendorId: string;
+    organizationId: string;
+    totalBalance: number;
+    availableBalance: number;
+    pendingBalance: number;
+  }>> {
+    const dbClient = tx || db;
+    
+    if (vendorIds.length === 0) {
+      return new Map();
+    }
+    
+    // Use SQL aggregation to calculate pending amounts per (vendorId, organizationId) pair
+    // This ensures we're summing pending redemptions correctly for each balance
+    const results = await dbClient
+      .select({
+        vendorId: vendorBalances.vendorId,
+        organizationId: vendorBalances.organizationId,
+        nusdBalance: vendorBalances.nusdBalance,
+        pendingSum: sql<string>`COALESCE(SUM(CASE WHEN ${vendorRedemptions.status} IN ('pending', 'processing') THEN ${vendorRedemptions.nusdAmount} ELSE 0 END), 0)`.as('pending_sum'),
+      })
+      .from(vendorBalances)
+      .leftJoin(
+        vendorRedemptions,
+        and(
+          eq(vendorBalances.vendorId, vendorRedemptions.vendorId),
+          eq(vendorBalances.organizationId, vendorRedemptions.organizationId)
+        )
+      )
+      .where(inArray(vendorBalances.vendorId, vendorIds))
+      .groupBy(vendorBalances.vendorId, vendorBalances.organizationId, vendorBalances.nusdBalance);
+    
+    // Build state map from SQL results
+    const stateMap = new Map<string, {
+      vendorId: string;
+      organizationId: string;
+      totalBalance: number;
+      availableBalance: number;
+      pendingBalance: number;
+    }>();
+    
+    for (const row of results) {
+      const totalBalance = parseFloat(row.nusdBalance || "0");
+      const pendingBalance = parseFloat(row.pendingSum || "0");
+      const availableBalance = totalBalance - pendingBalance;
+      
+      const key = `${row.vendorId}-${row.organizationId}`;
+      stateMap.set(key, {
+        vendorId: row.vendorId,
+        organizationId: row.organizationId,
+        totalBalance,
+        availableBalance,
+        pendingBalance,
+      });
+    }
+    
+    return stateMap;
+  }
+  
   async getRedemptionsByVendorIds(vendorIds: string[]): Promise<VendorRedemption[]> {
     if (vendorIds.length === 0) return [];
     
@@ -1209,6 +1272,9 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
+  // SECURITY: vendorIds MUST be validated by caller (via requireVendor middleware)
+  // to ensure they belong to the authenticated user. DO NOT trust client-supplied IDs!
+  // This method assumes vendorIds have already been verified against vendor_user_links.
   async createRedemption(data: {
     vendorIds: string[];
     rail: string;
@@ -1217,25 +1283,7 @@ export class DatabaseStorage implements IStorage {
   }): Promise<VendorRedemption[]> {
     const { vendorIds, rail, nusdAmount, payoutMethodId } = data;
     
-    // Get all vendor balances for this vendor across organizations
-    const balances = await db
-      .select()
-      .from(vendorBalances)
-      .where(inArray(vendorBalances.vendorId, vendorIds));
-    
-    if (balances.length === 0) {
-      throw new Error("No vendor balances found");
-    }
-    
-    // Calculate total available balance
-    const totalBalance = balances.reduce((sum, b) => 
-      sum + parseFloat(b.nusdBalance || "0"), 0
-    );
-    
     const requestedAmount = parseFloat(nusdAmount);
-    if (requestedAmount > totalBalance) {
-      throw new Error(`Insufficient balance. Available: ${totalBalance}, Requested: ${requestedAmount}`);
-    }
     
     // Calculate fee based on rail type
     let feePercentage = 0;
@@ -1259,84 +1307,158 @@ export class DatabaseStorage implements IStorage {
     const feeAmount = requestedAmount * feePercentage;
     const usdAmount = requestedAmount - feeAmount;
     
-    // Proportionally deduct from each vendor balance and create redemptions
-    const createdRedemptions: VendorRedemption[] = [];
-    const allocationMetadata: Record<string, any> = {};
-    
-    for (const balance of balances) {
-      const balanceAmount = parseFloat(balance.nusdBalance || "0");
-      if (balanceAmount <= 0) continue;
+    // Execute all operations inside a transaction to prevent race conditions
+    const createdRedemptions = await db.transaction(async (tx) => {
+      // Lock vendor balance rows to prevent concurrent modifications
+      await tx
+        .select()
+        .from(vendorBalances)
+        .where(inArray(vendorBalances.vendorId, vendorIds))
+        .for("update");
       
-      // Calculate proportional deduction
-      const proportion = balanceAmount / totalBalance;
-      const deductionAmount = requestedAmount * proportion;
-      const orgFeeAmount = feeAmount * proportion;
-      const orgUsdAmount = usdAmount * proportion;
+      // Compute available balance state INSIDE transaction after locking
+      // This includes deducting pending/processing redemptions
+      const balanceState = await this.computeVendorBalanceState(vendorIds, tx);
       
-      // Create redemption record for this organization
-      const [redemption] = await db.insert(vendorRedemptions).values({
-        vendorId: balance.vendorId,
-        organizationId: balance.organizationId,
-        payoutMethodId: payoutMethodId || null,
-        rail,
-        nusdAmount: deductionAmount.toFixed(2),
-        usdAmount: orgUsdAmount.toFixed(2),
-        feeAmount: orgFeeAmount.toFixed(2),
-        status: "pending",
-        scheduledFor,
-        metadata: JSON.stringify({
-          proportion: proportion.toFixed(4),
-          totalRedemptionAmount: nusdAmount,
-          totalFeeAmount: feeAmount.toFixed(2),
-          totalUsdAmount: usdAmount.toFixed(2),
-        }),
-      }).returning();
+      if (balanceState.size === 0) {
+        throw new Error("No vendor balances found. Please contact support to set up your account.");
+      }
       
-      // Deduct from vendor balance immediately (prevents over-redemption)
-      await db.update(vendorBalances)
-        .set({
-          nusdBalance: (balanceAmount - deductionAmount).toFixed(2),
-          totalRedeemed: sql`${vendorBalances.totalRedeemed} + ${orgUsdAmount.toFixed(2)}`,
-        })
-        .where(eq(vendorBalances.id, balance.id));
+      // Filter to only balances with positive available amounts
+      const availableBalances = Array.from(balanceState.values())
+        .filter(state => state.availableBalance > 0);
       
-      createdRedemptions.push(redemption);
+      if (availableBalances.length === 0) {
+        throw new Error("Insufficient balance. Your current available balance is $0.00");
+      }
       
-      // Track allocation for audit trail
-      allocationMetadata[balance.organizationId] = {
-        nusdDeducted: deductionAmount.toFixed(2),
-        fee: orgFeeAmount.toFixed(2),
-        netUsd: orgUsdAmount.toFixed(2),
-      };
-    }
+      // Calculate total available balance (excludes pending redemptions)
+      const totalAvailable = availableBalances.reduce(
+        (sum, state) => sum + state.availableBalance,
+        0
+      );
+      
+      if (requestedAmount > totalAvailable) {
+        throw new Error(`Insufficient available balance. Available: $${totalAvailable.toFixed(2)}, Requested: $${requestedAmount.toFixed(2)}`);
+      }
+      
+      // Calculate proportional allocations based on AVAILABLE balance (not total)
+      // Cap each deduction to available balance to prevent rounding errors
+      const allocations = availableBalances.map(state => {
+        const proportion = state.availableBalance / totalAvailable;
+        const rawDeduction = requestedAmount * proportion;
+        // Cap deduction to available balance (prevents rounding issues)
+        const deductionAmount = Math.min(rawDeduction, state.availableBalance);
+        
+        const orgFeeAmount = feeAmount * proportion;
+        const orgUsdAmount = usdAmount * proportion;
+        
+        return {
+          vendorId: state.vendorId,
+          organizationId: state.organizationId,
+          availableBalance: state.availableBalance,
+          proportion,
+          deductionAmount,
+          orgFeeAmount,
+          orgUsdAmount,
+        };
+      });
+      
+      // Execute all redemptions and balance updates atomically
+      const redemptions: VendorRedemption[] = [];
+      
+      for (const allocation of allocations) {
+        const { vendorId, organizationId, deductionAmount, orgFeeAmount, orgUsdAmount, proportion } = allocation;
+        
+        // Create redemption record for this organization
+        const [redemption] = await tx.insert(vendorRedemptions).values({
+          vendorId,
+          organizationId,
+          payoutMethodId: payoutMethodId || null,
+          rail: rail as "ACH" | "PushToCard" | "OnChainStablecoin",
+          nusdAmount: deductionAmount.toFixed(2),
+          usdAmount: orgUsdAmount.toFixed(2),
+          feeAmount: orgFeeAmount.toFixed(2),
+          status: "pending",
+          scheduledFor,
+          metadata: JSON.stringify({
+            proportion: proportion.toFixed(4),
+            totalRedemptionAmount: nusdAmount,
+            totalFeeAmount: feeAmount.toFixed(2),
+            totalUsdAmount: usdAmount.toFixed(2),
+          }),
+        }).returning();
+        
+        // NOTE: We do NOT deduct from nusdBalance here!
+        // The pending redemption will reduce availableBalance in computeVendorBalanceState()
+        // nusdBalance is only deducted when redemption status changes to "completed"
+        redemptions.push(redemption);
+      }
+      
+      return redemptions;
+    });
     
     return createdRedemptions;
   }
 
   async updateRedemptionStatus(redemptionId: string, status: string, metadata?: string): Promise<VendorRedemption> {
-    const updates: any = { status };
-    
-    if (metadata) {
-      updates.metadata = metadata;
-    }
-    
-    // Update timestamps based on status
-    if (status === "processing") {
-      updates.processedAt = new Date();
-    } else if (status === "completed") {
-      updates.completedAt = new Date();
-    }
-    
-    const [redemption] = await db.update(vendorRedemptions)
-      .set(updates)
-      .where(eq(vendorRedemptions.id, redemptionId))
-      .returning();
-    
-    if (!redemption) {
-      throw new Error("Redemption not found");
-    }
-    
-    return redemption;
+    return await db.transaction(async (tx) => {
+      // First, get the current redemption to check its status
+      const [currentRedemption] = await tx
+        .select()
+        .from(vendorRedemptions)
+        .where(eq(vendorRedemptions.id, redemptionId))
+        .for("update"); // Lock the row
+      
+      if (!currentRedemption) {
+        throw new Error("Redemption not found");
+      }
+      
+      const previousStatus = currentRedemption.status;
+      
+      const updates: any = { status };
+      
+      if (metadata) {
+        updates.metadata = metadata;
+      }
+      
+      // Update timestamps based on status
+      if (status === "processing") {
+        updates.processedAt = new Date();
+      } else if (status === "completed") {
+        updates.completedAt = new Date();
+      }
+      
+      const [redemption] = await tx.update(vendorRedemptions)
+        .set(updates)
+        .where(eq(vendorRedemptions.id, redemptionId))
+        .returning();
+      
+      if (!redemption) {
+        throw new Error("Redemption not found");
+      }
+      
+      // Only deduct from nusdBalance if transitioning TO "completed" (not if already completed)
+      // This prevents double-deduction if updateRedemptionStatus is called multiple times
+      if (status === "completed" && previousStatus !== "completed") {
+        const deductionAmount = parseFloat(redemption.nusdAmount || "0");
+        const usdAmount = parseFloat(redemption.usdAmount || "0");
+        
+        await tx.update(vendorBalances)
+          .set({
+            nusdBalance: sql`${vendorBalances.nusdBalance} - ${deductionAmount.toFixed(2)}`,
+            totalRedeemed: sql`${vendorBalances.totalRedeemed} + ${usdAmount.toFixed(2)}`,
+          })
+          .where(
+            and(
+              eq(vendorBalances.vendorId, redemption.vendorId),
+              eq(vendorBalances.organizationId, redemption.organizationId)
+            )
+          );
+      }
+      
+      return redemption;
+    });
   }
 
   // Crypto Treasury Methods

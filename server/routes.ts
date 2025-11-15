@@ -302,17 +302,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get vendor overview with balances and organization info
       const overview = await storage.getVendorOverview(vendorIds);
       
+      // Use the same helper as createRedemption to ensure consistency
+      // This deducts pending/processing redemptions from available balance
+      const balanceState = await storage.computeVendorBalanceState(vendorIds);
+      
       const balances = overview.map(({ vendor, balance, organization }) => {
-        // Calculate available vs pending from balance record
-        const nusdBalance = parseFloat(balance?.nusdBalance || "0");
-        const totalRedeemed = parseFloat(balance?.totalRedeemed || "0");
+        const key = `${vendor.id}-${organization.id}`;
+        const state = balanceState.get(key);
+        
+        // If no balance state found, use zeros
+        if (!state) {
+          return {
+            vendorId: vendor.id,
+            organizationName: organization.name,
+            totalBalance: 0,
+            availableBalance: 0,
+            pendingBalance: 0,
+          };
+        }
         
         return {
           vendorId: vendor.id,
           organizationName: organization.name,
-          totalBalance: nusdBalance,
-          availableBalance: nusdBalance, // Simplified: all balance is available
-          pendingBalance: 0, // Would be calculated from pending redemptions
+          totalBalance: state.totalBalance,
+          availableBalance: state.availableBalance, // Correctly deducts pending redemptions
+          pendingBalance: state.pendingBalance,     // Sum of pending/processing redemptions
         };
       });
       
@@ -362,6 +376,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/vendor/redemptions", requireVendor(storage), async (req, res) => {
     try {
+      // SECURITY: vendorIds from req.vendorIds (set by requireVendor middleware)
+      // This is derived from vendor_user_links table, NOT from client request
       const vendorIds = req.vendorIds!;
       const { rail, nusdAmount, payoutMethodId } = req.body;
       

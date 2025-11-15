@@ -1,9 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, FileText, Clock, TrendingUp, Download, CreditCard } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 type VendorInvoice = {
   id: string;
@@ -32,6 +40,12 @@ type VendorRedemption = {
 };
 
 export default function VendorPortal() {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [rail, setRail] = useState<"ACH" | "PushToCard" | "OnChainStablecoin">("ACH");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
   const { data: balances, isLoading: balancesLoading } = useQuery<{ balances: VendorBalance[] }>({
     queryKey: ["/api/vendor/balances"],
   });
@@ -47,6 +61,78 @@ export default function VendorPortal() {
   const totalBalance = balances?.balances.reduce((sum, b) => sum + b.totalBalance, 0) || 0;
   const totalAvailable = balances?.balances.reduce((sum, b) => sum + b.availableBalance, 0) || 0;
   const totalPending = balances?.balances.reduce((sum, b) => sum + b.pendingBalance, 0) || 0;
+
+  // Calculate fees and net amount based on selected rail
+  const requestedAmount = parseFloat(amount) || 0;
+  const feePercentage = rail === "ACH" ? 0 : rail === "PushToCard" ? 0.015 : 0.001;
+  const feeAmount = requestedAmount * feePercentage;
+  const netAmount = requestedAmount - feeAmount;
+
+  // Calculate scheduled payout date for ACH
+  const scheduledDate = new Date();
+  scheduledDate.setDate(scheduledDate.getDate() + 30);
+
+  const createRedemptionMutation = useMutation({
+    mutationFn: async (data: { rail: string; nusdAmount: string }) => {
+      return await apiRequest("/api/vendor/redemptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/redemptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/balances"] });
+      toast({
+        title: "Redemption Request Submitted",
+        description: `Your payout request for $${netAmount.toFixed(2)} has been submitted successfully.`,
+      });
+      setOpen(false);
+      setAmount("");
+      setTermsAccepted(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Redemption Failed",
+        description: error.message || "Failed to submit redemption request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!amount || requestedAmount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount greater than zero.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (requestedAmount > totalAvailable) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You can only redeem up to $${totalAvailable.toFixed(2)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!termsAccepted) {
+      toast({
+        title: "Terms Not Accepted",
+        description: "Please accept the terms and conditions to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createRedemptionMutation.mutate({
+      rail,
+      nusdAmount: requestedAmount.toFixed(2),
+    });
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -69,7 +155,7 @@ export default function VendorPortal() {
         </p>
       </div>
 
-      {/* Balance Summary Cards */}
+      {/* Balance Summary Cards with Request Payout Button */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -133,6 +219,129 @@ export default function VendorPortal() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Request Payout Button */}
+      <div className="flex justify-end">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              size="lg" 
+              disabled={totalAvailable <= 0 || balancesLoading || createRedemptionMutation.isPending} 
+              data-testid="button-request-payout"
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              {createRedemptionMutation.isPending ? "Processing..." : "Request Payout"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Request Payout</DialogTitle>
+              <DialogDescription>
+                Choose your payout method and amount. Funds will be deducted from your available balance.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              {/* Amount Input */}
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (USD)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  min="0"
+                  max={totalAvailable}
+                  step="0.01"
+                  data-testid="input-redemption-amount"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Available: ${totalAvailable.toFixed(2)}
+                </p>
+              </div>
+
+              {/* Payout Method Selector */}
+              <div className="space-y-3">
+                <Label>Payout Method</Label>
+                <RadioGroup value={rail} onValueChange={(value: any) => setRail(value)}>
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg cursor-pointer hover-elevate" onClick={() => setRail("ACH")}>
+                    <RadioGroupItem value="ACH" id="ach" data-testid="radio-ach" />
+                    <div className="flex-1">
+                      <Label htmlFor="ach" className="cursor-pointer font-medium">ACH (Next-Day)</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Scheduled for {scheduledDate.toLocaleDateString()} • No Fee
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg cursor-pointer hover-elevate" onClick={() => setRail("PushToCard")}>
+                    <RadioGroupItem value="PushToCard" id="card" data-testid="radio-push-to-card" />
+                    <div className="flex-1">
+                      <Label htmlFor="card" className="cursor-pointer font-medium">Push-to-Card (Instant)</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Immediate payout • 1.5% fee
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg cursor-pointer hover-elevate" onClick={() => setRail("OnChainStablecoin")}>
+                    <RadioGroupItem value="OnChainStablecoin" id="crypto" data-testid="radio-on-chain" />
+                    <div className="flex-1">
+                      <Label htmlFor="crypto" className="cursor-pointer font-medium">On-Chain Stablecoin</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Instant crypto withdrawal • 0.1% gas fee
+                      </p>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Fee Calculator */}
+              {requestedAmount > 0 && (
+                <div className="p-4 bg-muted rounded-lg space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Redemption Amount:</span>
+                    <span className="font-mono">${requestedAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Fee ({(feePercentage * 100).toFixed(1)}%):</span>
+                    <span className="font-mono text-destructive">-${feeAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between font-semibold">
+                    <span>Net Amount:</span>
+                    <span className="font-mono text-green-600 dark:text-green-400">${netAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Terms Acceptance */}
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={termsAccepted}
+                  onCheckedChange={(checked: boolean) => setTermsAccepted(checked)}
+                  data-testid="checkbox-terms"
+                />
+                <Label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+                  I understand that this redemption will be deducted from my available balance and processed according to the selected payout method.
+                </Label>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel-redemption">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={createRedemptionMutation.isPending}
+                  data-testid="button-submit-redemption"
+                >
+                  {createRedemptionMutation.isPending ? "Processing..." : "Submit Request"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Balances by Organization */}
