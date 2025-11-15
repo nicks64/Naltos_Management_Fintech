@@ -316,7 +316,7 @@ export default function MerchantPortal() {
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-page-title">Merchant Portal</h1>
           <p className="text-muted-foreground">
-            View your NUSD settlements and yield across property managers
+            View your USD settlements and earnings from transaction float
           </p>
         </div>
         <Store className="h-12 w-12 text-primary" />
@@ -326,7 +326,7 @@ export default function MerchantPortal() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total NUSD Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -335,10 +335,10 @@ export default function MerchantPortal() {
             ) : (
               <>
                 <div className="text-2xl font-bold font-mono" data-testid="text-total-balance">
-                  ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Across all property managers
+                  From customer transactions
                 </p>
               </>
             )}
@@ -356,10 +356,10 @@ export default function MerchantPortal() {
             ) : (
               <>
                 <div className="text-2xl font-bold font-mono" data-testid="text-pending-settlement">
-                  ${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  In 1-3 day float
+                  Settling to your bank in 1-3 days
                 </p>
               </>
             )}
@@ -368,7 +368,7 @@ export default function MerchantPortal() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Yield Earned</CardTitle>
+            <CardTitle className="text-sm font-medium">USD Earned (Yield)</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -377,10 +377,10 @@ export default function MerchantPortal() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-green-600 dark:text-green-400 font-mono" data-testid="text-total-yield">
-                  ${totalYield.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${totalYield.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  From settlement float
+                  From 1-3 day settlement float
                 </p>
               </>
             )}
@@ -388,7 +388,7 @@ export default function MerchantPortal() {
         </Card>
       </div>
 
-      {/* NUSD Orchestration Explainer Card */}
+      {/* How Your USD Payments Work */}
       {showExplainer && (
         <Collapsible open={explainerOpen} onOpenChange={setExplainerOpen}>
           <Card className="border-primary/20 bg-primary/5">
@@ -396,7 +396,7 @@ export default function MerchantPortal() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Info className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg">How Merchant NUSD Payments Work</CardTitle>
+                  <CardTitle className="text-lg">How Your USD Payments Work</CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
                   <CollapsibleTrigger asChild>
@@ -416,34 +416,39 @@ export default function MerchantPortal() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Store className="h-4 w-4 text-blue-600" />
-                      <h4 className="font-semibold">NUSD Payments</h4>
+                      <h4 className="font-semibold">Instant USD Notification</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Tenants pay you with NUSD, backed 1:1 by stablecoins (USDC/USDT/DAI). You receive instant settlement notification while actual fund transfer occurs within 1-3 days.
+                      Customers pay in USD. You receive instant confirmation that funds are secured, with automatic settlement to your bank account in 1-3 days via ACH.
                     </p>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <PiggyBank className="h-4 w-4 text-green-600" />
-                      <h4 className="font-semibold">Settlement Float Yield</h4>
+                      <h4 className="font-semibold">Earn During Float</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      During the 1-3 day settlement period, property owners deploy your pending payment into treasury products generating 3-5% APY. Yield is shared with tenants as cashback.
+                      During the 1-3 day settlement window, your pending USD generates yield through treasury products at 3-5% APY. A portion of this yield is shared with your customers as cashback.
                     </p>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <ArrowRight className="h-4 w-4 text-purple-600" />
-                      <h4 className="font-semibold">Automatic Settlement</h4>
+                      <h4 className="font-semibold">Automatic Bank Settlement</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Funds automatically settle to your bank account via ACH within the agreed timeframe. No action needed - the stablecoin orchestration handles everything automatically.
+                      USD settles to your bank automatically via ACH. No manual steps required — everything happens on your schedule (daily, weekly, or monthly).
                     </p>
                   </div>
                 </div>
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm">
-                    <strong>Example:</strong> A tenant pays $500 for a purchase. You receive instant NUSD confirmation backed by $500 USDC. During 2-day settlement, the property manager deploys it into NRK (4% APY) generating ~$0.11 yield. Tenant gets $0.06 cashback, property owner keeps $0.04, platform takes $0.01. You receive $500 via ACH on settlement date.
+                    <strong>Example:</strong> Customer pays $20 USD for a purchase. You get instant confirmation. During the 2-day settlement period, that $20 generates yield ($0.006 at 4% APY). Customer receives $0.003 USD cashback, property owner keeps $0.002, platform takes $0.001. You receive $20 USD via ACH on settlement date.
+                  </p>
+                </div>
+                <div className="border-t pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Powered by stablecoin rails:</strong> Behind the scenes, Naltos uses stablecoins (USDC/USDT/DAI) as infrastructure for instant settlement. Everything you see is in USD — stablecoins are just the backend rails that make it fast and automatic.
                   </p>
                 </div>
               </CardContent>
@@ -456,7 +461,7 @@ export default function MerchantPortal() {
       <Card>
         <CardHeader>
           <CardTitle>Balances by Property Manager</CardTitle>
-          <CardDescription>Your NUSD balances across organizations</CardDescription>
+          <CardDescription>Your USD balances across all organizations</CardDescription>
         </CardHeader>
         <CardContent>
           {balancesLoading ? (
@@ -506,10 +511,10 @@ export default function MerchantPortal() {
             Transactions
           </TabsTrigger>
           <TabsTrigger value="stablecoin" data-testid="tab-stablecoin">
-            Stablecoin Backing
+            Backend Infrastructure
           </TabsTrigger>
           <TabsTrigger value="treasury" data-testid="tab-treasury">
-            Treasury Products
+            Yield Earnings
           </TabsTrigger>
         </TabsList>
 
