@@ -365,10 +365,10 @@ export default function VendorPortal() {
             ) : (
               <>
                 <div className="text-2xl font-bold" data-testid="text-total-balance">
-                  ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Across all property managers
+                  Instant payments across all property managers
                 </p>
               </>
             )}
@@ -386,10 +386,10 @@ export default function VendorPortal() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-available-balance">
-                  ${totalAvailable.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${totalAvailable.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Ready to redeem
+                  Ready to cash out to your bank
                 </p>
               </>
             )}
@@ -418,7 +418,7 @@ export default function VendorPortal() {
         </Card>
       </div>
 
-      {/* NUSD Orchestration Explainer Card */}
+      {/* How Your USD Works Explainer */}
       {showExplainer && (
         <Collapsible open={explainerOpen} onOpenChange={setExplainerOpen}>
           <Card className="border-primary/20 bg-primary/5">
@@ -426,7 +426,7 @@ export default function VendorPortal() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Info className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg">How NUSD & Stablecoin Orchestration Works</CardTitle>
+                  <CardTitle className="text-lg">How Your USD Balance Works</CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
                   <CollapsibleTrigger asChild>
@@ -445,35 +445,40 @@ export default function VendorPortal() {
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-green-600" />
-                      <h4 className="font-semibold">1:1 Stablecoin Backing</h4>
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <h4 className="font-semibold">Instant USD Payments</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Every $1 NUSD you receive is backed 1:1 by stablecoins (USDC, USDT, DAI) held in secure treasury accounts. Your balance is fully redeemable anytime.
+                      You receive instant USD payments from property managers instead of waiting Net30-90. Your balance is available immediately and redeemable anytime.
                     </p>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <PiggyBank className="h-4 w-4 text-blue-600" />
-                      <h4 className="font-semibold">Yield Generation</h4>
+                      <h4 className="font-semibold">Earn While You Wait</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      When property managers pay you instantly, they deploy your payment into short-term treasury products (NRF, NRK, NRC) generating 3-5% APY until you redeem.
+                      Your idle USD generates yield through treasury products (T-Bills, money markets) at 3-5% APY until you cash out. You earn USD cashback automatically.
                     </p>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <ArrowRight className="h-4 w-4 text-purple-600" />
-                      <h4 className="font-semibold">Flexible Redemption</h4>
+                      <h4 className="font-semibold">Cash Out Your Way</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Choose ACH (Net30 due date, no fee), Push-to-Card (instant, 1.5% fee), or On-Chain Stablecoin (instant crypto, 0.1% fee). You control when and how you get paid.
+                      Receive USD via ACH (Net30 due date, no fee), Push-to-Card (instant, 1.5% fee), or crypto withdrawal (instant, 0.1% fee). You control when and how.
                     </p>
                   </div>
                 </div>
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm">
-                    <strong>Example:</strong> You receive $10,000 NUSD for an invoice. Property manager backs it with $10,000 USDC deployed into NRF (4.5% APY). After 30 days, you redeem via ACH receiving $10,000 + your share of yield generated during the float period.
+                    <strong>Example:</strong> You send a $10,000 USD invoice. Property manager pays you instantly. Your $10K USD generates yield for 30 days while you wait for the Net30 due date. You redeem via ACH receiving $10,000 + $1.88 USD cashback from yield earned during the float period.
+                  </p>
+                </div>
+                <div className="border-t pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Powered by stablecoin rails:</strong> Behind the scenes, Naltos uses stablecoins (USDC/USDT/DAI) as infrastructure for instant settlement. Everything you see is in USD — stablecoins are just the backend rails that make it fast and automatic.
                   </p>
                 </div>
               </CardContent>
@@ -609,8 +614,8 @@ export default function VendorPortal() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3" data-testid="tabs-list">
           <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-          <TabsTrigger value="stablecoin" data-testid="tab-stablecoin">Stablecoin Backing</TabsTrigger>
-          <TabsTrigger value="treasury" data-testid="tab-treasury">Treasury Products</TabsTrigger>
+          <TabsTrigger value="stablecoin" data-testid="tab-stablecoin">Backend Infrastructure</TabsTrigger>
+          <TabsTrigger value="treasury" data-testid="tab-treasury">Yield Earnings</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -619,7 +624,7 @@ export default function VendorPortal() {
           <Card>
             <CardHeader>
               <CardTitle>Balances by Property Manager</CardTitle>
-              <CardDescription>Your NUSD balances across organizations</CardDescription>
+              <CardDescription>Your USD balances across all organizations</CardDescription>
             </CardHeader>
             <CardContent>
           {balancesLoading ? (
@@ -853,26 +858,32 @@ function VendorStablecoinTab({ vendorId, organizationName }: { vendorId?: string
       {/* Summary Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Stablecoin Backing Overview</CardTitle>
+          <CardTitle>How Your USD is Backed (Technical Details)</CardTitle>
           <CardDescription>
-            Your NUSD is 1:1 backed by stablecoins (USDC/USDT/DAI) held in secure custody
+            Your USD balance is backed 1:1 by stablecoins (USDC/USDT/DAI) — the invisible rails that enable instant settlement
             {vendorId && organizationName && ` - ${organizationName}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!vendorId ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Select a property manager to view stablecoin backing
+              Select a property manager to view backend infrastructure
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Total Stablecoin Backing</p>
-                <p className="text-3xl font-bold font-mono">${totalBacking.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground mb-2">Total USD Backing</p>
+                <p className="text-3xl font-bold font-mono">${totalBacking.toFixed(2)} USD</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Fully redeemable at any time
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Backing Ratio</p>
                 <p className="text-3xl font-bold">100%</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  1:1 stablecoin backing
+                </p>
               </div>
             </div>
           )}
@@ -882,8 +893,8 @@ function VendorStablecoinTab({ vendorId, organizationName }: { vendorId?: string
       {/* Allocations by Coin */}
       <Card>
         <CardHeader>
-          <CardTitle>Stablecoin Allocations</CardTitle>
-          <CardDescription>Breakdown of backing by stablecoin type</CardDescription>
+          <CardTitle>Stablecoin Infrastructure Breakdown</CardTitle>
+          <CardDescription>Backend diversification across USDC, USDT, and DAI for safety and liquidity</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -943,10 +954,11 @@ function VendorStablecoinTab({ vendorId, organizationName }: { vendorId?: string
           <div className="flex gap-3">
             <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div className="space-y-2">
-              <p className="font-medium">Secure & Transparent Backing</p>
+              <p className="font-medium">How It Works</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Every NUSD in your account is backed 1:1 by stablecoins (USDC, USDT, DAI) held in secure
-                custody. This ensures instant redemption and full transparency of your backing assets.
+                Your USD balance is backed by stablecoins (USDC, USDT, DAI) which serve as infrastructure rails.
+                These stablecoins are instantly convertible to USD and deployed into secure treasury products to generate your cashback.
+                Everything you see is denominated in USD — stablecoins are just the invisible backend.
               </p>
             </div>
           </div>
@@ -978,31 +990,40 @@ function VendorTreasuryTab({ vendorId, organizationName }: { vendorId?: string |
       {/* Summary Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Treasury Deployment Overview</CardTitle>
+          <CardTitle>Your USD Yield Earnings</CardTitle>
           <CardDescription>
-            Your stablecoin backing is automatically deployed into yield-generating treasury products
+            Your idle USD balance generates yield through treasury products (T-Bills, money markets)
             {vendorId && organizationName && ` - ${organizationName}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!vendorId ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Select a property manager to view treasury deployments
+              Select a property manager to view yield earnings
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Total Assets Under Management</p>
-                <p className="text-3xl font-bold font-mono">${totalAUM.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground mb-2">Your Earning Balance</p>
+                <p className="text-3xl font-bold font-mono">${totalAUM.toFixed(2)} USD</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Deployed while you wait for payout
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Current Yield Rate</p>
-                <p className="text-3xl font-bold">{weightedYield.toFixed(2)}%</p>
+                <p className="text-3xl font-bold">{weightedYield.toFixed(2)}% APY</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Blended rate across products
+                </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Total Yield Accrued</p>
+                <p className="text-sm text-muted-foreground mb-2">USD Earned (Total)</p>
                 <p className="text-3xl font-bold font-mono text-green-600 dark:text-green-400">
-                  ${totalYield.toFixed(2)}
+                  ${totalYield.toFixed(2)} USD
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cashback from idle balance
                 </p>
               </div>
             </div>
@@ -1013,8 +1034,8 @@ function VendorTreasuryTab({ vendorId, organizationName }: { vendorId?: string |
       {/* Treasury Product Allocations */}
       <Card>
         <CardHeader>
-          <CardTitle>Active Treasury Positions</CardTitle>
-          <CardDescription>Breakdown by treasury product type</CardDescription>
+          <CardTitle>How Your USD Generates Yield</CardTitle>
+          <CardDescription>Your idle USD is deployed across T-Bills and money markets for optimal returns</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -1030,7 +1051,7 @@ function VendorTreasuryTab({ vendorId, organizationName }: { vendorId?: string |
           ) : !allocations || allocations.length === 0 ? (
             <div className="text-center py-8">
               <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">No treasury deployments yet</p>
+              <p className="text-sm text-muted-foreground">No yield-earning balance yet</p>
             </div>
           ) : (
             <div className="space-y-4">
