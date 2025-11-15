@@ -8,6 +8,9 @@ import { DollarSign, TrendingUp, Clock, Download, Store, Coins, PiggyBank, Info,
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 
 interface MerchantBalance {
   merchantId: string;
@@ -109,6 +112,150 @@ function generateSettlementChartData(balances: MerchantBalance[]): Array<{date: 
   }
   
   return data;
+}
+
+// Payment Method Manager Component
+function PaymentMethodManager() {
+  const [schedule, setSchedule] = useState(() => {
+    return localStorage.getItem('merchant-settlement-schedule') || "weekly";
+  });
+  const [paymentMethod, setPaymentMethod] = useState(() => {
+    return localStorage.getItem('merchant-payment-method') || "ach";
+  });
+  const [autoSettle, setAutoSettle] = useState(() => {
+    const stored = localStorage.getItem('merchant-auto-settle');
+    return stored === null ? true : stored === 'true';
+  });
+  const { toast } = useToast();
+  
+  const scheduleOptions = [
+    { value: "daily", label: "Daily", description: "Settle funds every business day", icon: Clock },
+    { value: "weekly", label: "Weekly", description: "Settle funds every Friday", icon: TrendingUp },
+    { value: "monthly", label: "Monthly", description: "Settle funds on the 1st of each month", icon: DollarSign }
+  ];
+  
+  const paymentMethods = [
+    { value: "ach", label: "ACH Transfer", description: "Standard bank transfer (1-2 business days)", icon: DollarSign },
+    { value: "wire", label: "Wire Transfer", description: "Same-day transfer (higher fees)", icon: Coins }
+  ];
+  
+  const handleSave = () => {
+    localStorage.setItem('merchant-settlement-schedule', schedule);
+    localStorage.setItem('merchant-payment-method', paymentMethod);
+    localStorage.setItem('merchant-auto-settle', autoSettle.toString());
+    
+    toast({
+      title: "Settlement Preferences Saved",
+      description: `Your settlement schedule is now ${scheduleOptions.find(s => s.value === schedule)?.label} via ${paymentMethods.find(m => m.value === paymentMethod)?.label}. Settings will persist across sessions.`
+    });
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Settlement Schedule */}
+      <div className="space-y-3">
+        <Label className="text-base font-semibold">Settlement Schedule</Label>
+        <div className="grid md:grid-cols-3 gap-3">
+          {scheduleOptions.map((option) => {
+            const Icon = option.icon;
+            return (
+              <div
+                key={option.value}
+                onClick={() => setSchedule(option.value)}
+                className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                  schedule === option.value
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                    : "border-border hover-elevate"
+                }`}
+                data-testid={`schedule-option-${option.value}`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className="h-4 w-4 text-primary" />
+                  <h4 className="font-medium">{option.label}</h4>
+                  {schedule === option.value && (
+                    <Badge variant="default" className="ml-auto">Selected</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">{option.description}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
+      {/* Payment Method */}
+      <div className="space-y-3">
+        <Label className="text-base font-semibold">Payment Method</Label>
+        <div className="grid md:grid-cols-2 gap-3">
+          {paymentMethods.map((method) => {
+            const Icon = method.icon;
+            return (
+              <div
+                key={method.value}
+                onClick={() => setPaymentMethod(method.value)}
+                className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                  paymentMethod === method.value
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                    : "border-border hover-elevate"
+                }`}
+                data-testid={`payment-method-${method.value}`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className="h-4 w-4 text-primary" />
+                  <h4 className="font-medium">{method.label}</h4>
+                  {paymentMethod === method.value && (
+                    <Badge variant="default" className="ml-auto">Selected</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">{method.description}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
+      {/* Auto-Settlement Toggle */}
+      <div className="flex items-start justify-between p-4 rounded-lg border">
+        <div className="space-y-1">
+          <Label htmlFor="auto-settle" className="text-base font-medium cursor-pointer">
+            Automatic Settlement
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            Automatically settle funds according to your schedule without manual approval
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="auto-settle"
+            checked={autoSettle}
+            onCheckedChange={(checked) => setAutoSettle(checked as boolean)}
+            data-testid="checkbox-auto-settle"
+          />
+        </div>
+      </div>
+      
+      {/* Current Settings Summary */}
+      <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+        <h4 className="font-medium text-sm">Current Settings</h4>
+        <div className="text-sm space-y-1">
+          <p className="text-muted-foreground">
+            <strong>Schedule:</strong> {scheduleOptions.find(s => s.value === schedule)?.label || schedule}
+          </p>
+          <p className="text-muted-foreground">
+            <strong>Method:</strong> {paymentMethods.find(m => m.value === paymentMethod)?.label || paymentMethod}
+          </p>
+          <p className="text-muted-foreground">
+            <strong>Auto-Settlement:</strong> {autoSettle ? "Enabled" : "Disabled"}
+          </p>
+        </div>
+      </div>
+      
+      <Button onClick={handleSave} className="w-full" data-testid="button-save-preferences">
+        <Store className="mr-2 h-4 w-4" />
+        Save Preferences
+      </Button>
+    </div>
+  );
 }
 
 // Removed custom hook - use skipToken pattern directly at call sites instead
@@ -430,6 +577,17 @@ export default function MerchantPortal() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Payment Method Manager */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Settlement Preferences</CardTitle>
+              <CardDescription>Configure your payment settlement schedule and method</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PaymentMethodManager />
             </CardContent>
           </Card>
 
