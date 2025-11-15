@@ -350,30 +350,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const vendorIds = req.vendorIds!;
       
-      // Mock redemption data for demonstration (task 4 will implement real persistence)
-      const mockRedemptions = vendorIds.flatMap((vendorId, index) => [
-        {
-          id: `${vendorId}-redemption-1`,
-          amount: 2500.00,
-          status: "completed",
-          payoutMethod: "ACH (Next-Day)",
-          requestedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          completedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: `${vendorId}-redemption-2`,
-          amount: 1250.50,
-          status: "processing",
-          payoutMethod: "Push-to-Card (Instant)",
-          requestedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          completedAt: null,
-        },
-      ]);
+      // Get real redemption data from database
+      const redemptions = await storage.getRedemptionsByVendorIds(vendorIds);
       
-      res.json({ redemptions: mockRedemptions });
+      res.json({ redemptions });
     } catch (error: any) {
       console.error("Vendor redemptions error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message, message: error.message });
+    }
+  });
+
+  app.post("/api/vendor/redemptions", requireVendor(storage), async (req, res) => {
+    try {
+      const vendorIds = req.vendorIds!;
+      const { rail, nusdAmount, payoutMethodId } = req.body;
+      
+      // Validate input
+      if (!rail || !nusdAmount) {
+        return res.status(400).json({ 
+          error: "Missing required fields", 
+          message: "Rail type and amount are required" 
+        });
+      }
+      
+      // Validate rail type
+      const validRails = ["ACH", "PushToCard", "OnChainStablecoin"];
+      if (!validRails.includes(rail)) {
+        return res.status(400).json({ 
+          error: "Invalid rail type", 
+          message: `Rail must be one of: ${validRails.join(", ")}` 
+        });
+      }
+      
+      // Validate amount
+      const amount = parseFloat(nusdAmount);
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ 
+          error: "Invalid amount", 
+          message: "Amount must be a positive number" 
+        });
+      }
+      
+      // Create redemption(s) - proportionally deducted across vendor balances
+      const redemptions = await storage.createRedemption({
+        vendorIds,
+        rail,
+        nusdAmount: amount.toFixed(2),
+        payoutMethodId,
+      });
+      
+      res.json({ 
+        success: true,
+        message: "Redemption request created successfully",
+        redemptions 
+      });
+    } catch (error: any) {
+      console.error("Vendor redemption creation error:", error);
+      
+      // Return appropriate status code based on error message
+      const statusCode = error.message.includes("Insufficient balance") ? 400 : 500;
+      
+      res.status(statusCode).json({ 
+        error: error.message, 
+        message: error.message 
+      });
     }
   });
 
