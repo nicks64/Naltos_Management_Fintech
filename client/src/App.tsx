@@ -37,6 +37,9 @@ import { TenantSidebar } from "@/components/tenant-sidebar";
 import VendorLogin from "@/pages/vendor-login";
 import VendorPortal from "@/pages/vendor-portal";
 
+// Merchant pages
+import MerchantPortal from "@/pages/merchant-portal";
+
 function ProtectedRoute({ component: Component, path }: { component: React.ComponentType; path: string }): React.ReactElement {
   const { user } = useAuth();
   const { canAccessPage } = useRBAC();
@@ -81,6 +84,7 @@ function AppContent() {
   // Redirect based on user role
   if (user && location === "/") {
     const redirectPath = user.role === "Vendor" ? "/vendor-portal" :
+                        user.role === "Merchant" ? "/merchant-portal" :
                         user.role === "Tenant" ? "/tenant/home" : "/dashboard";
     return <Redirect to={redirectPath} />;
   }
@@ -117,6 +121,9 @@ function AppContent() {
           <Switch>
             <Route path="/vendor-portal">
               {ProtectedRouteRenderer(VendorPortal, "/vendor-portal")}
+            </Route>
+            <Route path="/merchant-portal">
+              {ProtectedRouteRenderer(MerchantPortal, "/merchant-portal")}
             </Route>
             <Route component={NotFound} />
           </Switch>

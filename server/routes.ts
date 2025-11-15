@@ -573,46 +573,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/merchant/transactions", requireMerchant(storage), async (req, res) => {
+  app.get("/api/merchant/transactions/:merchantId", requireMerchant(storage), async (req, res) => {
     try {
       const merchantIds = req.merchantIds!;
-      const { merchantId, status } = req.query;
+      const { merchantId } = req.params;
+      const { status } = req.query;
       const userId = req.userId!;
       
-      // If specific merchantId provided, verify it's in the user's accessible merchants
-      if (merchantId) {
-        if (!merchantIds.includes(merchantId as string)) {
-          return res.status(403).json({ 
-            error: "Access denied",
-            message: "You don't have access to this merchant"
-          });
-        }
-        
-        // Get transactions for the specific merchant
-        const transactions = await storage.getMerchantTransactionsByMerchantId(
-          userId,
-          merchantId as string,
-          status ? { status: status as string } : undefined
-        );
-        
-        return res.json({ transactions });
+      // Verify merchantId is in the user's accessible merchants
+      if (!merchantIds.includes(merchantId)) {
+        return res.status(403).json({ 
+          error: "Access denied",
+          message: "You don't have access to this merchant"
+        });
       }
       
-      // If no merchantId specified, return transactions for ALL accessible merchants
-      const allTransactions = await Promise.all(
-        merchantIds.map(id => 
-          storage.getMerchantTransactionsByMerchantId(
-            userId,
-            id,
-            status ? { status: status as string } : undefined
-          )
-        )
+      // Get transactions for the specific merchant
+      const transactions = await storage.getMerchantTransactionsByMerchantId(
+        userId,
+        merchantId,
+        status ? { status: status as string } : undefined
       );
-      
-      // Flatten and sort by date
-      const transactions = allTransactions
-        .flat()
-        .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
       
       res.json({ transactions });
     } catch (error: any) {
