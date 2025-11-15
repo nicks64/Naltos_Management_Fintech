@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["Admin", "PropertyManager", "CFO", "Analyst", "Tenant", "Vendor"]);
+export const userRoleEnum = pgEnum("user_role", ["Admin", "PropertyManager", "CFO", "Analyst", "Tenant", "Vendor", "Merchant"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["pending", "paid", "overdue", "partial"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["ACH", "Card", "Check", "Wire"]);
 export const pmsProviderEnum = pgEnum("pms_provider", ["AppFolio", "Yardi", "Buildium"]);
@@ -346,6 +346,85 @@ export const merchantTransactions = pgTable("merchant_transactions", {
   platformYieldShare: decimal("platform_yield_share", { precision: 10, scale: 2 }).notNull(), // Platform share (7.5% of yield)
   description: text("description"),
 });
+
+// Merchant Balances - Tracks NUSD balance and settlement amounts for each merchant
+// IMPORTANT: organizationId MUST match merchants.organizationId (enforced in application layer)
+export const merchantBalances = pgTable("merchant_balances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  merchantId: varchar("merchant_id").notNull().unique().references(() => merchants.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  nusdBalance: decimal("nusd_balance", { precision: 12, scale: 2 }).notNull().default("0"), // Current NUSD balance available
+  pendingSettlement: decimal("pending_settlement", { precision: 12, scale: 2 }).notNull().default("0"), // Amount in 1-3 day settlement window
+  totalReceived: decimal("total_received", { precision: 12, scale: 2 }).notNull().default("0"), // Lifetime transaction volume
+  totalSettled: decimal("total_settled", { precision: 12, scale: 2 }).notNull().default("0"), // Lifetime settled to USD
+  totalYieldGenerated: decimal("total_yield_generated", { precision: 12, scale: 2 }).notNull().default("0"), // Lifetime yield from float
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Merchant User Links - Maps merchant users to merchant records they can access
+export const merchantUserLinks = pgTable("merchant_user_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  merchantId: varchar("merchant_id").notNull().references(() => merchants.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userMerchantIdx: uniqueIndex("merchant_user_links_user_merchant_idx").on(table.userId, table.merchantId),
+}));
+
+// Vendor Stablecoin Allocations - Shows how vendor NUSD balances are backed by real stablecoins (USDC/USDT/DAI)
+export const vendorStablecoinAllocations = pgTable("vendor_stablecoin_allocations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorBalanceId: varchar("vendor_balance_id").notNull().references(() => vendorBalances.id, { onDelete: "cascade" }),
+  coin: cryptoCoinEnum("coin").notNull(), // USDC, USDT, DAI (not NUSD)
+  allocatedAmount: decimal("allocated_amount", { precision: 18, scale: 8 }).notNull(), // Amount of this stablecoin backing NUSD
+  nusdEquivalent: decimal("nusd_equivalent", { precision: 12, scale: 2 }).notNull(), // NUSD amount backed (1:1 ratio)
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+}, (table) => ({
+  balanceCoinIdx: uniqueIndex("vendor_stablecoin_allocations_balance_coin_idx").on(table.vendorBalanceId, table.coin),
+}));
+
+// Merchant Stablecoin Allocations - Shows how merchant NUSD balances are backed by real stablecoins (USDC/USDT/DAI)
+export const merchantStablecoinAllocations = pgTable("merchant_stablecoin_allocations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  merchantBalanceId: varchar("merchant_balance_id").notNull().references(() => merchantBalances.id, { onDelete: "cascade" }),
+  coin: cryptoCoinEnum("coin").notNull(), // USDC, USDT, DAI (not NUSD)
+  allocatedAmount: decimal("allocated_amount", { precision: 18, scale: 8 }).notNull(), // Amount of this stablecoin backing NUSD
+  nusdEquivalent: decimal("nusd_equivalent", { precision: 12, scale: 2 }).notNull(), // NUSD amount backed (1:1 ratio)
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+}, (table) => ({
+  balanceCoinIdx: uniqueIndex("merchant_stablecoin_allocations_balance_coin_idx").on(table.merchantBalanceId, table.coin),
+}));
+
+// Vendor Treasury Allocations - Shows which treasury products (NRF/NRK/NRC) hold vendor stablecoins generating yield
+export const vendorTreasuryAllocations = pgTable("vendor_treasury_allocations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorBalanceId: varchar("vendor_balance_id").notNull().references(() => vendorBalances.id, { onDelete: "cascade" }),
+  treasuryProductId: varchar("treasury_product_id").notNull().references(() => treasuryProducts.id, { onDelete: "cascade" }),
+  coin: cryptoCoinEnum("coin").notNull(), // USDC, USDT, DAI
+  allocatedAmount: decimal("allocated_amount", { precision: 18, scale: 8 }).notNull(), // Amount deployed in this product
+  currentYield: decimal("current_yield", { precision: 5, scale: 2 }).notNull(), // Current APY of product
+  yieldAccrued: decimal("yield_accrued", { precision: 18, scale: 8 }).notNull().default("0"), // Yield earned so far
+  deployedAt: timestamp("deployed_at").defaultNow().notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+}, (table) => ({
+  balanceProductCoinIdx: uniqueIndex("vendor_treasury_allocations_balance_product_coin_idx").on(table.vendorBalanceId, table.treasuryProductId, table.coin),
+}));
+
+// Merchant Treasury Allocations - Shows which treasury products (NRF/NRK/NRC) hold merchant stablecoins generating yield
+export const merchantTreasuryAllocations = pgTable("merchant_treasury_allocations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  merchantBalanceId: varchar("merchant_balance_id").notNull().references(() => merchantBalances.id, { onDelete: "cascade" }),
+  treasuryProductId: varchar("treasury_product_id").notNull().references(() => treasuryProducts.id, { onDelete: "cascade" }),
+  coin: cryptoCoinEnum("coin").notNull(), // USDC, USDT, DAI
+  allocatedAmount: decimal("allocated_amount", { precision: 18, scale: 8 }).notNull(), // Amount deployed in this product
+  currentYield: decimal("current_yield", { precision: 5, scale: 2 }).notNull(), // Current APY of product
+  yieldAccrued: decimal("yield_accrued", { precision: 18, scale: 8 }).notNull().default("0"), // Yield earned so far
+  deployedAt: timestamp("deployed_at").defaultNow().notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+}, (table) => ({
+  balanceProductCoinIdx: uniqueIndex("merchant_treasury_allocations_balance_product_coin_idx").on(table.merchantBalanceId, table.treasuryProductId, table.coin),
+}));
 
 // Tenant Wallets - for consumer-side balance and yield accounts
 export const tenantWallets = pgTable("tenant_wallets", {
@@ -731,7 +810,7 @@ export const vendorInvoicesRelations = relations(vendorInvoices, ({ one }) => ({
   }),
 }));
 
-export const vendorBalancesRelations = relations(vendorBalances, ({ one }) => ({
+export const vendorBalancesRelations = relations(vendorBalances, ({ one, many }) => ({
   vendor: one(vendors, {
     fields: [vendorBalances.vendorId],
     references: [vendors.id],
@@ -740,6 +819,8 @@ export const vendorBalancesRelations = relations(vendorBalances, ({ one }) => ({
     fields: [vendorBalances.organizationId],
     references: [organizations.id],
   }),
+  stablecoinAllocations: many(vendorStablecoinAllocations),
+  treasuryAllocations: many(vendorTreasuryAllocations),
 }));
 
 export const vendorRedemptionsRelations = relations(vendorRedemptions, ({ one }) => ({
@@ -803,6 +884,66 @@ export const merchantTransactionsRelations = relations(merchantTransactions, ({ 
   organization: one(organizations, {
     fields: [merchantTransactions.organizationId],
     references: [organizations.id],
+  }),
+}));
+
+export const merchantBalancesRelations = relations(merchantBalances, ({ one, many }) => ({
+  merchant: one(merchants, {
+    fields: [merchantBalances.merchantId],
+    references: [merchants.id],
+  }),
+  organization: one(organizations, {
+    fields: [merchantBalances.organizationId],
+    references: [organizations.id],
+  }),
+  stablecoinAllocations: many(merchantStablecoinAllocations),
+  treasuryAllocations: many(merchantTreasuryAllocations),
+}));
+
+export const merchantUserLinksRelations = relations(merchantUserLinks, ({ one }) => ({
+  user: one(users, {
+    fields: [merchantUserLinks.userId],
+    references: [users.id],
+  }),
+  merchant: one(merchants, {
+    fields: [merchantUserLinks.merchantId],
+    references: [merchants.id],
+  }),
+}));
+
+export const vendorStablecoinAllocationsRelations = relations(vendorStablecoinAllocations, ({ one }) => ({
+  vendorBalance: one(vendorBalances, {
+    fields: [vendorStablecoinAllocations.vendorBalanceId],
+    references: [vendorBalances.id],
+  }),
+}));
+
+export const merchantStablecoinAllocationsRelations = relations(merchantStablecoinAllocations, ({ one }) => ({
+  merchantBalance: one(merchantBalances, {
+    fields: [merchantStablecoinAllocations.merchantBalanceId],
+    references: [merchantBalances.id],
+  }),
+}));
+
+export const vendorTreasuryAllocationsRelations = relations(vendorTreasuryAllocations, ({ one }) => ({
+  vendorBalance: one(vendorBalances, {
+    fields: [vendorTreasuryAllocations.vendorBalanceId],
+    references: [vendorBalances.id],
+  }),
+  treasuryProduct: one(treasuryProducts, {
+    fields: [vendorTreasuryAllocations.treasuryProductId],
+    references: [treasuryProducts.id],
+  }),
+}));
+
+export const merchantTreasuryAllocationsRelations = relations(merchantTreasuryAllocations, ({ one }) => ({
+  merchantBalance: one(merchantBalances, {
+    fields: [merchantTreasuryAllocations.merchantBalanceId],
+    references: [merchantBalances.id],
+  }),
+  treasuryProduct: one(treasuryProducts, {
+    fields: [merchantTreasuryAllocations.treasuryProductId],
+    references: [treasuryProducts.id],
   }),
 }));
 
@@ -898,6 +1039,12 @@ export const insertVendorRedemptionSchema = createInsertSchema(vendorRedemptions
 export const insertVendorPayoutMethodSchema = createInsertSchema(vendorPayoutMethods).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertVendorComplianceStatusSchema = createInsertSchema(vendorComplianceStatus).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertVendorUserLinkSchema = createInsertSchema(vendorUserLinks).omit({ id: true, createdAt: true });
+export const insertMerchantBalanceSchema = createInsertSchema(merchantBalances).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertMerchantUserLinkSchema = createInsertSchema(merchantUserLinks).omit({ id: true, createdAt: true });
+export const insertVendorStablecoinAllocationSchema = createInsertSchema(vendorStablecoinAllocations).omit({ id: true, lastUpdated: true });
+export const insertMerchantStablecoinAllocationSchema = createInsertSchema(merchantStablecoinAllocations).omit({ id: true, lastUpdated: true });
+export const insertVendorTreasuryAllocationSchema = createInsertSchema(vendorTreasuryAllocations).omit({ id: true, deployedAt: true, lastUpdated: true });
+export const insertMerchantTreasuryAllocationSchema = createInsertSchema(merchantTreasuryAllocations).omit({ id: true, deployedAt: true, lastUpdated: true });
 
 // Types
 export type Organization = typeof organizations.$inferSelect;
