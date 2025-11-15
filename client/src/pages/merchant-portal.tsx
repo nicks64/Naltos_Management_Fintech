@@ -85,6 +85,32 @@ function formatPercent(value: string | number | null | undefined): string {
   return isNaN(num) ? "0.00" : num.toFixed(2);
 }
 
+// Generate mock settlement analytics data for demonstration
+function generateSettlementChartData(balances: MerchantBalance[]): Array<{date: string, volume: number, yield: number}> {
+  const totalPending = balances.reduce((sum, b) => sum + b.pendingSettlement, 0);
+  const totalReceived = balances.reduce((sum, b) => sum + b.totalReceived, 0);
+  const days = 30;
+  const data = [];
+  
+  const avgDailyVolume = totalReceived / days;
+  const avgDailyYield = (totalPending * 0.045) / 365;
+  
+  for (let i = days; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const volume = avgDailyVolume * (0.8 + Math.random() * 0.4);
+    const cumulativeYield = avgDailyYield * (days - i);
+    
+    data.push({
+      date: `${date.getMonth() + 1}/${date.getDate()}`,
+      volume: Math.max(0, volume),
+      yield: Math.max(0, cumulativeYield)
+    });
+  }
+  
+  return data;
+}
+
 // Removed custom hook - use skipToken pattern directly at call sites instead
 
 export default function MerchantPortal() {
@@ -341,7 +367,72 @@ export default function MerchantPortal() {
         </TabsList>
 
         {/* Transactions Tab */}
-        <TabsContent value="transactions">
+        <TabsContent value="transactions" className="space-y-6">
+          {/* Settlement Analytics Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Settlement Analytics</CardTitle>
+              <CardDescription>Transaction volume and cumulative yield over the last 30 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {balancesLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={generateSettlementChartData(balances?.balances || [])} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="yieldGradientMerchant" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis yAxisId="left" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(value) => `$${value.toFixed(0)}`} />
+                    <YAxis yAxisId="right" orientation="right" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(value) => `$${value.toFixed(2)}`} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number, name: string) => {
+                        if (name === 'volume') return [`$${value.toFixed(2)}`, 'Transaction Volume'];
+                        if (name === 'yield') return [`$${value.toFixed(2)}`, 'Cumulative Yield'];
+                        return [value, name];
+                      }}
+                    />
+                    <Legend />
+                    <Area 
+                      yAxisId="left"
+                      type="monotone" 
+                      dataKey="volume" 
+                      stroke="hsl(var(--chart-1))" 
+                      fillOpacity={1} 
+                      fill="url(#volumeGradient)" 
+                      strokeWidth={2}
+                      name="Transaction Volume"
+                    />
+                    <Area 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="yield" 
+                      stroke="hsl(var(--primary))" 
+                      fillOpacity={1} 
+                      fill="url(#yieldGradientMerchant)" 
+                      strokeWidth={2}
+                      name="Cumulative Yield"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <div>
