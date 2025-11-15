@@ -1,0 +1,295 @@
+Absolutely — here is the **corrected and updated version** of your cash-flow architecture, fully aligned with this key fact:
+
+> **The currency never changes for tenants, owners, vendors, or merchants.
+> Everyone still operates entirely in USD.
+> Stablecoins only upgrade the *invisible rails underneath*.
+> Naltos orchestrates treasury logic on these improved rails.**
+
+No one is “using crypto.”
+They are using **USD** delivered over **better infrastructure**.
+
+This version is clean, factual, landing-page ready, and easy for operators to understand.
+
+---
+
+# **📄 NALTOS — OPTIMAL CASH FLOW ARCHITECTURE (Updated: USD stays USD, rails change)**
+
+### *Stablecoins = infrastructure.
+
+NUSD = internal ledger dollar.
+Treasury = yield engine.*
+
+---
+
+# **1. NORTH STAR PRINCIPLE**
+
+> **Naltos does NOT change the currency.
+> Everything is still in USD.
+> We simply replace slow banking rails with faster stablecoin rails under the hood
+> so we can run automated treasury optimization in real time.**
+
+Your product is not “crypto.”
+It’s **modern financial plumbing for USD.**
+
+---
+
+# **2. GLOBAL FLOW OF DOLLARS (Updated for “USD stays USD”)**
+
+Here is the corrected lifecycle:
+
+```
+Tenant pays rent in USD
+↓
+USD deposited at property’s bank (no change to current workflow)
+↓
+Naltos purchases stablecoins (USDC/USDT/DAI) in the backend
+↓
+Stablecoins are used ONLY as fast settlement rails
+↓
+Naltos mints NUSD (internal accounting dollar = $1 USD)
+↓
+NUSD is allocated into float buckets (duration-based)
+↓
+Treasury engine deploys to T-bills, MMFs, delta-neutral credit
+↓
+Yield generated on idle USD (not the stablecoin)
+↓
+On payout date:
+NUSD → stablecoins → USD → owner/vendor/merchant bank account
+```
+
+Tenants, PMs, vendors, merchants:
+**never touch stablecoins.
+never see blockchain.
+never leave USD.**
+
+---
+
+# **3. MULTIFAMILY RENT FLOW (USD → USD)**
+
+### **1. Tenant pays rent (USD).**
+
+Same process as today (AppFolio, Buildium, Yardi).
+
+### **2. Property receives USD (no workflow change).**
+
+### **3. Naltos converts some USD → stablecoins (backend only).**
+
+This improves:
+
+* settlement speed
+* reconciliation
+* automation
+* programmability
+
+Stablecoins = **rails**, NOT currency.
+
+### **4. Naltos mints NUSD internally.**
+
+This is NOT a token to the user.
+It’s simply the **internal ledger dollar** that allows automated treasury logic.
+
+### **5. NUSD sits in the Rent Float Bucket (5–15 days)**
+
+Treasury allocation:
+
+* **70–80%** → T-bills (NRF)
+* **20–30%** → money market (NRK)
+
+### **6. Yield generated.**
+
+### **7. On disbursement:**
+
+NUSD → stablecoins → USD → owner bank.
+
+Owner sees USD.
+Tenant sees USD cashback.
+Vendor sees USD paid.
+Merchant sees USD settlement.
+
+**Currency never changes.
+Only the rails change.**
+
+---
+
+# **4. VENDOR PAYMENT FLOW (USD → USD)**
+
+This is where the biggest float exists, and where stablecoin rails shine the most.
+
+### **1. Vendor submits invoice (USD).**
+
+Net30 / Net60 / Net90.
+
+### **2. Property approves in PMS (USD workflow).**
+
+### **3. Naltos pays vendor instantly — in USD terms.**
+
+Vendor sees **USD balance**, not crypto.
+In the backend, rails may use:
+
+* USDC
+* USDT
+* DAI
+* RTP
+* FedNow
+* Visa Direct
+
+Vendor doesn’t see any of it.
+
+### **4. Naltos holds the USD (vendor float) for 30–90 days.**
+
+Treasury allocation:
+
+* **50%** → T-bills
+* **30%** → money market
+* **20%** → delta-neutral credit
+
+### **5. Yield generated on idle USD, not stablecoins.**
+
+### **6. On due date:**
+
+Vendor receives **USD** through ACH or instant debit rails.
+
+**Vendor never touches stablecoins.
+Vendor never sees blockchain.**
+
+---
+
+# **5. MERCHANT SETTLEMENT FLOW (USD → USD)**
+
+Tenants spend USD.
+Merchants receive USD.
+
+Stablecoins only facilitate **faster, programmable settlement** behind the scenes.
+
+### Flow:
+
+1. Tenant “Pays $20” → USD deducted from wallet.
+2. Merchant sees “$20 received.”
+3. In the backend, Naltos may use stablecoin rails to move funds instantly.
+4. Merchant settlement buffer generates **1–3 days** of yield.
+5. Merchant settles in USD according to their schedule.
+
+**All denominated in USD.
+Stablecoins = invisible plumbing.**
+
+---
+
+# **6. TENANT P2P PAYMENT FLOW (USD → USD)**
+
+Tenants send USD to each other inside the building.
+
+NUSD simply makes it:
+
+* instant
+* free
+* programmable
+* yield-efficient in the background
+
+### Flow:
+
+1. Tenant sends **$50** to roommate in the Naltos app.
+2. Roommate sees **+$50** instantly.
+3. Backend uses stablecoin rails to update the ledger.
+4. Treasury captures micro-float on pooled balances.
+
+**P2P remains USD-only.
+Stablecoin rails are invisible.**
+
+---
+
+# **7. THE OPTIMAL TREASURY STRATEGY (USD-driven)**
+
+### **Bucket A — Immediate Liquidity (0–3 days)**
+
+* Purpose: merchant/P2P/vendor withdrawals
+* Allocation: cash + money market
+
+### **Bucket B — Rent Float (5–15 days)**
+
+* Allocation:
+
+  * 70–80% T-bills
+  * 20–30% money market
+
+### **Bucket C — Vendor Float (30–90 days)**
+
+* Allocation:
+
+  * 50% T-bills
+  * 30% money market
+  * 20% delta-neutral credit
+
+### **Bucket D — Merchant/P2P Micro Float (1–3 days)**
+
+* Allocation:
+
+  * 50–70% money market
+  * 30–50% liquidity buffer
+
+### **Yield comes from treasury assets, not stablecoins.**
+
+Stablecoins simply make the flow:
+
+* faster
+* programmable
+* efficient
+* automated
+* 24/7
+
+---
+
+# **8. A PERFECT SINGLE SENTENCE (Use on Landing Page)**
+
+> **Naltos keeps all payments in USD — we simply use stablecoin rails behind the scenes to move dollars faster, automate treasury management, and turn rent, vendor payments, and merchant activity into a yield-generating financial system.**
+
+---
+
+# **9. Unified USD-First Cash Flow Diagram (Final Version)**
+
+```
+USD IN (Rent / Vendor / Merchant)
+↓
+Property PMS Records USD (no workflow change)
+↓
+Naltos Converts Some USD to Stablecoins (Backend Only)
+↓
+Stablecoins = Rails for Instant Settlement
+↓
+Naltos Mints NUSD (Internal Ledger Dollar = $1 USD)
+↓
+NUSD Allocated by Duration (0–3 / 5–15 / 30–90 / 1–3)
+↓
+Treasury Deploys Idle USD into:
+  • T-Bills
+  • Money Markets
+  • Delta-Neutral Credit
+↓
+Yield Generated (3–5% on idle USD)
+↓
+Yield Distributed in USD-equivalent:
+  Owners / Vendors / Tenants / Platform
+↓
+Payout:
+NUSD → Stablecoins → USD → Bank Account
+```
+
+**Currency: always USD
+Rails: upgraded to stablecoin infrastructure
+Treasury: automated by Naltos**
+
+---
+
+If you'd like, I can now:
+
+### ✔ Generate a **landing page section** explaining this in plain English
+
+### ✔ Convert this into a **deck slide**
+
+### ✔ Create a **visual diagram** for your homepage
+
+### ✔ Write a **FAQ** addressing the “Is this crypto?” objection
+
+### ✔ Create a **short version** for property managers
+
+Just tell me what you want next.

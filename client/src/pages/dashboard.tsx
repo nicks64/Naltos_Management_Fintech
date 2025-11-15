@@ -86,15 +86,15 @@ export default function Dashboard() {
       color: "text-emerald-600",
     },
     {
-      title: "Vendor Float AUM",
+      title: "Vendor Float (USD)",
       value: kpis?.vendorFloatAUM ? `$${(kpis.vendorFloatAUM / 1000).toFixed(0)}K` : "—",
-      change: "All-Time",
+      change: "Net30-90",
       trend: "up" as const,
       icon: Zap,
       color: "text-violet-600",
     },
     {
-      title: "Vendor Yield",
+      title: "Vendor Yield (USD Earned)",
       value: kpis?.vendorFloatYield ? `$${kpis.vendorFloatYield.toFixed(0)}` : "—",
       change: "All-Time",
       trend: "up" as const,
@@ -102,7 +102,7 @@ export default function Dashboard() {
       color: "text-emerald-600",
     },
     {
-      title: "Rent Float Yield",
+      title: "Rent Float Yield (USD Earned)",
       value: kpis?.rentFloatYield ? `$${kpis.rentFloatYield.toFixed(0)}` : "—",
       change: "Last 30d",
       trend: "up" as const,
@@ -110,25 +110,25 @@ export default function Dashboard() {
       color: "text-emerald-600",
     },
     {
-      title: "Crypto Treasury AUM",
+      title: "Stablecoin Infrastructure",
       value: kpis?.cryptoTreasuryAUM ? `$${(kpis.cryptoTreasuryAUM / 1000).toFixed(0)}K` : "—",
-      change: "USDC+USDT+DAI",
+      change: "Backend Rails",
       trend: "up" as const,
       icon: Coins,
       color: "text-cyan-600",
     },
     {
-      title: "Crypto Deployed",
+      title: "USD Deployed (Treasury)",
       value: kpis?.cryptoDeployedBalance ? `$${(kpis.cryptoDeployedBalance / 1000).toFixed(0)}K` : "—",
-      change: "In Treasury",
+      change: "T-Bills+MMF",
       trend: "up" as const,
       icon: Layers,
       color: "text-blue-600",
     },
     {
-      title: "Crypto Yield APY",
+      title: "Treasury Yield APY",
       value: kpis?.cryptoYieldAPY ? `${kpis.cryptoYieldAPY.toFixed(2)}%` : "—",
-      change: "Annualized",
+      change: "USD Returns",
       trend: "up" as const,
       icon: TrendingUp,
       color: "text-primary",
@@ -138,9 +138,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-8" data-testid="page-dashboard">
       <div>
-        <h1 className="text-4xl font-semibold tracking-tight mb-2">Overview</h1>
+        <h1 className="text-4xl font-semibold tracking-tight mb-2">Business Console</h1>
         <p className="text-muted-foreground">
-          Stablecoin orchestration platform generating yield from idle cash flows across rent, vendor payments, and merchant transactions
+          USD-based yield orchestration — turn idle rent, vendor payments, and merchant float into treasury-optimized assets
         </p>
       </div>
 
@@ -200,6 +200,165 @@ export default function Dashboard() {
           <div className="animate-pulse">Loading dashboard data...</div>
         </div>
       )}
+
+      {/* USD-First Architecture Explainer */}
+      <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-2 border-primary/10">
+        <CardHeader>
+          <CardTitle className="text-2xl">How Naltos Works: USD-First Yield Orchestration</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Currency Never Changes</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Everyone operates in <strong>USD</strong> — tenants pay in USD, vendors receive USD, owners earn USD. Stablecoins (USDC/USDT/DAI) are simply <strong>invisible backend rails</strong> for instant settlement and programmability.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Treasury Generates Yield</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Idle USD is deployed into <strong>T-Bills (NRF)</strong>, <strong>Money Markets (NRK)</strong>, and <strong>Delta-Neutral Credit (NRC)</strong> during predictable float windows. Yield comes from treasury products, not stablecoins.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Four Float Buckets</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                <strong>Immediate (0-3d)</strong>: Liquidity reserves • <strong>Rent (5-15d)</strong>: Short-term T-Bills • <strong>Vendor (30-90d)</strong>: Highest yield, longest duration • <strong>Merchant (1-3d)</strong>: High-volume micro-float
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted text-sm">
+            <p className="text-muted-foreground">
+              <strong>Key Insight:</strong> Naltos doesn't change your currency — we simply use stablecoin rails in the backend to move USD faster, automate treasury management, and turn rent, vendor payments, and merchant transactions into a yield-generating financial system.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Float Bucket Strategy */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Treasury Allocation Strategy: Four Float Buckets</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Every USD flowing through Naltos is allocated to one of four duration-optimized buckets — each matched to predictable float windows and treasury products
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Bucket A - Immediate Liquidity */}
+            <div className="p-4 border rounded-lg space-y-3" data-testid="bucket-immediate">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm">Bucket A — Immediate Liquidity</h3>
+                  <p className="text-xs text-muted-foreground">0–3 days</p>
+                </div>
+                <Clock className="w-4 h-4 text-cyan-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Emergency withdrawal reserve for merchant, P2P, vendor redemptions</p>
+              </div>
+              <div className="space-y-1 text-xs mt-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cash/Bank Reserve</span>
+                  <span className="font-mono">40-60%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">NRK (MMF)</span>
+                  <span className="font-mono">40-60%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bucket B - Rent Float */}
+            <div className="p-4 border rounded-lg space-y-3" data-testid="bucket-rent">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm">Bucket B — Rent Float</h3>
+                  <p className="text-xs text-muted-foreground">5–15 days</p>
+                </div>
+                <Home className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Predictable, short-duration float from rent payments</p>
+              </div>
+              <div className="space-y-1 text-xs mt-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">NRF (T-Bills)</span>
+                  <span className="font-mono">70-80%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">NRK (MMF)</span>
+                  <span className="font-mono">20-30%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bucket C - Vendor Float */}
+            <div className="p-4 border rounded-lg space-y-3" data-testid="bucket-vendor">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm">Bucket C — Vendor Float</h3>
+                  <p className="text-xs text-muted-foreground">30–90 days</p>
+                </div>
+                <Zap className="w-4 h-4 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Highest yield, longest duration (Net30-Net90 payment terms)</p>
+              </div>
+              <div className="space-y-1 text-xs mt-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">NRF (T-Bills)</span>
+                  <span className="font-mono">50%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">NRK (MMF)</span>
+                  <span className="font-mono">30%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">NRC (Credit)</span>
+                  <span className="font-mono">20%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bucket D - Merchant/P2P Micro Float */}
+            <div className="p-4 border rounded-lg space-y-3" data-testid="bucket-merchant">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm">Bucket D — Merchant/P2P Micro Float</h3>
+                  <p className="text-xs text-muted-foreground">1–3 days</p>
+                </div>
+                <Coins className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">High-volume, fast-moving merchant settlement float</p>
+              </div>
+              <div className="space-y-1 text-xs mt-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">NRK (MMF)</span>
+                  <span className="font-mono">50-70%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Liquidity Buffer</span>
+                  <span className="font-mono">30-50%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

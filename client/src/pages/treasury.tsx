@@ -79,21 +79,37 @@ export default function Treasury() {
 
   const getProductBadges = (productType: string) => {
     const badges: Record<string, string[]> = {
-      NRF: ["Capital preservation", "Short duration"],
-      NRK: ["Tokenized T-Bills", "30-day rolling"],
-      NRC: ["Delta-hedged", "Enhanced yield", "Accredited only"],
+      NRF: ["T-Bills", "USD returns", "5-15d float"],
+      NRK: ["Money Market", "USD returns", "30-90d float"],
+      NRC: ["Delta-Neutral Credit", "Enhanced USD yield", "Accredited only"],
     };
     return badges[productType] || [];
   };
 
   return (
     <div className="space-y-8" data-testid="page-treasury">
-      <div>
-        <h1 className="text-4xl font-semibold tracking-tight mb-2">Treasury</h1>
-        <p className="text-muted-foreground">
-          Naltos Reserve products for optimized cash management
-        </p>
-        <div className="mt-4 p-4 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-4xl font-semibold tracking-tight mb-2">Treasury Products</h1>
+          <p className="text-muted-foreground">
+            Deploy idle USD into T-Bills, Money Markets, and Delta-Neutral Credit — earn yield during predictable float windows
+          </p>
+        </div>
+        
+        <div className="p-4 bg-primary/5 border-2 border-primary/10 rounded-lg text-sm">
+          <div className="flex items-start gap-2">
+            <DollarSign className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold">USD-First Treasury Strategy</p>
+              <p className="text-muted-foreground">
+                These products generate yield on <strong>idle USD</strong> during float periods (rent 5-15d, vendor 30-90d, merchant 1-3d). 
+                Stablecoins are used only as backend rails for programmability — <strong>all returns are in USD</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-muted/50 rounded-lg text-sm text-muted-foreground">
           <AlertCircle className="inline w-4 h-4 mr-2" />
           Demo only. No real custody. Not investment advice.
         </div>
@@ -134,7 +150,7 @@ export default function Treasury() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                      AUM
+                      USD Deployed
                     </div>
                     <div className="text-xl font-mono font-semibold">
                       ${product.subscription?.balance ? 
@@ -144,7 +160,7 @@ export default function Treasury() {
                   </div>
                   <div>
                     <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                      Current Yield
+                      USD Yield APY
                     </div>
                     <div className="text-xl font-mono font-semibold text-green-600">
                       {product.currentYield}%

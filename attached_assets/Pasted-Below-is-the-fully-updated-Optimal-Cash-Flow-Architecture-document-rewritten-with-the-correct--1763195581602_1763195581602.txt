@@ -1,0 +1,347 @@
+Below is the **fully updated “Optimal Cash Flow Architecture” document** rewritten with the correct framing:
+
+**Stablecoins = RAILS
+NUSD = the PROGRAMMATIC DOLLAR
+Naltos = the ORCHESTRATION + TREASURY ENGINE**
+
+This version integrates **every angle**: tenants, owners, property managers, vendors, merchants, P2P, and the multifamily ecosystem — all expressed with stablecoins strictly as **infrastructure**, not yield sources.
+
+Use this as your **canonical document** for your landing page, pitch deck, website language, and investor material.
+
+---
+
+# **📄 NALTOS — OPTIMAL CASH FLOW ARCHITECTURE (Updated with “Stablecoins = Rails”)**
+
+Stablecoins are **payment rails and transport infrastructure** — fast, global, programmable. They **do not generate yield**.
+
+Naltos uses these rails (USDC, USDT, DAI, etc.) to move money instantly and programmatically.
+The **treasury engine** (NRF / NRK / NRC) generates the actual yield.
+NUSD acts as the **programmable internal dollar** that lets the treasury automate distribution, incentives, and settlement.
+
+Below is the updated, complete cash flow lifecycle across **multifamily → vendors → merchants → tenants → P2P**.
+
+---
+
+# **1. THE CORE PRINCIPLE**
+
+> **Stablecoins are rails.
+> NUSD is the programmable dollar.
+> Naltos is the treasury + orchestration layer that turns every dollar flowing through multifamily into a yield-bearing asset.**
+
+---
+
+# **2. GLOBAL FLOW OF DOLLARS (All Stakeholders)**
+
+### **USD → Stablecoin Rails → NUSD → Treasury → Yield → Redemption**
+
+This applies to:
+
+* Rent
+* Vendor invoices
+* Merchant payments
+* Tenant rewards
+* Tenant P2P
+* Owner payouts
+* Merchant settlement
+* Vendor redemptions
+
+Every dollar follows the same logic:
+
+```text
+USD enters → converted to stablecoins (USDC/USDT/DAI)
+↓
+Stablecoins are rails → used to mint NUSD
+↓
+NUSD enters one of 4 Float Buckets (0–3, 5–15, 30–90, 1–3 days)
+↓
+Each bucket allocated to treasury products:
+   NRF = T-bills
+   NRK = Money market
+   NRC = Delta-neutral credit
+↓
+Yield generated
+↓
+Yield distributed to stakeholders (owners, tenants, vendors, platform)
+↓
+On payout → NUSD redeemed → stablecoins → USD → bank/card/chain
+```
+
+This is the universal model — now broken out by stakeholder type.
+
+---
+
+# **3. MULTIFAMILY RENT FLOW (5–15 Days)**
+
+**Stablecoins are rails.
+NUSD is the programmable dollar.
+NRF/NRK generate yield.**
+
+### **Step-by-step:**
+
+1. Tenant pays rent through AppFolio / Buildium / Yardi.
+2. PMS sends USD to property bank.
+3. Naltos uses stablecoin rails (USDC/USDT/DAI) to mint **1:1 NUSD**.
+4. Rent enters **Rent Float Bucket (5–15 days)**.
+5. Allocation:
+
+* **70–80% → NRF (T-bills)**
+* **20–30% → NRK (money-market)**
+
+6. Yield generated → typically 3–4% APY.
+7. Distributed:
+
+* **Owner: 90%**
+* **Platform: 10%**
+* **Tenant: Cashback bonus (from platform share)**
+
+8. On disbursement day:
+
+* NUSD → stablecoins → USD
+* Owner receives full rent + yield
+
+### **Why this works:**
+
+Rent is predictable, short-duration float → perfect for safe, short-term yield.
+
+---
+
+# **4. VENDOR INVOICE FLOW (Net30–Net90)**
+
+**Stablecoins are instant rails for vendor payouts.
+Float window (30–90 days) → highest yield engine.**
+
+### **Step-by-step:**
+
+1. Vendor issues invoice ($10,000, Net30).
+2. Property manager approves in PMS.
+3. Naltos pays vendor **instantly in NUSD** (Day 0).
+4. Vendor sees funds immediately in Vendor Portal.
+5. Naltos holds USD equivalent for **30–90 days** using stablecoin rails.
+6. Allocation (higher yield because longer duration):
+
+* **50% → NRF**
+* **30% → NRK**
+* **20% → NRC** (delta-neutral credit)
+
+7. Yield distributed:
+
+* Owner: **90%**
+* Vendor: **5% cashback**
+* Platform: **5%**
+
+8. On day 30/60/90:
+
+* Vendor redeems NUSD → USD via ACH or instant card/chain rails.
+
+### **Why this works:**
+
+Vendors get instant liquidity.
+Owners monetize the float period.
+Naltos earns yield without operational risk.
+
+---
+
+# **5. MERCHANT SETTLEMENT FLOW (1–3 Days)**
+
+**Stablecoins = instant rails for tenant → merchant.
+Treasury engine earns micro-yield during settlement window.**
+
+### **Step-by-step:**
+
+1. Tenant spends $50 at a merchant using NUSD.
+2. Merchant portal reflects new NUSD balance.
+3. Merchant sets settlement preferences (daily/2-day/weekly).
+4. Treasury holds merchant balances in a **Micro Float Bucket (1–3 days)**.
+5. Allocation:
+
+* **50–70% → NRK (money market)**
+* **30–50% → liquidity buffer**
+
+6. Yield distribution:
+
+* Owner (50%)
+* Tenant cashback (40%)
+* Platform (10%)
+
+### **Why this works:**
+
+High volume of low-duration transactions produce predictable, compounding float.
+
+---
+
+# **6. TENANT P2P (Closed Community Economy)**
+
+**Stablecoins = rails.
+NUSD = the community currency.
+Float = yield while NUSD circulates.**
+
+### Flow:
+
+1. Tenant sends NUSD → roommate, neighbor, or friend.
+2. Funds move instantly (stablecoin rails).
+3. Treasury holds P2P balances in **Global Liquidity + Micro Float Bucket**.
+4. No conversion, no ACH, no delays.
+5. More NUSD = more float = more treasury deployment.
+6. Yield is generated indirectly:
+
+* NUSD balances sitting idle
+* Settlement buffers
+* Liquidity reserves
+
+### Why this matters:
+
+* Tenants keep NUSD in the ecosystem.
+* Merchant spend increases.
+* Owners indirectly benefit from network-wide float.
+* Naltos becomes the **financial layer of the community**.
+
+---
+
+# **7. THE OPTIMAL TREASURY STRATEGY (Mapped by Duration)**
+
+### **Bucket A — Immediate Liquidity (0–3 days):**
+
+Used for:
+
+* merchant redemptions
+* tenant P2P exits
+* instant vendor payouts
+* emergency liquidity
+
+Allocation:
+
+* **40–60% → cash / bank reserve**
+* **40–60% → NRK (MMF)**
+
+---
+
+### **Bucket B — Rent Float (5–15 days):**
+
+Predictable, short-term.
+
+Allocation:
+
+* **70–80% → NRF (T-bills)**
+* **20–30% → NRK**
+
+---
+
+### **Bucket C — Vendor Float (30–90 days):**
+
+Your highest yield, longest float.
+
+Allocation:
+
+* **50% → NRF (T-bills)**
+* **30% → NRK**
+* **20% → NRC (delta-neutral)**
+
+---
+
+### **Bucket D — Merchant/P2P Micro Float (1–3 days):**
+
+Fast-moving.
+
+Allocation:
+
+* **50–70% → NRK**
+* **30–50% → liquidity buffer**
+
+---
+
+# **8. ROLE OF STABLECOINS (Correct Framing for Your Landing Page)**
+
+### **Stablecoins are:**
+
+* rails
+* pipes
+* settlement infrastructure
+* transport for money
+* connectivity between systems
+* APIs for programmable money
+
+### **Stablecoins are NOT:**
+
+* yield generators
+* investments
+* risk assets
+* treasury strategies
+
+### **Yield only comes from:**
+
+* T-bills (NRF)
+* money markets (NRK)
+* delta-neutral credit (NRC)
+* timing windows (rent, vendor, merchant, P2P float)
+
+---
+
+# **9. UNIFIED CASH FLOW (All Angles)**
+
+Here is the complete 360° cash flow:
+
+```
+TENANT
+  ↓
+Rent Payment
+  ↓ (stablecoin rails)
+NUSD Minted
+  ↓
+Rent Float (5–15 days)
+  ↓
+Treasury Deployment (NRF/NRK)
+  ↓
+Yield Distributed
+
+VENDOR
+  ↓
+Invoice (Net30–Net90)
+  ↓
+Instant NUSD Payment
+  ↓
+Vendor Float (30–90 days)
+  ↓
+NRF/NRK/NRC Deployment
+  ↓
+Yield Distributed
+
+MERCHANT
+  ↓
+Tenant NUSD Spend
+  ↓
+Merchant Settlement Float (1–3 days)
+  ↓
+NRK Deployment
+  ↓
+Yield Distributed
+
+TENANT ↔ TENANT (P2P)
+  ↓
+Instant NUSD Transfer
+  ↓
+Balances Held in Micro Float Bucket
+  ↓
+NRK/Liquidity Deployment
+  ↓
+Indirect Yield Contribution
+```
+
+---
+
+# **10. FINAL POSITIONING COPY (Use this on your landing page)**
+
+> **Stablecoins are the rails. Naltos is the orchestration layer that turns every dollar in multifamily into a yield-bearing asset. By converting rent, vendor invoices, merchant payments, and tenant transfers into NUSD, our programmatic internal dollar, we deploy predictable float into short-duration treasury strategies — generating yield safely, automatically, and at scale.**
+
+---
+
+If you want, I can now:
+
+### ✔ Convert this into a *single, polished landing page section*
+
+### ✔ Turn it into a visual diagram
+
+### ✔ Reduce to a 1-page “Cash Flow Architecture” for your deck
+
+### ✔ Create an investor-ready version with numbers highlighted
+
+Just tell me which format you need next.
