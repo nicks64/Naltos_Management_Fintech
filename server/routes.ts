@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import bcrypt from "bcrypt";
 import OpenAI from "openai";
-import { requireAuth, requireRole, extractOrganizationId, requireVendor } from "./middleware";
+import { requireAuth, requireRole, extractOrganizationId, requireVendor, requireMerchant } from "./middleware";
 
 // Reference: blueprint:javascript_openai_ai_integrations
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
@@ -157,6 +157,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Merchant users should use /api/merchant-auth/login instead
+      if (user.role === "Merchant") {
+        return res.status(400).json({ 
+          error: "Invalid login endpoint",
+          message: "Merchant users should login at /api/merchant-auth/login"
+        });
+      }
+
       // Get organization (safe because we verified user is not a vendor)
       const organization = await storage.getOrganization(user.organizationId!);
 
@@ -290,6 +298,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Vendor login error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Merchant Authentication Routes ============
+  // Merchant-specific authentication (similar to vendor auth pattern)
+  
+  app.post("/api/merchant-auth/send-code", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      // Verify merchant user exists (merchants must be invited, they can't self-signup)
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.role !== "Merchant") {
+        return res.status(404).json({ 
+          error: "Merchant not found",
+          message: "No merchant account found with this email. Please contact your property manager to get invited."
+        });
+      }
+
+      // Create magic code - always "222222" for demo
+      const code = "222222";
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      await storage.createMagicCode({
+        email,
+        code,
+        expiresAt,
+        used: false,
+      });
+
+      // In production, would send email here
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Merchant send code error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/merchant-auth/login", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+
+      // Find magic code
+      const magicCode = await storage.getMagicCode(email, code);
+      if (!magicCode) {
+        return res.status(401).json({ 
+          error: "Invalid magic code",
+          message: "Invalid magic code"
+        });
+      }
+
+      // Check expiration
+      if (new Date() > magicCode.expiresAt) {
+        return res.status(401).json({ 
+          error: "Magic code expired",
+          message: "Magic code expired"
+        });
+      }
+
+      // Mark as used
+      await storage.markMagicCodeUsed(magicCode.id);
+
+      // Get merchant user (must exist, merchants are invited not self-signup)
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.role !== "Merchant") {
+        return res.status(401).json({ 
+          error: "Invalid merchant account",
+          message: "This account is not registered as a merchant."
+        });
+      }
+
+      // Get merchant user links to ensure they have access to at least one merchant
+      const linkedMerchantIds = await storage.getMerchantUserLinks(user.id);
+      if (linkedMerchantIds.length === 0) {
+        return res.status(409).json({ 
+          error: "No merchant access",
+          message: "Your account has not been linked to any merchants yet. Please contact your property manager."
+        });
+      }
+
+      // Regenerate session to prevent fixation attacks
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      // Store user info in session for secure authentication
+      // NOTE: organizationId is null for merchant users (they span multiple orgs)
+      req.session.userId = user.id;
+      req.session.userRole = "Merchant";
+      req.session.organizationId = null as any; // Merchant users have no single organization (use null, not undefined)
+
+      // Return user with merchant metadata (linked merchant count)
+      res.json({ 
+        user: {
+          ...user,
+          merchantCount: linkedMerchantIds.length, // Number of property managers this merchant works with
+        },
+        organization: null, // Merchants don't have a single organization
+      });
+    } catch (error: any) {
+      console.error("Merchant login error:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -430,6 +543,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message, 
         message: error.message 
       });
+    }
+  });
+
+  // ============ Merchant Portal Routes ============
+  app.get("/api/merchant/balances", requireMerchant(storage), async (req, res) => {
+    try {
+      const merchantIds = req.merchantIds!;
+      
+      // Get merchant overview with balances and organization info
+      const overview = await storage.getMerchantOverview(merchantIds);
+      
+      const balances = overview.map(({ merchant, balance, organization }) => {
+        return {
+          merchantId: merchant.id,
+          organizationName: organization.name,
+          nusdBalance: balance?.nusdBalance || 0,
+          pendingSettlement: balance?.pendingSettlement || 0,
+          totalReceived: balance?.totalReceived || 0,
+          totalSettled: balance?.totalSettled || 0,
+          totalYieldGenerated: balance?.totalYieldGenerated || 0,
+        };
+      });
+      
+      res.json({ balances });
+    } catch (error: any) {
+      console.error("Merchant balances error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/merchant/transactions", requireMerchant(storage), async (req, res) => {
+    try {
+      const merchantIds = req.merchantIds!;
+      const { merchantId, status } = req.query;
+      const userId = req.userId!;
+      
+      // If specific merchantId provided, verify it's in the user's accessible merchants
+      if (merchantId) {
+        if (!merchantIds.includes(merchantId as string)) {
+          return res.status(403).json({ 
+            error: "Access denied",
+            message: "You don't have access to this merchant"
+          });
+        }
+        
+        // Get transactions for the specific merchant
+        const transactions = await storage.getMerchantTransactionsByMerchantId(
+          userId,
+          merchantId as string,
+          status ? { status: status as string } : undefined
+        );
+        
+        return res.json({ transactions });
+      }
+      
+      // If no merchantId specified, return transactions for ALL accessible merchants
+      const allTransactions = await Promise.all(
+        merchantIds.map(id => 
+          storage.getMerchantTransactionsByMerchantId(
+            userId,
+            id,
+            status ? { status: status as string } : undefined
+          )
+        )
+      );
+      
+      // Flatten and sort by date
+      const transactions = allTransactions
+        .flat()
+        .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
+      
+      res.json({ transactions });
+    } catch (error: any) {
+      console.error("Merchant transactions error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/merchant/stablecoin-allocations/:merchantId", requireMerchant(storage), async (req, res) => {
+    try {
+      const merchantIds = req.merchantIds!;
+      const { merchantId } = req.params;
+      const userId = req.userId!;
+      
+      // Verify merchant access
+      if (!merchantIds.includes(merchantId)) {
+        return res.status(403).json({ 
+          error: "Access denied",
+          message: "You don't have access to this merchant"
+        });
+      }
+      
+      const allocations = await storage.getMerchantStablecoinAllocations(userId, merchantId);
+      
+      res.json({ allocations });
+    } catch (error: any) {
+      console.error("Merchant stablecoin allocations error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/merchant/treasury-allocations/:merchantId", requireMerchant(storage), async (req, res) => {
+    try {
+      const merchantIds = req.merchantIds!;
+      const { merchantId } = req.params;
+      const userId = req.userId!;
+      
+      // Verify merchant access
+      if (!merchantIds.includes(merchantId)) {
+        return res.status(403).json({ 
+          error: "Access denied",
+          message: "You don't have access to this merchant"
+        });
+      }
+      
+      const allocations = await storage.getMerchantTreasuryAllocations(userId, merchantId);
+      
+      res.json({ allocations });
+    } catch (error: any) {
+      console.error("Merchant treasury allocations error:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

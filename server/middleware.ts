@@ -12,6 +12,8 @@ declare global {
       tenantId?: string; // For tenant-role users: their tenant ID
       vendorUserId?: string; // For vendor users: their user ID
       vendorIds?: string[]; // For vendor users: all accessible vendor record IDs via vendor_user_links
+      merchantUserId?: string; // For merchant users: their user ID
+      merchantIds?: string[]; // For merchant users: all accessible merchant record IDs via merchant_user_links
     }
   }
 }
@@ -59,8 +61,12 @@ export function requireRole(...allowedRoles: UserRole[]) {
 
 // Middleware to extract organization ID (uses session, not headers)
 export function extractOrganizationId(req: Request, res: Response, next: NextFunction) {
-  // Skip for auth routes and vendor-specific routes (but NOT vendor-payments which is for property managers)
-  if (req.path.includes("/auth/") || req.path.startsWith("/api/vendor-auth") || req.path.startsWith("/api/vendor/")) {
+  // Skip for auth routes, vendor-specific routes, and merchant-specific routes
+  if (req.path.includes("/auth/") || 
+      req.path.startsWith("/api/vendor-auth") || 
+      req.path.startsWith("/api/vendor/") ||
+      req.path.startsWith("/api/merchant-auth") ||
+      req.path.startsWith("/api/merchant/")) {
     return next();
   }
   
@@ -105,6 +111,42 @@ export function requireVendor(storage: IStorage) {
     req.vendorIds = linkedVendorIds;
     req.userId = req.session.userId;
     req.userRole = "Vendor";
+
+    next();
+  };
+}
+
+// Middleware for merchant-specific routes - validates merchant session and loads merchant links
+// SECURITY: Revalidates merchant links on EVERY request to ensure immediate revocation when links are removed
+export function requireMerchant(storage: IStorage) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // 1. Check authenticated session
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // 2. Verify role is Merchant
+    if (req.session.userRole !== "Merchant") {
+      return res.status(403).json({ error: "Merchant access required" });
+    }
+
+    // 3. ALWAYS query merchant_user_links to get current linked merchants (no caching)
+    // This ensures merchant access is revoked immediately when links are removed
+    const linkedMerchantIds = await storage.getMerchantUserLinks(req.session.userId);
+    
+    // 4. Check if merchant has any linked merchants
+    if (linkedMerchantIds.length === 0) {
+      return res.status(409).json({ 
+        error: "No merchant access",
+        message: "Your account has not been linked to any merchants yet. Please contact your property manager."
+      });
+    }
+
+    // 5. Attach merchant data to request for easy access in route handlers
+    req.merchantUserId = req.session.userId;
+    req.merchantIds = linkedMerchantIds;
+    req.userId = req.session.userId;
+    req.userRole = "Merchant";
 
     next();
   };

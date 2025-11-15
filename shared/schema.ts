@@ -1087,7 +1087,7 @@ export type CryptoTransaction = typeof cryptoTransactions.$inferSelect;
 export type InsertCryptoTransaction = z.infer<typeof insertCryptoTransactionSchema>;
 
 // Additional types for frontend
-export type UserRole = "Admin" | "PropertyManager" | "CFO" | "Analyst" | "Tenant" | "Vendor";
+export type UserRole = "Admin" | "PropertyManager" | "CFO" | "Analyst" | "Tenant" | "Vendor" | "Merchant";
 export type InvoiceStatus = "pending" | "paid" | "overdue" | "partial";
 export type PaymentMethod = "ACH" | "Card" | "Check" | "Wire";
 export type PMSProvider = "AppFolio" | "Yardi" | "Buildium";
