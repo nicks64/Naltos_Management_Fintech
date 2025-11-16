@@ -103,7 +103,7 @@ export default function Treasury() {
               <p className="font-semibold">USD-First Treasury Strategy</p>
               <p className="text-muted-foreground">
                 These products generate yield on <strong>idle USD</strong> during float periods (rent 5-15d, vendor 30-90d, merchant 1-3d). 
-                Stablecoins are used only as backend rails for programmability — <strong>all returns are in USD</strong>.
+                Modern digital payment infrastructure is used only as backend rails for programmability — <strong>all returns are in USD</strong>.
               </p>
             </div>
           </div>

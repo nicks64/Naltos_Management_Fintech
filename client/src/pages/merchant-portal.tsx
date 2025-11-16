@@ -758,7 +758,7 @@ export default function MerchantPortal() {
                 </div>
                 <div className="border-t pt-3">
                   <p className="text-xs text-muted-foreground">
-                    <strong>Powered by stablecoin rails:</strong> Behind the scenes, Naltos uses stablecoins (USDC/USDT/DAI) as infrastructure for instant settlement. Everything you see is in USD — stablecoins are just the backend rails that make it fast and automatic.
+                    <strong>Powered by modern payment infrastructure:</strong> Behind the scenes, Naltos uses digital payment rails as infrastructure for instant settlement. Everything you see is in USD — digital infrastructure is just the backend that makes it fast and automatic.
                   </p>
                 </div>
               </CardContent>
@@ -820,7 +820,7 @@ export default function MerchantPortal() {
           <TabsTrigger value="transactions" data-testid="tab-transactions">
             Transactions
           </TabsTrigger>
-          <TabsTrigger value="stablecoin" data-testid="tab-stablecoin">
+          <TabsTrigger value="stablecoin" data-testid="tab-infrastructure">
             Backend Infrastructure
           </TabsTrigger>
           <TabsTrigger value="treasury" data-testid="tab-treasury">
@@ -1006,13 +1006,13 @@ export default function MerchantPortal() {
           </Card>
         </TabsContent>
 
-        {/* Stablecoin Backing Tab */}
+        {/* Backend Infrastructure Tab */}
         <TabsContent value="stablecoin">
           <Card>
             <CardHeader>
               <CardTitle>How Your USD is Backed (Technical Details)</CardTitle>
               <CardDescription>
-                Your USD balance is backed 1:1 by stablecoins (USDC/USDT/DAI) — the invisible rails that enable instant settlement
+                Your USD balance is backed 1:1 by digital payment infrastructure — the invisible rails that enable instant settlement
                 {effectiveMerchantId && balances?.balances.find(b => b.merchantId === effectiveMerchantId) && 
                   ` - ${balances.balances.find(b => b.merchantId === effectiveMerchantId)?.organizationName}`
                 }
@@ -1028,7 +1028,7 @@ export default function MerchantPortal() {
               ) : !effectiveMerchantId ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Select a property manager to view allocations</p>
               ) : stablecoinAllocations?.allocations.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No stablecoin allocations yet</p>
+                <p className="text-sm text-muted-foreground text-center py-8">No infrastructure allocations yet</p>
               ) : (
                 <div className="space-y-3">
                   {stablecoinAllocations?.allocations.map((allocation) => (

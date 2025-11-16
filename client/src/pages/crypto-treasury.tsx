@@ -91,9 +91,9 @@ export default function CryptoTreasury() {
   return (
     <div className="space-y-8" data-testid="page-crypto-treasury">
       <div>
-        <h1 className="text-4xl font-semibold tracking-tight mb-2">Crypto Treasury</h1>
+        <h1 className="text-4xl font-semibold tracking-tight mb-2">Treasury Management</h1>
         <p className="text-muted-foreground">
-          Orchestrating stablecoins (USDC, USDT, DAI) into yield-generating treasury products: Fiat flows → Bridge to stablecoins → Deploy to T-Bills & money-market → Generate yield for customers
+          Deploying idle USD into yield-generating treasury products: Customer flows → Digital payment infrastructure → Deploy to T-Bills & money-market → Generate yield for customers
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export default function CryptoTreasury() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Coins className="w-5 h-5 text-primary" />
-              <CardTitle className="text-sm font-medium">Total Crypto AUM</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Treasury AUM</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -111,7 +111,7 @@ export default function CryptoTreasury() {
               ${totalAUM.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Across USDC, USDT, DAI
+              Digital payment infrastructure
             </p>
           </CardContent>
         </Card>
@@ -158,7 +158,7 @@ export default function CryptoTreasury() {
           <TabsTrigger value="flows">Activity</TabsTrigger>
         </TabsList>
 
-        {/* Stablecoin Positions Tab */}
+        {/* Treasury Positions Tab */}
         <TabsContent value="positions" className="space-y-4 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {positions.map((position) => {
@@ -225,7 +225,7 @@ export default function CryptoTreasury() {
             <CardHeader>
               <CardTitle>Active Treasury Deployments</CardTitle>
               <CardDescription>
-                Stablecoins automatically deployed into yield-generating treasury products
+                Assets automatically deployed into yield-generating treasury products
               </CardDescription>
             </CardHeader>
             <CardContent>

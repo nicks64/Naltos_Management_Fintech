@@ -110,7 +110,7 @@ export default function Dashboard() {
       color: "text-emerald-600",
     },
     {
-      title: "Stablecoin Infrastructure",
+      title: "Digital Infrastructure",
       value: kpis?.cryptoTreasuryAUM ? `$${(kpis.cryptoTreasuryAUM / 1000).toFixed(0)}K` : "—",
       change: "Backend Rails",
       trend: "up" as const,
@@ -214,7 +214,7 @@ export default function Dashboard() {
                 <h3 className="font-semibold">Currency Never Changes</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Everyone operates in <strong>USD</strong> — tenants pay in USD, vendors receive USD, owners earn USD. Stablecoins (USDC/USDT/DAI) are simply <strong>invisible backend rails</strong> for instant settlement and programmability.
+                Everyone operates in <strong>USD</strong> — tenants pay in USD, vendors receive USD, owners earn USD. Modern digital payment infrastructure provides <strong>invisible backend rails</strong> for instant settlement and programmability.
               </p>
             </div>
 
@@ -224,7 +224,7 @@ export default function Dashboard() {
                 <h3 className="font-semibold">Treasury Generates Yield</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Idle USD is deployed into <strong>T-Bills (NRF)</strong>, <strong>Money Markets (NRK)</strong>, and <strong>Delta-Neutral Credit (NRC)</strong> during predictable float windows. Yield comes from treasury products, not stablecoins.
+                Idle USD is deployed into <strong>T-Bills (NRF)</strong>, <strong>Money Markets (NRK)</strong>, and <strong>Delta-Neutral Credit (NRC)</strong> during predictable float windows. Yield comes from treasury products, not digital rails.
               </p>
             </div>
 
@@ -241,7 +241,7 @@ export default function Dashboard() {
 
           <div className="p-4 bg-muted/30 rounded-lg border border-muted text-sm">
             <p className="text-muted-foreground">
-              <strong>Key Insight:</strong> Naltos doesn't change your currency — we simply use stablecoin rails in the backend to move USD faster, automate treasury management, and turn rent, vendor payments, and merchant transactions into a yield-generating financial system.
+              <strong>Key Insight:</strong> Naltos doesn't change your currency — we simply use modern digital payment infrastructure in the backend to move USD faster, automate treasury management, and turn rent, vendor payments, and merchant transactions into a yield-generating financial system.
             </p>
           </div>
         </CardContent>
