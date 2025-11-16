@@ -161,15 +161,21 @@ export default function CryptoTreasury() {
         {/* Treasury Positions Tab */}
         <TabsContent value="positions" className="space-y-4 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {positions.map((position) => {
+            {positions.map((position, index) => {
               const totalBalance = position.availableBalance + position.deployedBalance + position.reservedBalance;
               const deployedPct = totalBalance > 0 ? (position.deployedBalance / totalBalance) * 100 : 0;
+              const assetLabels: Record<string, string> = {
+                "USDC": "Treasury Asset A",
+                "USDT": "Treasury Asset B",
+                "DAI": "Treasury Asset C"
+              };
+              const displayName = assetLabels[position.coin] || `Treasury Asset ${index + 1}`;
               
               return (
                 <Card key={position.coin} data-testid={`position-${position.coin}`}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl">{position.coin}</CardTitle>
+                      <CardTitle className="text-xl">{displayName}</CardTitle>
                       <Badge variant="secondary" className="text-xs">
                         {deployedPct.toFixed(0)}% deployed
                       </Badge>
@@ -231,7 +237,15 @@ export default function CryptoTreasury() {
             <CardContent>
               {deployments.length > 0 ? (
                 <div className="space-y-4">
-                  {deployments.map((deployment) => (
+                  {deployments.map((deployment) => {
+                    const assetLabels: Record<string, string> = {
+                      "USDC": "Asset A",
+                      "USDT": "Asset B",
+                      "DAI": "Asset C"
+                    };
+                    const displayAsset = assetLabels[deployment.coin] || "Treasury Asset";
+                    
+                    return (
                     <div
                       key={deployment.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover-elevate"
@@ -243,7 +257,7 @@ export default function CryptoTreasury() {
                             {deployment.status}
                           </Badge>
                           <Badge variant="outline" className="font-mono">
-                            {deployment.coin}
+                            {displayAsset}
                           </Badge>
                           <ArrowRight className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm font-medium">{deployment.productName}</span>
@@ -270,7 +284,8 @@ export default function CryptoTreasury() {
                         </p>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -307,6 +322,12 @@ export default function CryptoTreasury() {
                       wallet_transfer: { label: "Transfer", variant: "outline" },
                     };
                     const flowInfo = flowTypeLabels[flow.flowType] || { label: flow.flowType, variant: "outline" as const };
+                    const assetLabels: Record<string, string> = {
+                      "USDC": "Asset A",
+                      "USDT": "Asset B",
+                      "DAI": "Asset C"
+                    };
+                    const displayAsset = assetLabels[flow.coin] || "Treasury Asset";
                     
                     return (
                       <div
@@ -318,11 +339,15 @@ export default function CryptoTreasury() {
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant={flowInfo.variant}>{flowInfo.label}</Badge>
                             <Badge variant="outline" className="font-mono text-xs">
-                              {flow.coin}
+                              {displayAsset}
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {flow.description || flow.flowType}
+                            {(flow.description || flow.flowType)
+                              .replace(/USDC/g, "Asset A")
+                              .replace(/USDT/g, "Asset B")
+                              .replace(/DAI/g, "Asset C")
+                              .replace(/stablecoin/gi, "treasury asset")}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {format(parseISO(flow.createdAt), "MMM d, yyyy 'at' h:mm a")}
