@@ -13,7 +13,7 @@ export function StablecoinExplainer({ variant = "full", className = "" }: Stable
       <div className={`flex items-start gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg ${className}`} data-testid="stablecoin-explainer-inline">
         <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
         <p className="text-sm text-muted-foreground">
-          <strong className="text-foreground">USD-First:</strong> All transactions are in USD. Stablecoins (USDC/USDT/DAI) are invisible backend rails for instant settlement.
+          <strong className="text-foreground">USD-First:</strong> All transactions are in USD. Modern digital payment rails provide instant settlement behind the scenes.
         </p>
       </div>
     );
@@ -37,7 +37,7 @@ export function StablecoinExplainer({ variant = "full", className = "" }: Stable
             </div>
             <div className="text-center p-3 bg-primary/10 rounded-lg">
               <Zap className="h-5 w-5 mx-auto mb-1 text-primary" />
-              <p className="text-xs font-semibold">Stablecoin Rails</p>
+              <p className="text-xs font-semibold">Digital Rails</p>
               <p className="text-xs text-muted-foreground">Backend only</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
@@ -47,7 +47,7 @@ export function StablecoinExplainer({ variant = "full", className = "" }: Stable
             </div>
           </div>
           <p className="text-xs text-muted-foreground text-center">
-            Stablecoins are simply faster infrastructure — the currency never changes
+            Modern payment infrastructure — the currency never changes
           </p>
         </CardContent>
       </Card>
@@ -60,10 +60,10 @@ export function StablecoinExplainer({ variant = "full", className = "" }: Stable
       <CardHeader>
         <CardTitle className="text-xl flex items-center gap-2">
           <DollarSign className="h-6 w-6 text-primary" />
-          How Naltos Uses Stablecoins: USD-First Architecture
+          How Naltos Works: USD-First Architecture
         </CardTitle>
         <CardDescription>
-          Stablecoins are invisible backend rails — you and your counterparties only ever see USD
+          Modern payment infrastructure runs behind the scenes — you and your counterparties only ever see USD
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -82,13 +82,13 @@ export function StablecoinExplainer({ variant = "full", className = "" }: Stable
             </div>
           </div>
 
-          {/* Step 2: Backend Conversion */}
+          {/* Step 2: Backend Processing */}
           <div className="relative z-10 p-4 bg-card border rounded-lg space-y-2 hover-elevate">
             <div className="flex items-center justify-center w-10 h-10 mx-auto rounded-full bg-muted text-muted-foreground font-bold">2</div>
             <div className="text-center">
               <ArrowRight className="h-8 w-8 mx-auto mb-2 text-primary" />
               <p className="font-semibold text-sm">Backend Rails</p>
-              <p className="text-xs text-muted-foreground">USDC/USDT (invisible)</p>
+              <p className="text-xs text-muted-foreground">Digital infrastructure</p>
             </div>
           </div>
 
@@ -121,7 +121,7 @@ export function StablecoinExplainer({ variant = "full", className = "" }: Stable
               <p className="font-semibold text-sm">Instant Settlement</p>
             </div>
             <p className="text-xs text-muted-foreground">
-              Stablecoins settle in seconds vs. days for traditional banking rails
+              Modern digital rails settle in seconds vs. days for traditional banking
             </p>
           </div>
 
@@ -149,26 +149,11 @@ export function StablecoinExplainer({ variant = "full", className = "" }: Stable
         {/* Bottom insight */}
         <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
           <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">The Key Insight:</strong> Naltos doesn't change your currency — we simply use stablecoin rails in the backend to move USD faster, automate treasury management, and turn idle payment float into yield-generating assets.
+            <strong className="text-foreground">The Key Insight:</strong> Naltos doesn't change your currency — we simply use modern digital payment infrastructure in the backend to move USD faster, automate treasury management, and turn idle payment float into yield-generating assets.
           </p>
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-// Export individual stablecoin badge components for inline use
-export function StablecoinBadge({ coin = "USDC" }: { coin?: "USDC" | "USDT" | "DAI" }) {
-  const colors = {
-    USDC: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-    USDT: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
-    DAI: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20",
-  };
-
-  return (
-    <Badge variant="outline" className={`font-mono text-xs ${colors[coin]}`} data-testid={`badge-stablecoin-${coin}`}>
-      {coin}
-    </Badge>
   );
 }
 
@@ -177,7 +162,7 @@ export function BackendRailsBadge() {
   return (
     <Badge variant="outline" className="gap-1 text-xs" data-testid="badge-backend-rails">
       <Zap className="h-3 w-3" />
-      Stablecoin Rails
+      Digital Payment Rails
     </Badge>
   );
 }

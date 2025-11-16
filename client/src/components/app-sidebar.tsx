@@ -54,7 +54,7 @@ const menuItems = [
     roles: ["Admin", "CFO"] as UserRole[],
   },
   {
-    title: "Crypto Treasury",
+    title: "Treasury Management",
     url: "/crypto-treasury",
     icon: Coins,
     roles: ["Admin", "CFO"] as UserRole[],

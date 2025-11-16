@@ -587,7 +587,7 @@ export default function MerchantPortal() {
                   <div className="space-y-1">
                     <p className="font-semibold text-sm">How Merchant Float Works</p>
                     <p className="text-sm text-muted-foreground">
-                      When customers pay via NUSD, funds settle to your bank in 1-3 days (industry standard). During this settlement window, Naltos deploys your USD to stablecoin-backed treasury products earning 4-5% APY. You receive full settlement amount + earned USD yield — all automatically.
+                      When customers pay via NUSD, funds settle to your bank in 1-3 days (industry standard). During this settlement window, Naltos deploys your USD to treasury products earning 4-5% APY. You receive full settlement amount + earned USD yield — all automatically.
                     </p>
                   </div>
                 </div>

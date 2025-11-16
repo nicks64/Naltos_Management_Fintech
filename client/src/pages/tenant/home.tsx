@@ -174,7 +174,7 @@ export default function TenantHome() {
                 </div>
               </div>
 
-              {/* Step 2: Stablecoin Backend */}
+              {/* Step 2: Backend Infrastructure */}
               <div className="relative z-10 p-4 rounded-lg border space-y-2 hover-elevate" 
                 style={{ 
                   backgroundColor: "hsl(var(--tenant-card))", 
@@ -195,7 +195,7 @@ export default function TenantHome() {
                     Backend Rails
                   </p>
                   <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                    USDC (invisible)
+                    Digital payment infrastructure
                   </p>
                 </div>
               </div>
@@ -221,7 +221,7 @@ export default function TenantHome() {
                     Smart Treasury
                   </p>
                   <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                    10-day float @ 5% APY
+                    10-day float @ 3% APY
                   </p>
                 </div>
               </div>
@@ -288,7 +288,7 @@ export default function TenantHome() {
                     Rent Float Yield Sharing
                   </p>
                   <p className="text-sm" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                    Your ${rentInfo.upcomingRent.amount} rent generates <strong style={{ color: "hsl(var(--tenant-foreground))" }}>$1.23 USD yield</strong> over 10 days (5% APY). <strong style={{ color: "hsl(var(--tenant-success))" }}>You receive $0.12 cashback</strong> (10% of yield), property owner gets $1.11 (90%). All automatically — just pay rent as normal.
+                    Your ${rentInfo.upcomingRent.amount} rent generates <strong style={{ color: "hsl(var(--tenant-foreground))" }}>$1.23 USD yield</strong> over 10 days (3% APY). <strong style={{ color: "hsl(var(--tenant-success))" }}>You receive $0.12 cashback</strong> (10% of yield), property owner gets $1.11 (90%). All automatically — just pay rent as normal.
                   </p>
                 </div>
               </div>
@@ -297,7 +297,7 @@ export default function TenantHome() {
             {/* USD-First reminder */}
             <div className="mt-4 text-center">
               <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                <strong style={{ color: "hsl(var(--tenant-foreground))" }}>Powered by stablecoin rails:</strong> Everything is in USD — stablecoins are just invisible backend infrastructure for instant settlement
+                <strong style={{ color: "hsl(var(--tenant-foreground))" }}>Powered by modern payment infrastructure:</strong> Everything is in USD — digital rails provide instant settlement with better yield
               </p>
             </div>
           </CardContent>

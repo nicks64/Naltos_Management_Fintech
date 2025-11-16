@@ -191,30 +191,30 @@ export default function VendorPayments() {
           <p className="text-lg text-muted-foreground max-w-3xl" data-testid="text-hero-description">
             {paidInstantInvoices.length > 0 ? (
               <>
-                <span className="font-semibold text-foreground">{formatCurrency(totalInstantVolume)} (All-Time)</span> in vendor invoices paid instantly via NUSD (stablecoin-backed), 
+                <span className="font-semibold text-foreground">{formatCurrency(totalInstantVolume)} (All-Time)</span> in vendor invoices paid instantly via NUSD (treasury-backed), 
                 generating <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalYieldGenerated)} (All-Time Yield)</span> in 
                 amplified yield. Traditional payment (waiting Net30-90) earns <span className="font-semibold text-destructive">$0</span>. 
-                Naltos orchestrates stablecoins to turn extended payment terms into <span className="font-semibold text-emerald-600 dark:text-emerald-400">day-zero vendor cash + 3-9× yield amplification</span>.
+                Naltos uses modern payment infrastructure to turn extended payment terms into <span className="font-semibold text-emerald-600 dark:text-emerald-400">day-zero vendor cash + 3-9× yield amplification</span>.
               </>
             ) : (
               <>
                 Turn Net30-90 payment terms into <span className="font-semibold text-emerald-600 dark:text-emerald-400">instant NUSD vendor payments + amplified treasury yield</span>. 
-                Pay vendors today via stablecoin-backed NUSD, deploy float for {avgFloatDuration || 30}-90 days in crypto treasury products, earn 3-9× vs rent float baseline.
+                Pay vendors today via treasury-backed NUSD, deploy float for {avgFloatDuration || 30}-90 days in treasury products, earn 3-9× vs rent float baseline.
               </>
             )}
           </p>
         </div>
       </div>
 
-      {/* Stablecoin Pipeline Workflow Visualization */}
+      {/* Payment Pipeline Workflow Visualization */}
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-background via-primary/5 to-background">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center gap-2">
             <Zap className="h-6 w-6 text-primary" />
-            Stablecoin Pipeline: How Naltos Pays Vendors Instantly
+            Payment Pipeline: How Naltos Pays Vendors Instantly
           </CardTitle>
           <CardDescription className="text-base">
-            Every vendor payment flows through this invisible stablecoin infrastructure — vendors see USD in, USD out. Naltos uses stablecoins as backend rails for instant settlement and treasury yield optimization.
+            Every vendor payment flows through modern digital infrastructure — vendors see USD in, USD out. Naltos uses programmable payment rails for instant settlement and treasury yield optimization.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -237,18 +237,18 @@ export default function VendorPayments() {
               </div>
             </div>
 
-            {/* Step 2: Convert to Stablecoin */}
+            {/* Step 2: Backend Processing */}
             <div className="relative z-10 p-4 bg-card border rounded-lg space-y-2 hover-elevate" data-testid="workflow-step-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">2</div>
                 <ArrowRight className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-sm">Backend Conversion</p>
-                <p className="text-xs text-muted-foreground">USD → USDC/USDT stablecoin rails (invisible)</p>
+                <p className="font-semibold text-sm">Backend Processing</p>
+                <p className="text-xs text-muted-foreground">Digital payment rails (invisible infrastructure)</p>
               </div>
               <div className="pt-2 border-t">
-                <p className="text-xs font-mono text-muted-foreground">Backend: <span className="text-primary font-semibold">USDC</span></p>
+                <p className="text-xs font-mono text-muted-foreground">Currency: <span className="text-primary font-semibold">USD</span></p>
               </div>
             </div>
 
@@ -260,7 +260,7 @@ export default function VendorPayments() {
               </div>
               <div>
                 <p className="font-semibold text-sm text-emerald-600 dark:text-emerald-400">Instant Payout</p>
-                <p className="text-xs text-muted-foreground">Vendor receives NUSD (stablecoin-backed USD)</p>
+                <p className="text-xs text-muted-foreground">Vendor receives NUSD (treasury-backed USD)</p>
               </div>
               <div className="pt-2 border-t">
                 <p className="text-xs font-mono text-muted-foreground">Vendor sees: <span className="text-emerald-600 dark:text-emerald-400 font-semibold">USD</span></p>
@@ -275,7 +275,7 @@ export default function VendorPayments() {
               </div>
               <div>
                 <p className="font-semibold text-sm">Treasury Deployment</p>
-                <p className="text-xs text-muted-foreground">USDC deployed to NRF/NRK/NRC products</p>
+                <p className="text-xs text-muted-foreground">Assets deployed to treasury products</p>
               </div>
               <div className="pt-2 border-t">
                 <p className="text-xs font-mono text-muted-foreground">Products: <span className="text-foreground font-semibold">T-Bills, MMF</span></p>
@@ -320,7 +320,7 @@ export default function VendorPayments() {
               <div className="space-y-1">
                 <p className="font-semibold text-sm">The USD-First Principle</p>
                 <p className="text-sm text-muted-foreground">
-                  Your vendors receive <strong>USD</strong>, you settle in <strong>USD</strong>, and all accounting is in <strong>USD</strong>. Stablecoins (USDC/USDT/DAI) are simply invisible backend rails that enable instant settlement and programmable treasury management. The currency never changes—Naltos just uses better infrastructure.
+                  Your vendors receive <strong>USD</strong>, you settle in <strong>USD</strong>, and all accounting is in <strong>USD</strong>. Modern digital payment rails are simply invisible backend infrastructure that enables instant settlement and programmable treasury management. The currency never changes—Naltos just uses better infrastructure.
                 </p>
               </div>
             </div>
@@ -412,11 +412,11 @@ export default function VendorPayments() {
             <div className="pt-2 space-y-2 text-sm">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Zap className="h-4 w-4" />
-                <span className="font-medium">Vendors paid instantly via NUSD (stablecoin-backed)</span>
+                <span className="font-medium">Vendors paid instantly via NUSD (treasury-backed)</span>
               </div>
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <TrendingUp className="h-4 w-4" />
-                <span className="font-medium">Float deployed to crypto treasury for 30-90 days</span>
+                <span className="font-medium">Float deployed to treasury products for 30-90 days</span>
               </div>
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Check className="h-4 w-4" />
@@ -492,15 +492,15 @@ export default function VendorPayments() {
             <div className="flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
               <div className="text-sm">
-                <p className="font-semibold mb-1">How It Works: Stablecoin Orchestration</p>
+                <p className="font-semibold mb-1">How It Works: Treasury Optimization</p>
                 <div className="text-muted-foreground space-y-2">
                   <p className="flex items-center gap-2">
                     <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span><span className="font-medium text-foreground">1. Instant Payment:</span> Property pays vendor immediately via NUSD (stablecoin-backed, redeemable 1:1 for USD)</span>
+                    <span><span className="font-medium text-foreground">1. Instant Payment:</span> Property pays vendor immediately via NUSD (treasury-backed, redeemable 1:1 for USD)</span>
                   </p>
                   <p className="flex items-center gap-2">
                     <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span><span className="font-medium text-foreground">2. Float Deployment:</span> Funds deployed to crypto treasury products (USDC/USDT → T-Bills, money-market) until scheduled payment date (Net30/60/90)</span>
+                    <span><span className="font-medium text-foreground">2. Float Deployment:</span> Funds deployed to treasury products (T-Bills, money-market) until scheduled payment date (Net30/60/90)</span>
                   </p>
                   <p className="flex items-center gap-2">
                     <ArrowRight className="h-4 w-4 text-primary flex-shrink-0" />
