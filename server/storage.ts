@@ -281,8 +281,13 @@ export class DatabaseStorage implements IStorage {
     const [magicCode] = await db
       .select()
       .from(magicCodes)
-      .where(and(eq(magicCodes.email, email), eq(magicCodes.code, code), eq(magicCodes.used, false)));
+      .where(and(eq(magicCodes.email, email), eq(magicCodes.code, code), eq(magicCodes.used, false)))
+      .orderBy(desc(magicCodes.expiresAt)); // Get the most recent (longest expiry) code
     return magicCode || undefined;
+  }
+
+  async deleteOldMagicCodes(email: string): Promise<void> {
+    await db.delete(magicCodes).where(eq(magicCodes.email, email));
   }
 
   async markMagicCodeUsed(id: string): Promise<void> {

@@ -87,6 +87,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email } = req.body;
 
+      // Delete old magic codes for this email to prevent confusion
+      await storage.deleteOldMagicCodes(email);
+
       // Create magic code - always "000000" for demo
       const code = "000000";
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -213,6 +216,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Delete old magic codes for this email to prevent confusion
+      await storage.deleteOldMagicCodes(email);
+
       // Create magic code - always "000000" for demo
       const code = "000000";
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -317,6 +323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "No merchant account found with this email. Please contact your property manager to get invited."
         });
       }
+
+      // Delete old magic codes for this email to prevent confusion
+      await storage.deleteOldMagicCodes(email);
 
       // Create magic code - always "222222" for demo
       const code = "222222";
