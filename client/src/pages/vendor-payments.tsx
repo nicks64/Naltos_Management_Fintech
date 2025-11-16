@@ -186,7 +186,7 @@ export default function VendorPayments() {
       <div className="relative overflow-hidden rounded-lg border bg-gradient-to-br from-primary/5 via-background to-emerald-500/5 p-8">
         <div className="relative z-10">
           <h1 className="text-4xl font-bold text-foreground mb-3" data-testid="text-page-title">
-            Vendor Instant Payments
+            Vendor Instant Payments with Net30-90 Terms
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl" data-testid="text-hero-description">
             {paidInstantInvoices.length > 0 ? (

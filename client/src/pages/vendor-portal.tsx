@@ -96,12 +96,12 @@ function RedemptionCalculator({ maxAmount }: { maxAmount: number }) {
   
   const payoutOptions = [
     {
-      name: "ACH (Next-Day)",
+      name: "ACH (Net30-90)",
       icon: DollarSign,
       feePercent: 0,
       fixedFee: 0,
-      processingTime: "Next business day",
-      description: "Scheduled for Net30/60/90 due date",
+      processingTime: "Net30/60/90 settlement",
+      description: "Standard business terms - maximizes yield",
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-950"
     },
@@ -464,19 +464,19 @@ export default function VendorPortal() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-green-600" />
-                      <h4 className="font-semibold">Instant USD Payments</h4>
+                      <h4 className="font-semibold">Get Paid Instantly with Net30-90 Benefits</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      You receive instant USD payments from property managers instead of waiting Net30-90. Your balance is available immediately and redeemable anytime.
+                      You receive instant USD payments while keeping your preferred Net30-90 terms. Get paid today, earn yield on the float, and maintain traditional business payment schedules.
                     </p>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <PiggyBank className="h-4 w-4 text-blue-600" />
-                      <h4 className="font-semibold">Earn While You Wait</h4>
+                      <h4 className="font-semibold">Net30-90 Terms = Higher Yield</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Your idle USD generates yield through treasury products (T-Bills, money markets) at 3-5% APY until you cash out. You earn USD cashback automatically.
+                      Longer payment terms (Net30-90) mean more float time and higher yield. Your USD generates 3-5% APY through treasury products. You share in the yield while maintaining standard business terms.
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -496,7 +496,7 @@ export default function VendorPortal() {
                 </div>
                 <div className="border-t pt-3">
                   <p className="text-xs text-muted-foreground">
-                    <strong>Powered by stablecoin rails:</strong> Behind the scenes, Naltos uses stablecoins (USDC/USDT/DAI) as infrastructure for instant settlement. Everything you see is in USD — stablecoins are just the backend rails that make it fast and automatic.
+                    <strong>Powered by modern payment infrastructure:</strong> Behind the scenes, Naltos uses digital payment rails as infrastructure for instant settlement. Everything you see is in USD — digital infrastructure is just the backend that makes it fast and automatic.
                   </p>
                 </div>
               </CardContent>

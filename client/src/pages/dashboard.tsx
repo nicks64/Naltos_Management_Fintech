@@ -286,12 +286,12 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold text-sm">Bucket B — Rent Float</h3>
-                  <p className="text-xs text-muted-foreground">5–15 days</p>
+                  <p className="text-xs text-muted-foreground">5–15 days ($900K/month base)</p>
                 </div>
                 <Home className="w-4 h-4 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Predictable, short-duration float from rent payments</p>
+                <p className="text-xs text-muted-foreground">Predictable, short-duration float from multifamily rent payments (~$900K monthly volume)</p>
               </div>
               <div className="space-y-1 text-xs mt-3">
                 <div className="flex justify-between">
@@ -301,6 +301,10 @@ export default function Dashboard() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">NRK (MMF)</span>
                   <span className="font-mono">20-30%</span>
+                </div>
+                <div className="flex justify-between border-t pt-1 mt-2">
+                  <span className="text-muted-foreground font-medium">10-day float yield (5% APY)</span>
+                  <span className="font-mono text-primary">~$1,233/month</span>
                 </div>
               </div>
             </div>
