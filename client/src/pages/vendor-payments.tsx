@@ -206,6 +206,128 @@ export default function VendorPayments() {
         </div>
       </div>
 
+      {/* Stablecoin Pipeline Workflow Visualization */}
+      <Card className="border-2 border-primary/20 bg-gradient-to-br from-background via-primary/5 to-background">
+        <CardHeader>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            <Zap className="h-6 w-6 text-primary" />
+            Stablecoin Pipeline: How Naltos Pays Vendors Instantly
+          </CardTitle>
+          <CardDescription className="text-base">
+            Every vendor payment flows through this invisible stablecoin infrastructure — vendors see USD in, USD out. Naltos uses stablecoins as backend rails for instant settlement and treasury yield optimization.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-6 gap-3 relative">
+            {/* Connecting line */}
+            <div className="absolute top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/20 via-primary to-primary/20 hidden md:block" />
+            
+            {/* Step 1: Invoice Received */}
+            <div className="relative z-10 p-4 bg-card border rounded-lg space-y-2 hover-elevate" data-testid="workflow-step-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">1</div>
+                <DollarSign className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Invoice Received</p>
+                <p className="text-xs text-muted-foreground">Vendor submits Net30-90 invoice in USD</p>
+              </div>
+              <div className="pt-2 border-t">
+                <p className="text-xs font-mono text-muted-foreground">Currency: <span className="text-foreground font-semibold">USD</span></p>
+              </div>
+            </div>
+
+            {/* Step 2: Convert to Stablecoin */}
+            <div className="relative z-10 p-4 bg-card border rounded-lg space-y-2 hover-elevate" data-testid="workflow-step-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">2</div>
+                <ArrowRight className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Backend Conversion</p>
+                <p className="text-xs text-muted-foreground">USD → USDC/USDT stablecoin rails (invisible)</p>
+              </div>
+              <div className="pt-2 border-t">
+                <p className="text-xs font-mono text-muted-foreground">Backend: <span className="text-primary font-semibold">USDC</span></p>
+              </div>
+            </div>
+
+            {/* Step 3: Pay Vendor Instantly */}
+            <div className="relative z-10 p-4 bg-card border-2 border-emerald-500/50 rounded-lg space-y-2 hover-elevate" data-testid="workflow-step-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-sm">3</div>
+                <Zap className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm text-emerald-600 dark:text-emerald-400">Instant Payout</p>
+                <p className="text-xs text-muted-foreground">Vendor receives NUSD (stablecoin-backed USD)</p>
+              </div>
+              <div className="pt-2 border-t">
+                <p className="text-xs font-mono text-muted-foreground">Vendor sees: <span className="text-emerald-600 dark:text-emerald-400 font-semibold">USD</span></p>
+              </div>
+            </div>
+
+            {/* Step 4: Deploy to Treasury */}
+            <div className="relative z-10 p-4 bg-card border rounded-lg space-y-2 hover-elevate" data-testid="workflow-step-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">4</div>
+                <Wallet className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Treasury Deployment</p>
+                <p className="text-xs text-muted-foreground">USDC deployed to NRF/NRK/NRC products</p>
+              </div>
+              <div className="pt-2 border-t">
+                <p className="text-xs font-mono text-muted-foreground">Products: <span className="text-foreground font-semibold">T-Bills, MMF</span></p>
+              </div>
+            </div>
+
+            {/* Step 5: Generate Yield */}
+            <div className="relative z-10 p-4 bg-card border-2 border-emerald-500/50 rounded-lg space-y-2 hover-elevate" data-testid="workflow-step-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-sm">5</div>
+                <TrendingUp className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm text-emerald-600 dark:text-emerald-400">Yield Generation</p>
+                <p className="text-xs text-muted-foreground">30-90 day float @ 5.50% APY</p>
+              </div>
+              <div className="pt-2 border-t">
+                <p className="text-xs font-mono text-muted-foreground">Earning: <span className="text-emerald-600 dark:text-emerald-400 font-semibold">USD yield</span></p>
+              </div>
+            </div>
+
+            {/* Step 6: Settlement Complete */}
+            <div className="relative z-10 p-4 bg-card border rounded-lg space-y-2 hover-elevate" data-testid="workflow-step-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">6</div>
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Settlement Complete</p>
+                <p className="text-xs text-muted-foreground">Treasury converts back to USD</p>
+              </div>
+              <div className="pt-2 border-t">
+                <p className="text-xs font-mono text-muted-foreground">Final: <span className="text-foreground font-semibold">USD + Yield</span></p>
+              </div>
+            </div>
+          </div>
+
+          {/* Key insight callout */}
+          <div className="mt-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold text-sm">The USD-First Principle</p>
+                <p className="text-sm text-muted-foreground">
+                  Your vendors receive <strong>USD</strong>, you settle in <strong>USD</strong>, and all accounting is in <strong>USD</strong>. Stablecoins (USDC/USDT/DAI) are simply invisible backend rails that enable instant settlement and programmable treasury management. The currency never changes—Naltos just uses better infrastructure.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Before/After Comparison */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Traditional Model */}
