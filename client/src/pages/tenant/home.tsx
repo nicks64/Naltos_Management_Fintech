@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { CreditCard, Calendar, DollarSign, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { CreditCard, Calendar, DollarSign, CheckCircle2, Clock, AlertCircle, TrendingUp, Zap, ArrowRight, Wallet, PiggyBank } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface RentSummary {
@@ -113,6 +113,192 @@ export default function TenantHome() {
                 <CreditCard className="mr-2 h-4 w-4" />
                 {payRentMutation.isPending ? "Processing..." : "Pay Now"}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rent-to-Reward Flow Visualization */}
+      {rentInfo?.upcomingRent && (
+        <Card 
+          className="border overflow-hidden"
+          style={{
+            backgroundColor: "hsl(var(--tenant-card))",
+            borderColor: "hsl(var(--tenant-primary) / 0.3)",
+            borderRadius: "var(--tenant-radius-lg)",
+            boxShadow: "var(--tenant-shadow-md)",
+            borderWidth: "2px",
+          }}
+        >
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" style={{ color: "hsl(var(--tenant-primary))" }} />
+              <CardTitle className="text-lg" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                How You Earn Cashback on Rent
+              </CardTitle>
+            </div>
+            <CardDescription style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+              Your rent payment flows through smart treasury automation — earn USD cashback automatically
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-5 gap-3 relative">
+              {/* Connecting line */}
+              <div className="absolute top-10 left-0 right-0 h-0.5 hidden md:block" 
+                style={{ background: "linear-gradient(to right, hsl(var(--tenant-primary) / 0.2), hsl(var(--tenant-primary)), hsl(var(--tenant-primary) / 0.2))" }} 
+              />
+              
+              {/* Step 1: You Pay Rent */}
+              <div className="relative z-10 p-4 rounded-lg border space-y-2 hover-elevate" 
+                style={{ 
+                  backgroundColor: "hsl(var(--tenant-card))", 
+                  borderColor: "hsl(var(--tenant-primary) / 0.3)" 
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" 
+                    style={{ 
+                      backgroundColor: "hsl(var(--tenant-primary))", 
+                      color: "hsl(var(--tenant-primary-foreground))" 
+                    }}
+                  >1</div>
+                  <DollarSign className="h-5 w-5" style={{ color: "hsl(var(--tenant-muted-foreground))" }} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                    You Pay Rent
+                  </p>
+                  <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                    ${rentInfo.upcomingRent.amount} USD
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 2: Stablecoin Backend */}
+              <div className="relative z-10 p-4 rounded-lg border space-y-2 hover-elevate" 
+                style={{ 
+                  backgroundColor: "hsl(var(--tenant-card))", 
+                  borderColor: "hsl(var(--tenant-card-border))" 
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" 
+                    style={{ 
+                      backgroundColor: "hsl(var(--tenant-muted))", 
+                      color: "hsl(var(--tenant-muted-foreground))" 
+                    }}
+                  >2</div>
+                  <ArrowRight className="h-5 w-5" style={{ color: "hsl(var(--tenant-primary))" }} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                    Backend Rails
+                  </p>
+                  <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                    USDC (invisible)
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 3: Treasury Deployment */}
+              <div className="relative z-10 p-4 rounded-lg border space-y-2 hover-elevate" 
+                style={{ 
+                  backgroundColor: "hsl(var(--tenant-card))", 
+                  borderColor: "hsl(var(--tenant-card-border))" 
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" 
+                    style={{ 
+                      backgroundColor: "hsl(var(--tenant-muted))", 
+                      color: "hsl(var(--tenant-muted-foreground))" 
+                    }}
+                  >3</div>
+                  <Wallet className="h-5 w-5" style={{ color: "hsl(var(--tenant-muted-foreground))" }} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                    Smart Treasury
+                  </p>
+                  <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                    10-day float @ 5% APY
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 4: Yield Generated */}
+              <div className="relative z-10 p-4 rounded-lg border-2 space-y-2 hover-elevate" 
+                style={{ 
+                  backgroundColor: "hsl(var(--tenant-card))", 
+                  borderColor: "hsl(var(--tenant-success) / 0.5)" 
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" 
+                    style={{ 
+                      backgroundColor: "hsl(var(--tenant-success))", 
+                      color: "white" 
+                    }}
+                  >4</div>
+                  <TrendingUp className="h-5 w-5" style={{ color: "hsl(var(--tenant-success))" }} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: "hsl(var(--tenant-success))" }}>
+                    Yield Earned
+                  </p>
+                  <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                    $1.23 total yield
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 5: You Get Cashback */}
+              <div className="relative z-10 p-4 rounded-lg border-2 space-y-2 hover-elevate" 
+                style={{ 
+                  backgroundColor: "hsl(var(--tenant-card))", 
+                  borderColor: "hsl(var(--tenant-success) / 0.5)" 
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" 
+                    style={{ 
+                      backgroundColor: "hsl(var(--tenant-success))", 
+                      color: "white" 
+                    }}
+                  >5</div>
+                  <Zap className="h-5 w-5" style={{ color: "hsl(var(--tenant-success))" }} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: "hsl(var(--tenant-success))" }}>
+                    Your Cashback
+                  </p>
+                  <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                    $0.12 USD earned
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Breakdown callout */}
+            <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: "hsl(var(--tenant-primary) / 0.1)", border: "1px solid hsl(var(--tenant-primary) / 0.2)" }}>
+              <div className="flex items-start gap-3">
+                <PiggyBank className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: "hsl(var(--tenant-primary))" }} />
+                <div className="space-y-1">
+                  <p className="font-semibold text-sm" style={{ color: "hsl(var(--tenant-foreground))" }}>
+                    Rent Float Yield Sharing
+                  </p>
+                  <p className="text-sm" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                    Your ${rentInfo.upcomingRent.amount} rent generates <strong style={{ color: "hsl(var(--tenant-foreground))" }}>$1.23 USD yield</strong> over 10 days (5% APY). <strong style={{ color: "hsl(var(--tenant-success))" }}>You receive $0.12 cashback</strong> (10% of yield), property owner gets $1.11 (90%). All automatically — just pay rent as normal.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* USD-First reminder */}
+            <div className="mt-4 text-center">
+              <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                <strong style={{ color: "hsl(var(--tenant-foreground))" }}>Powered by stablecoin rails:</strong> Everything is in USD — stablecoins are just invisible backend infrastructure for instant settlement
+              </p>
             </div>
           </CardContent>
         </Card>

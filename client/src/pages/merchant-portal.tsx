@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { StablecoinExplainer } from "@/components/stablecoin-explainer";
 
 interface MerchantBalance {
   merchantId: string;
@@ -93,7 +94,7 @@ function formatPercent(value: string | number | null | undefined): string {
   return isNaN(num) ? "0.00" : num.toFixed(2);
 }
 
-// Generate mock settlement analytics data for demonstration
+// Generate deterministic settlement analytics data for demonstration
 function generateSettlementChartData(balances: MerchantBalance[] | undefined): Array<{date: string, volume: number, yield: number}> {
   if (!balances || balances.length === 0) {
     return [];
@@ -107,10 +108,14 @@ function generateSettlementChartData(balances: MerchantBalance[] | undefined): A
   const avgDailyVolume = totalReceived / days;
   const avgDailyYield = (totalPending * 0.045) / 365;
   
+  // Deterministic pattern for demo stability
+  const volumePattern = [0.85, 0.92, 0.88, 1.05, 1.12, 0.95, 0.78, 0.90, 0.98, 1.08, 1.15, 1.02, 0.88, 0.93, 1.00, 1.10, 1.18, 1.05, 0.82, 0.95, 1.03, 1.12, 1.20, 1.08, 0.90, 0.97, 1.05, 1.15, 1.22, 1.10, 0.95];
+  
   for (let i = days; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
-    const volume = avgDailyVolume * (0.8 + Math.random() * 0.4);
+    const volumeMultiplier = volumePattern[days - i] || 1.0;
+    const volume = avgDailyVolume * volumeMultiplier;
     const cumulativeYield = avgDailyYield * (days - i);
     
     data.push({
@@ -491,6 +496,109 @@ export default function MerchantPortal() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Float Analytics - Volume vs. Yield Chart */}
+      <Card data-testid="card-float-analytics">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Float Analytics: Settlement Volume & Yield Earned
+          </CardTitle>
+          <CardDescription>
+            Track your daily transaction volume and yield generated during the 1-3 day settlement float
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {balancesLoading ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <div className="space-y-4">
+              {/* Chart */}
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={generateSettlementChartData(balances?.balances)}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    stroke="hsl(var(--muted-foreground))"
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    tick={{ fontSize: 12 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    label={{ value: 'Volume ($)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 12 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    label={{ value: 'Yield ($)', angle: 90, position: 'insideRight', style: { fontSize: 12 } }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--popover))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value: number) => `$${value.toFixed(2)}`}
+                  />
+                  <Legend />
+                  <Bar 
+                    yAxisId="left"
+                    dataKey="volume" 
+                    fill="hsl(var(--primary))" 
+                    radius={[4, 4, 0, 0]}
+                    name="Transaction Volume"
+                  />
+                  <Bar 
+                    yAxisId="right"
+                    dataKey="yield" 
+                    fill="hsl(142.1 76.2% 36.3%)" 
+                    radius={[4, 4, 0, 0]}
+                    name="Yield Earned"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+
+              {/* Key Metrics Grid */}
+              <div className="grid md:grid-cols-3 gap-4 pt-4 border-t">
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Avg Settlement Time</p>
+                  <p className="text-lg font-bold font-mono">2.1 days</p>
+                  <p className="text-xs text-muted-foreground">Industry standard: 1-3 days</p>
+                </div>
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Float Utilization</p>
+                  <p className="text-lg font-bold font-mono">100%</p>
+                  <p className="text-xs text-muted-foreground">All float deployed to treasury</p>
+                </div>
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Effective Yield (APY)</p>
+                  <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">4.50%</p>
+                  <p className="text-xs text-muted-foreground">On 2-day float average</p>
+                </div>
+              </div>
+
+              {/* How it works callout */}
+              <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-sm">How Merchant Float Works</p>
+                    <p className="text-sm text-muted-foreground">
+                      When customers pay via NUSD, funds settle to your bank in 1-3 days (industry standard). During this settlement window, Naltos deploys your USD to stablecoin-backed treasury products earning 4-5% APY. You receive full settlement amount + earned USD yield — all automatically.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* USD-First Stablecoin Explainer */}
+      <StablecoinExplainer variant="compact" />
 
       {/* Settle Now Button */}
       <div className="flex justify-end">
