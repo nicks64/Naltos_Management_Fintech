@@ -14,6 +14,7 @@ import { LogOut, ShieldAlert } from "lucide-react";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Collections from "@/pages/collections";
+import CollectionIncentives from "@/pages/collection-incentives";
 import Reconciliation from "@/pages/reconciliation";
 import Treasury from "@/pages/treasury";
 import CryptoTreasury from "@/pages/crypto-treasury";
@@ -195,6 +196,9 @@ function AppContent() {
                 </Route>
                 <Route path="/collections">
                   {ProtectedRouteRenderer(Collections, "/collections")}
+                </Route>
+                <Route path="/collection-incentives">
+                  {ProtectedRouteRenderer(CollectionIncentives, "/collection-incentives")}
                 </Route>
                 <Route path="/reconciliation">
                   {ProtectedRouteRenderer(Reconciliation, "/reconciliation")}

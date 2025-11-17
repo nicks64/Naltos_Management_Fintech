@@ -8,7 +8,8 @@ import {
   Settings,
   Building2,
   TrendingUp,
-  Zap
+  Zap,
+  Award
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,6 +40,12 @@ const menuItems = [
     title: "Collections",
     url: "/collections",
     icon: Users,
+    roles: ["Admin", "PropertyManager", "CFO"] as UserRole[],
+  },
+  {
+    title: "Collection Incentives",
+    url: "/collection-incentives",
+    icon: Award,
     roles: ["Admin", "PropertyManager", "CFO"] as UserRole[],
   },
   {
