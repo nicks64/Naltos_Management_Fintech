@@ -43,6 +43,7 @@ interface VendorInvoice {
 export default function VendorPayments() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("pending");
+  const [showTermsInfo, setShowTermsInfo] = useState(true);
 
   // Fetch vendor invoices
   const { data: invoicesData, isLoading } = useQuery<{ invoices: VendorInvoice[] }>({
@@ -205,6 +206,86 @@ export default function VendorPayments() {
           </p>
         </div>
       </div>
+
+      {/* Net30-90 Terms Explainer */}
+      {showTermsInfo && (
+        <Card className="border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <CardTitle>Understanding Net30-90 Payment Terms</CardTitle>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowTermsInfo(false)}
+                data-testid="button-dismiss-terms-info"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <CardDescription>
+              Standard business payment terms that maximize your float yield while providing vendors instant access
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="p-4 bg-background rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline">Net30</Badge>
+                  <span className="text-sm font-semibold">30-Day Float</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Vendor receives USD instantly, you keep 30 days to deploy in treasury products
+                </p>
+                <p className="text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                  Example Yield: $10K × 5.5% × (30/365) = <strong>$45.21</strong>
+                </p>
+              </div>
+
+              <div className="p-4 bg-background rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary">Net60</Badge>
+                  <span className="text-sm font-semibold">60-Day Float</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Extended terms double your float period and yield potential
+                </p>
+                <p className="text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                  Example Yield: $10K × 5.5% × (60/365) = <strong>$90.41</strong>
+                </p>
+              </div>
+
+              <div className="p-4 bg-background rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="default" className="gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    Net90
+                  </Badge>
+                  <span className="text-sm font-semibold">90-Day Float</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Maximum float period generates 3× rent float (10-day) baseline
+                </p>
+                <p className="text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                  Example Yield: $10K × 5.5% × (90/365) = <strong>$135.62</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-muted/50 p-3 rounded-lg">
+              <p className="text-sm">
+                <strong>The Win-Win:</strong> Vendors get paid instantly (no waiting 30-90 days for cash). 
+                You keep the float period to deploy in treasury products. Yield is shared: 
+                <strong className="text-foreground"> 90% to property owners</strong>, 
+                <strong className="text-emerald-600 dark:text-emerald-400"> 5% cashback to vendors</strong>, 
+                5% platform fee.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payment Pipeline Workflow Visualization */}
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-background via-primary/5 to-background">
