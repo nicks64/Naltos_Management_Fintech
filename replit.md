@@ -20,6 +20,9 @@ NUSD is a private, internal accounting unit (never exposed to users) representin
 ## User Preferences
 I prefer iterative development with a focus on delivering core functionality first. Please ask before making major changes to the architecture or core logic. I appreciate detailed explanations, especially for complex financial concepts or technical implementations. Do not make changes to the `shared/schema.ts` file without explicit approval, as it defines the core data model.
 
+**Recent Feature Additions (November 2025):**
+- Collection Incentives: New feature to improve rent collection rates through strategic USD cashback incentives (frontend demo with stubbed data, backend integration pending)
+
 **Important UI/UX Decisions (November 2025):**
 - All user-facing interfaces must display USD ONLY — no crypto terminology (USDC, USDT, DAI, stablecoin, blockchain, crypto) visible to users
 - Replacement terminology: "digital payment infrastructure", "treasury-backed", "modern payment infrastructure", "backend infrastructure"

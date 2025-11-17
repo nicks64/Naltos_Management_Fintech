@@ -31,6 +31,8 @@ export const merchantTransactionStatusEnum = pgEnum("merchant_transaction_status
 // Crypto Treasury Enums - For automated stablecoin yield orchestration
 export const cryptoTreasuryFlowTypeEnum = pgEnum("crypto_treasury_flow_type", ["bridge_inbound", "bridge_outbound", "wallet_transfer", "deployment_in", "deployment_out", "yield_accrual"]);
 export const cryptoDeploymentStatusEnum = pgEnum("crypto_deployment_status", ["pending", "active", "matured", "withdrawn"]);
+// Collection Incentive Enums - For rent collection improvement programs
+export const incentiveProgramTypeEnum = pgEnum("incentive_program_type", ["early_payment", "on_time_streak", "first_time_bonus"]);
 
 // Organizations table
 export const organizations = pgTable("organizations", {
@@ -196,6 +198,23 @@ export const organizationSettings = pgTable("organization_settings", {
   // AppFolio credentials: Store as env vars (APPFOLIO_API_KEY_{org_id}) or use secrets service
   // DO NOT store sensitive API keys in this table - reference only
   appfolioAccountId: text("appfolio_account_id"),
+});
+
+// Collection Incentive Programs - Boost rent collection rates through strategic cashback
+export const incentivePrograms = pgTable("incentive_programs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: incentiveProgramTypeEnum("type").notNull(),
+  active: boolean("active").default(true).notNull(),
+  cashbackAmount: decimal("cashback_amount", { precision: 10, scale: 2 }).notNull(),
+  requirement: text("requirement").notNull(),
+  description: text("description").notNull(),
+  enrolledTenants: integer("enrolled_tenants").default(0).notNull(),
+  totalRewardsPaid: decimal("total_rewards_paid", { precision: 12, scale: 2 }).default("0").notNull(),
+  impactOnCollectionRate: decimal("impact_on_collection_rate", { precision: 5, scale: 2 }).default("0").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Vendors - For Net30-90 yield amplification
@@ -1292,3 +1311,8 @@ export interface CryptoTreasurySummary {
   totalYield: number;
   weightedAPY: number;
 }
+
+// Incentive program insert schema
+export const insertIncentiveProgramSchema = createInsertSchema(incentivePrograms).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertIncentiveProgram = z.infer<typeof insertIncentiveProgramSchema>;
+export type IncentiveProgram = typeof incentivePrograms.$inferSelect;
