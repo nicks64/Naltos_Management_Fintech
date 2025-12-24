@@ -1,21 +1,40 @@
 # Naltos Platform - Project Documentation
 
 ## Overview
-Naltos is a **USD-based yield orchestration platform** that makes idle cash flows smarter by deploying them into yield-generating treasury products. **Everything is in USD** — tenants pay in USD, vendors receive USD, merchants settle in USD. Stablecoins (USDC, USDT, DAI) are used purely as invisible backend rails for speed, automation, and yield optimization.
+Naltos is a **cash-flow intelligence and payments optimization platform for multifamily real estate** that transforms rent from a passive inflow into a predictable, optimized, and behavior-driven financial asset. **Everything is in USD** — no stablecoins or crypto terminology visible to users.
 
-**Core Value Proposition:**
-- **For Property Owners**: Earn extra yield on idle rent and vendor payment float without changing operations — just better infrastructure
-- **For Tenants**: Earn USD cashback on rent payments and merchant purchases through yield sharing (10% of rent float yield)
-- **For Vendors**: Receive instant USD payments instead of waiting Net30-Net90, plus earn USD cashback (5% of float yield)
+**Core Mission:**
+- Improve rent collection reliability and predictability
+- Unlock NOI through behavioral incentives and automation
+- Provide real-time cash-flow visibility to owners and PMs
+- Reduce manual reconciliation and collections labor
 
-**The Key Insight**: The currency never changes — everything is always in USD. Naltos simply moves USD over stablecoin rails in the backend for speed, automation, and yield optimization. Users never touch crypto. Naltos just uses better infrastructure to make USD smarter.
+**Current Value Proposition:**
+- **For Property Owners**: Earn yield on idle rent and vendor payment float; use behavior-driven incentives to improve on-time payment rates
+- **For Tenants**: Earn USD cashback through on-time payments and behavioral incentives
+- **For Vendors**: Receive instant USD payments while keeping Net30-90 terms; earn yield-sharing cashback
 
-The platform orchestrates over $35B+ in idle multifamily finance through three yield sources:
-1. **Rent Float** (10 days average): $1,500 rent → 10-day float → $1.23 yield → Owner gets $1.11, Tenant gets $0.12 cashback
-2. **Vendor Float** (Net30-Net90): $10K invoice → Instant payment → 30-day float → $37.50 yield → Owner gets $33.75, Vendor gets $1.88 cashback
-3. **Merchant Settlement** (1-3 days): $20 purchase → 2-day float → $0.006 yield → Split between owner/tenant/platform
+**Technology Approach:**
+- Internal ledger (not blockchain)
+- Existing payment rails (ACH, cards)
+- Modern payment infrastructure as invisible backend optimization
+- Optional: future stablecoin treasury optimization
 
-NUSD is a private, internal accounting unit (never exposed to users) representing $1 held in short-term treasury assets, used for backend ledger management and automated yield distribution.
+**Strategic Framework:**
+
+The platform solves key multifamily pain points:
+- **Rent payments are late & unpredictable** → Use ML payment probability models to forecast and intervene early
+- **Cash sits idle and unforecasted** → Provide daily/weekly cash-flow visibility and stress scenarios
+- **Manual reconciliation is labor-intensive** → Automate via internal ledger and audit trails
+- **Tenants lack positive incentives** → Personalized behavioral incentives (cashback, rewards) increase on-time rates
+- **Owners can't optimize cash** → Treasury yield on idle float while maintaining traditional payment terms
+
+**Current Yield Sources (Phase 1: Payment Behavior + Float Optimization):**
+1. **Rent Float** (10 days avg): $1,500 rent → instant payment → 10-day float → $1.23 yield
+2. **Vendor Float** (Net30-90): $10K invoice → instant payment → 30-day float → $37.50 yield (3-9× rent float)
+3. **Merchant Settlement** (1-3 days): $20 purchase → 2-day float → $0.006 yield
+
+**NUSD** (internal accounting unit): Represents $1 held in treasury assets. Used for internal ledger, yield distribution, and automated payouts. Never exposed to users.
 
 ## User Preferences
 I prefer iterative development with a focus on delivering core functionality first. Please ask before making major changes to the architecture or core logic. I appreciate detailed explanations, especially for complex financial concepts or technical implementations. Do not make changes to the `shared/schema.ts` file without explicit approval, as it defines the core data model.
@@ -32,21 +51,44 @@ I prefer iterative development with a focus on delivering core functionality fir
 
 ## System Architecture
 
+### AI & ML Systems (Priority Roadmap)
+
+**Phase 1 (Current): Behavioral Incentives & Float Optimization**
+- ✅ Collection Incentive Programs: Early payment, on-time streak, recovery bonuses
+- ✅ Vendor Payout Routing: Three rails (ACH/Push-to-Card/On-Chain) with yield preservation
+- 🔄 Collection Incentive Analytics: ROI tracking per program
+
+**Phase 2 (Next): Payment Intelligence**
+- [ ] Rent Payment Probability Model: Predict payment timing, risk scores, probability distributions
+- [ ] Incentive Optimization Model: Personalize incentive amount/timing/type per tenant
+- [ ] Early Intervention Logic: Trigger outreach before delinquency
+
+**Phase 3 (Future): Cash-Flow Intelligence**
+- [ ] Cash-Flow Forecasting: Daily/weekly liquidity visibility with uncertainty bands
+- [ ] Collections Routing: Automate vs escalate decisions based on payment probability
+- [ ] Property Health Intelligence: Aggregate tenant behavior into NOI drivers
+
+**Phase 4 (Optional): Treasury Optimization**
+- [ ] Stablecoin bridge for treasury yield optimization
+- [ ] Tokenized LP distributions
+- [ ] Cross-border capital flows
+
 ### UI/UX Decisions
-The platform features a dual-sided interface: a Business Console for property managers/owners and a Tenant Portal. The Business Console includes AI-powered reconciliation, financial analytics, and institutional-grade treasury automation. The Tenant Portal is mobile-first, offering rent payments, an NUSD wallet, and yield-earning capabilities. The design uses React, TypeScript, Tailwind CSS, and Shadcn UI, with a primary blue color scheme for institutional trust and Inter for UI typography, with JetBrains Mono for financial figures. Dark mode is fully supported.
+The platform features a dual-sided interface: Business Console (property managers/owners) and Tenant Portal. The Business Console includes behavioral analytics, financial dashboards, and incentive management. The Tenant Portal is mobile-first, offering rent payments, cashback tracking, and incentive status. Design: React, TypeScript, Tailwind CSS, Shadcn UI, primary blue (institutional trust), Inter typography, JetBrains Mono for figures. Full dark mode support. **All USD-based, no crypto terminology visible.**
 
 ### Technical Implementations
 - **Frontend**: React, TypeScript, Tailwind CSS, Shadcn UI, Recharts for data visualization.
 - **Backend**: Express.js, TypeScript.
-- **Database**: PostgreSQL (Neon) with Drizzle ORM.
-- **AI**: GPT-5 via Replit AI Integrations for business intelligence and tenant support assistants.
+- **Database**: PostgreSQL (Neon) with Drizzle ORM — internal ledger (not blockchain).
+- **AI/ML**: GPT-5 via Replit AI Integrations for business intelligence; Python/TensorFlow for payment probability models (future phase).
 - **Core Features**:
-    - Dual-sided platform with role-based routing.
+    - Dual-sided platform with role-based routing (Admin, PropertyManager, CFO, Analyst, Tenant, Vendor).
     - Multi-tenancy with organization-based isolation and RBAC.
-    - Treasury Products (NRF, NRK, NRC) for businesses and a yield wallet for tenants.
-    - Real-time KPI dashboard with sparklines.
-    - Role-Based Access for Admin, PropertyManager, CFO, Analyst, Tenant, and Vendor.
-- **NUSD**: A private, fully-backed, redeemable internal accounting unit representing $1 held in short-term treasury assets, instantly redeemable 1:1 for USD, and programmable for automated payouts and yield distribution.
+    - Treasury Products (NRF, NRK, NRC): tokenized T-Bills, money markets, delta-neutral credit.
+    - Real-time KPI dashboard with sparklines and operational metrics.
+    - Behavioral incentive management (programs, ROI tracking, per-tenant personalization).
+    - Collection intelligence (automated routing, outreach timing, escalation logic).
+- **NUSD**: Internal accounting unit (1 NUSD = $1 treasury value), redeemable, programmable for automated payouts and yield distribution. Never exposed to end users.
 - **Vendor Account System**: Full vendor portal with professional authentication enabling vendors to log in once and access invoices/balances across all property management companies they work with. Uses `vendor_user_links` junction table for explicit multi-org access, eliminating reliance on email heuristics. Vendors have nullable `users.organizationId` to support cross-org visibility while maintaining organizational boundaries for property managers.
 - **Vendor Authentication**: Secure magic-link authentication system with dedicated `/api/vendor-auth/*` endpoints. The `requireVendor` middleware revalidates `vendor_user_links` on every request (no session caching) for immediate permission revocation. Vendor sessions store only `{ userId, userRole: "Vendor" }` with `organizationId=undefined`. Regular login rejects vendor users to prevent cross-role session reuse. Session regeneration prevents fixation attacks.
 
@@ -60,7 +102,12 @@ The platform features a dual-sided interface: a Business Console for property ma
 - **Economic Model**: Yield is generated from Rent Float (5-15 days), Vendor Float (Net30-Net90), and Merchant Settlement (1-3 days), with distribution to Property Owners (2.5-3.5%), Tenants (1-1.5%), and Naltos Platform (0.5-1%).
 
 ### System Design Choices
-The system is designed for scalability and security with multi-tenancy, role-based access control (RBAC), and comprehensive audit logging for critical actions. The API routes are structured logically for authentication, tenant-specific actions, dashboard KPIs, collections, reconciliation, treasury, crypto treasury, rent float treasury, and administrative functions.
+- **Ledger-Based, Not Blockchain**: Internal PostgreSQL ledger with audit trails for full auditability and compliance.
+- **Existing Payment Rails**: ACH, cards, existing PMS integrations (AppFolio, Yardi, Buildium) as primary integration points.
+- **Modular Architecture**: Clean separation of concerns to support future stablecoin and tokenization features without disrupting current cash-flow operations.
+- **Multi-Tenancy First**: Organization-based isolation with per-org settings, compliance modes, and treasury configurations.
+- **RBAC & Audit Logging**: Role-based access control for Admin, PropertyManager, CFO, Analyst, Tenant, Vendor. Comprehensive audit logging for regulatory compliance and forensic investigation.
+- **API Structure**: Organized by domain: auth, tenant actions, dashboard KPIs, collections, incentives, treasury, reconciliation, vendor/merchant flows, administrative functions.
 
 ## External Dependencies
 - **Database**: PostgreSQL (Neon)
