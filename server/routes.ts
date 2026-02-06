@@ -1701,7 +1701,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/tenant/readiness", requireAuth, requireRole("Tenant"), async (req, res) => {
     try {
-      const tenantId = req.user?.tenantId;
+      const user = req.user as any;
+      const tenantId = user?.tenantId;
       if (!tenantId) return res.status(404).json({ error: "Tenant record not found" });
       
       const tenant = await storage.getTenant(tenantId);
@@ -1712,6 +1713,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-
   return httpServer;
 }
