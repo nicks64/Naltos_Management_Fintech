@@ -18,9 +18,14 @@ import {
   BarChart3,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  Brain,
+  ArrowDownRight,
+  ArrowUpRight,
+  Radio,
 } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface IncentiveProgram {
   id: string;
@@ -511,6 +516,98 @@ export default function CollectionIncentives() {
           </div>
         </CardContent>
       </Card>
+
+      <BehavioralInflectionPanel />
     </div>
+  );
+}
+
+function BehavioralInflectionPanel() {
+  const { data: inflectionData } = useQuery<any>({
+    queryKey: ["/api/intelligence/inflection-points"],
+  });
+  const { data: noiData } = useQuery<any>({
+    queryKey: ["/api/intelligence/noi-forecast"],
+  });
+
+  const isLoadingInflection = !inflectionData && !noiData;
+
+  if (isLoadingInflection) {
+    return (
+      <Card data-testid="card-behavioral-inflection-loading">
+        <CardContent className="p-6"><div className="h-48 bg-muted animate-pulse rounded" /></CardContent>
+      </Card>
+    );
+  }
+
+  if (!inflectionData || !noiData) return null;
+
+  return (
+    <Card data-testid="card-behavioral-inflection">
+      <CardHeader>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Brain className="w-5 h-5 text-primary" />
+          <CardTitle>Behavioral Inflection Signals</CardTitle>
+          <Badge variant="secondary" className="text-xs" data-testid="badge-neural-engine">
+            <Radio className="w-3 h-3 mr-1 text-green-500 animate-pulse" />
+            Neural Engine
+          </Badge>
+        </div>
+        <CardDescription>
+          Spiking neural network detects behavioral shifts that incentive programs can address — optimize spend timing and targeting
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-3 border rounded-lg text-center" data-testid="metric-incentive-roi">
+            <p className="text-xs text-muted-foreground">Current Incentive ROI</p>
+            <p className="text-2xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-incentive-roi-value">{noiData.incentiveImpact?.roi}%</p>
+            <p className="text-xs text-muted-foreground">${noiData.incentiveImpact?.currentSpend?.toLocaleString()} spend</p>
+          </div>
+          <div className="p-3 border rounded-lg text-center" data-testid="metric-optimal-spend">
+            <p className="text-xs text-muted-foreground">Neural Optimal Spend</p>
+            <p className="text-2xl font-bold font-mono text-primary" data-testid="text-optimal-spend-value">${noiData.incentiveImpact?.optimalSpend?.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">{noiData.incentiveImpact?.optimalRoi}% projected ROI</p>
+          </div>
+          <div className="p-3 border rounded-lg text-center" data-testid="metric-inflection-count">
+            <p className="text-xs text-muted-foreground">Active Inflection Points</p>
+            <p className="text-2xl font-bold font-mono text-orange-600 dark:text-orange-400" data-testid="text-inflection-count-value">{inflectionData.inflectionPoints?.length}</p>
+            <p className="text-xs text-muted-foreground">Behavioral shifts detected</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Detected Shifts — Incentive Intervention Opportunities</p>
+          {inflectionData.inflectionPoints?.slice(0, 3).map((ip: any) => (
+            <div key={ip.id} className={`flex items-center gap-3 p-3 border rounded-lg flex-wrap ${ip.direction === "negative" ? "border-orange-500/20 bg-orange-500/5" : "border-green-500/20 bg-green-500/5"}`}>
+              {ip.direction === "negative" ? (
+                <ArrowDownRight className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+              ) : (
+                <ArrowUpRight className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">{ip.tenant || ip.property}</p>
+                <p className="text-xs text-muted-foreground">{ip.neuralDrivers?.[0]}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="flex items-end gap-px h-4">
+                  {ip.spikeHistory?.slice(-5).map((v: number, i: number) => (
+                    <div
+                      key={i}
+                      className="w-1.5 rounded-t-sm"
+                      style={{
+                        height: `${v * 16}px`,
+                        backgroundColor: ip.direction === "negative" ? `rgba(249, 115, 22, ${0.3 + v * 0.7})` : `rgba(34, 197, 94, ${0.3 + v * 0.7})`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <Badge variant="outline" className="text-xs">{(ip.probability * 100).toFixed(0)}%</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

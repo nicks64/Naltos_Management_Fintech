@@ -10,7 +10,8 @@ import {
   TrendingUp,
   Zap,
   Award,
-  ShieldCheck
+  ShieldCheck,
+  Brain,
 } from "lucide-react";
 import {
   Sidebar,
@@ -28,13 +29,17 @@ import { useAuth } from "@/lib/auth-context";
 import { useRBAC } from "@/lib/rbac";
 import type { UserRole } from "@shared/schema";
 
-import { Coins } from "lucide-react";
-
 const menuItems = [
   {
     title: "Overview",
     url: "/dashboard",
     icon: LayoutDashboard,
+    roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
+  },
+  {
+    title: "Intelligence Hub",
+    url: "/intelligence",
+    icon: Brain,
     roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
   },
   {
@@ -70,7 +75,7 @@ const menuItems = [
   {
     title: "Treasury Management",
     url: "/crypto-treasury",
-    icon: Coins,
+    icon: Landmark,
     roles: ["Admin", "CFO"] as UserRole[],
   },
   {

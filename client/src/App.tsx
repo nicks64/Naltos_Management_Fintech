@@ -23,6 +23,7 @@ import RentFloat from "@/pages/rent-float";
 import VendorPayments from "@/pages/vendor-payments";
 import Reports from "@/pages/reports";
 import Agent from "@/pages/agent";
+import Intelligence from "@/pages/intelligence";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -195,6 +196,9 @@ function AppContent() {
                 {/* Business routes */}
                 <Route path="/dashboard">
                   {ProtectedRouteRenderer(Dashboard, "/dashboard")}
+                </Route>
+                <Route path="/intelligence">
+                  {ProtectedRouteRenderer(Intelligence, "/intelligence")}
                 </Route>
                 <Route path="/rent-stability">
                   {ProtectedRouteRenderer(RentStability, "/rent-stability")}

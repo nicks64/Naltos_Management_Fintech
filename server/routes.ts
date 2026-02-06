@@ -1712,6 +1712,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Neuromorphic Intelligence Layer ============
+
+  app.get("/api/intelligence/portfolio", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      res.json({
+        neuralActivityLevel: 0.78,
+        spikeFrequency: 142,
+        temporalMemoryDepth: 90,
+        portfolioStabilityScore: 82.4,
+        portfolioStabilityTrend: "improving",
+        activeInflectionPoints: 3,
+        modelConfidence: 0.91,
+        lastModelUpdate: new Date().toISOString(),
+        spikeTrainData: [
+          { time: "00:00", rentSpikes: 12, vendorSpikes: 4, p2pSpikes: 2, volatility: 0.15 },
+          { time: "04:00", rentSpikes: 3, vendorSpikes: 1, p2pSpikes: 0, volatility: 0.08 },
+          { time: "08:00", rentSpikes: 28, vendorSpikes: 8, p2pSpikes: 5, volatility: 0.32 },
+          { time: "12:00", rentSpikes: 45, vendorSpikes: 15, p2pSpikes: 8, volatility: 0.52 },
+          { time: "16:00", rentSpikes: 38, vendorSpikes: 12, p2pSpikes: 6, volatility: 0.41 },
+          { time: "20:00", rentSpikes: 22, vendorSpikes: 6, p2pSpikes: 3, volatility: 0.25 },
+        ],
+        temporalMemoryDecay: [
+          { daysAgo: 0, memoryStrength: 1.0, signalWeight: 0.95 },
+          { daysAgo: 7, memoryStrength: 0.92, signalWeight: 0.88 },
+          { daysAgo: 14, memoryStrength: 0.78, signalWeight: 0.72 },
+          { daysAgo: 30, memoryStrength: 0.55, signalWeight: 0.48 },
+          { daysAgo: 60, memoryStrength: 0.30, signalWeight: 0.22 },
+          { daysAgo: 90, memoryStrength: 0.12, signalWeight: 0.08 },
+        ],
+        propertyScores: [
+          { property: "Sunset Towers", stabilityScore: 94, refinanceIndex: 88, spikeRate: 0.12, trend: "stable", units: 120, riskLevel: "low" },
+          { property: "Maple Gardens", stabilityScore: 76, refinanceIndex: 62, spikeRate: 0.28, trend: "declining", units: 85, riskLevel: "medium" },
+          { property: "Riverdale Apts", stabilityScore: 58, refinanceIndex: 45, spikeRate: 0.45, trend: "volatile", units: 64, riskLevel: "high" },
+          { property: "Oak Ridge", stabilityScore: 96, refinanceIndex: 91, spikeRate: 0.09, trend: "stable", units: 200, riskLevel: "low" },
+          { property: "Pine Valley", stabilityScore: 42, refinanceIndex: 28, spikeRate: 0.62, trend: "critical", units: 42, riskLevel: "critical" },
+          { property: "Harbor View", stabilityScore: 88, refinanceIndex: 82, spikeRate: 0.15, trend: "improving", units: 156, riskLevel: "low" },
+        ],
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/intelligence/tenant-scores", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      res.json({
+        tenantScores: [
+          { id: "t1", name: "Maria G.", unit: "Sunset #412", stabilityScore: 95, paymentPattern: "consistent", spikeEvents: 1, streakMonths: 24, tierMigration: "2→3", drivers: [{ factor: "Payment Consistency", weight: 0.40, score: 98 }, { factor: "Engagement Level", weight: 0.25, score: 92 }, { factor: "P2P Contributions", weight: 0.20, score: 88 }, { factor: "Tenure Duration", weight: 0.15, score: 96 }] },
+          { id: "t2", name: "James W.", unit: "Oak #108", stabilityScore: 82, paymentPattern: "mostly_consistent", spikeEvents: 3, streakMonths: 18, tierMigration: "1→2", drivers: [{ factor: "Payment Consistency", weight: 0.40, score: 85 }, { factor: "Engagement Level", weight: 0.25, score: 78 }, { factor: "P2P Contributions", weight: 0.20, score: 72 }, { factor: "Tenure Duration", weight: 0.15, score: 88 }] },
+          { id: "t3", name: "Sarah C.", unit: "Harbor #203", stabilityScore: 71, paymentPattern: "improving", spikeEvents: 5, streakMonths: 14, tierMigration: "1→2", drivers: [{ factor: "Payment Consistency", weight: 0.40, score: 74 }, { factor: "Engagement Level", weight: 0.25, score: 68 }, { factor: "P2P Contributions", weight: 0.20, score: 65 }, { factor: "Tenure Duration", weight: 0.15, score: 72 }] },
+          { id: "t4", name: "David L.", unit: "Maple #305", stabilityScore: 54, paymentPattern: "irregular", spikeEvents: 12, streakMonths: 6, tierMigration: "0→1", drivers: [{ factor: "Payment Consistency", weight: 0.40, score: 48 }, { factor: "Engagement Level", weight: 0.25, score: 55 }, { factor: "P2P Contributions", weight: 0.20, score: 42 }, { factor: "Tenure Duration", weight: 0.15, score: 68 }] },
+          { id: "t5", name: "Lisa R.", unit: "Sunset #201", stabilityScore: 38, paymentPattern: "declining", spikeEvents: 18, streakMonths: 2, tierMigration: "1→0", drivers: [{ factor: "Payment Consistency", weight: 0.40, score: 32 }, { factor: "Engagement Level", weight: 0.25, score: 40 }, { factor: "P2P Contributions", weight: 0.20, score: 28 }, { factor: "Tenure Duration", weight: 0.15, score: 55 }] },
+          { id: "t6", name: "Kevin M.", unit: "Riverdale #102", stabilityScore: 22, paymentPattern: "critical", spikeEvents: 25, streakMonths: 0, tierMigration: "1→0", drivers: [{ factor: "Payment Consistency", weight: 0.40, score: 15 }, { factor: "Engagement Level", weight: 0.25, score: 22 }, { factor: "P2P Contributions", weight: 0.20, score: 18 }, { factor: "Tenure Duration", weight: 0.15, score: 35 }] },
+        ],
+        scoringModel: {
+          version: "SNN-v2.4",
+          lastTrained: "2026-02-04T08:00:00Z",
+          accuracy: 0.934,
+          factors: ["Payment Consistency (40%)", "Engagement Level (25%)", "P2P Contributions (20%)", "Tenure Duration (15%)"],
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/intelligence/cohort-insights", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      res.json({
+        insights: [
+          { id: "ci1", type: "ownership_surge", severity: "high", title: "30% of Tier 2 tenants will qualify for FHA in 60 days", description: "19 tenants in Tier 2 are on trajectory to meet FHA eligibility criteria based on payment consistency, credit trajectory, and escrow accumulation patterns.", affectedCount: 19, totalCohort: 63, confidence: 0.87, timeframe: "60 days", actionable: true, suggestedAction: "Initiate pre-qualification outreach and schedule lender matching for high-readiness tenants" },
+          { id: "ci2", type: "delinquency_risk", severity: "critical", title: "Pine Valley cluster: 8 tenants showing pre-delinquency spike pattern", description: "Temporal memory analysis detected a correlated behavioral shift in 8 tenants at Pine Valley. Pattern matches historical pre-delinquency signatures with 91% confidence.", affectedCount: 8, totalCohort: 42, confidence: 0.91, timeframe: "14 days", actionable: true, suggestedAction: "Deploy targeted incentive campaign ($15 early-pay bonus) and schedule proactive outreach" },
+          { id: "ci3", type: "cashflow_shock", severity: "warning", title: "Vendor payout cluster may create $85K liquidity gap on March 15", description: "3 vendor Net60 invoices totaling $85K mature on the same date. Combined with rent cycle timing, this creates a predicted 2.1-day liquidity shortfall.", affectedCount: 3, totalCohort: 12, confidence: 0.82, timeframe: "37 days", actionable: true, suggestedAction: "Pre-position $90K in immediate reserve bucket or stagger vendor payouts by 5 days" },
+          { id: "ci4", type: "incentive_roi", severity: "info", title: "Early Bird incentive showing 340% ROI in Sunset Towers cohort", description: "Tenants enrolled in the Early Bird Bonus program at Sunset Towers show 94.2% on-time rate vs 82.1% for non-enrolled. $4,250 in rewards generating $14,450 in improved collection timing.", affectedCount: 48, totalCohort: 120, confidence: 0.94, timeframe: "ongoing", actionable: false, suggestedAction: "Consider expanding program to Maple Gardens and Harbor View properties" },
+          { id: "ci5", type: "stability_improvement", severity: "success", title: "Portfolio-wide stability score improved 6.2 points in 30 days", description: "Neural spike frequency has decreased 18% across the portfolio, indicating more predictable payment patterns. Primary driver: streak-based cashback program adoption up 22%.", affectedCount: 500, totalCohort: 500, confidence: 0.96, timeframe: "30 days", actionable: false, suggestedAction: "Maintain current incentive levels; monitor for regression in Q2" },
+        ],
+        cohortMigration: [
+          { period: "Sep", tier0: 320, tier1: 120, tier2: 45, tier3: 15 },
+          { period: "Oct", tier0: 305, tier1: 125, tier2: 50, tier3: 20 },
+          { period: "Nov", tier0: 288, tier1: 130, tier2: 55, tier3: 27 },
+          { period: "Dec", tier0: 275, tier1: 132, tier2: 60, tier3: 33 },
+          { period: "Jan", tier0: 260, tier1: 135, tier2: 63, tier3: 42 },
+          { period: "Feb", tier0: 248, tier1: 132, tier2: 68, tier3: 52 },
+        ],
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/intelligence/inflection-points", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      res.json({
+        inflectionPoints: [
+          { id: "ip1", type: "delinquency", direction: "negative", probability: 0.91, tenant: "Kevin M.", unit: "Riverdale #102", property: "Riverdale Apts", detectedAt: "2026-02-05T14:30:00Z", predictedDate: "2026-02-20T00:00:00Z", signalStrength: 0.94, spikeHistory: [0.1, 0.15, 0.22, 0.35, 0.48, 0.62, 0.78, 0.91], neuralDrivers: ["3 consecutive late payments (>10d)", "Engagement drop-off: no portal login in 21 days", "P2P contribution stopped 45 days ago"] },
+          { id: "ip2", type: "delinquency", direction: "negative", probability: 0.78, tenant: "Lisa R.", unit: "Sunset #201", property: "Sunset Towers", detectedAt: "2026-02-04T09:15:00Z", predictedDate: "2026-02-25T00:00:00Z", signalStrength: 0.82, spikeHistory: [0.05, 0.08, 0.12, 0.18, 0.28, 0.42, 0.58, 0.78], neuralDrivers: ["Payment amount decreasing (partial payments last 2 months)", "Tier migration regressing: 1→0", "Response to nudges declining"] },
+          { id: "ip3", type: "ownership_ready", direction: "positive", probability: 0.92, tenant: "Maria G.", unit: "Sunset #412", property: "Sunset Towers", detectedAt: "2026-02-03T11:00:00Z", predictedDate: "2026-03-15T00:00:00Z", signalStrength: 0.96, spikeHistory: [0.45, 0.52, 0.58, 0.65, 0.72, 0.80, 0.88, 0.92], neuralDrivers: ["24-month perfect payment streak", "Credit score trajectory: 680→710 in 6 months", "Escrow accumulation rate accelerating (+12% MoM)"] },
+          { id: "ip4", type: "cashflow_shock", direction: "negative", probability: 0.82, tenant: null, unit: null, property: "Portfolio-wide", detectedAt: "2026-02-04T16:00:00Z", predictedDate: "2026-03-15T00:00:00Z", signalStrength: 0.85, spikeHistory: [0.10, 0.12, 0.18, 0.25, 0.38, 0.52, 0.68, 0.82], neuralDrivers: ["3 vendor invoices ($85K total) maturing same date", "Rent cycle trough coincides with vendor payout peak", "Reserve bucket at 72% of recommended level"] },
+          { id: "ip5", type: "stability_shift", direction: "positive", probability: 0.88, tenant: "James W.", unit: "Oak #108", property: "Oak Ridge", detectedAt: "2026-02-05T08:45:00Z", predictedDate: "2026-04-01T00:00:00Z", signalStrength: 0.90, spikeHistory: [0.30, 0.38, 0.45, 0.52, 0.60, 0.72, 0.82, 0.88], neuralDrivers: ["Payment timing improving: avg 8d early → 12d early", "Active P2P contributor (3 roommate splits/mo)", "Tier migration trajectory: approaching Tier 3 threshold"] },
+        ],
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/intelligence/noi-forecast", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      res.json({
+        forecast: [
+          { month: "Mar", baseline: 245000, optimistic: 258000, pessimistic: 228000, neural: 252000 },
+          { month: "Apr", baseline: 248000, optimistic: 265000, pessimistic: 230000, neural: 256000 },
+          { month: "May", baseline: 250000, optimistic: 270000, pessimistic: 225000, neural: 261000 },
+          { month: "Jun", baseline: 252000, optimistic: 275000, pessimistic: 222000, neural: 264000 },
+          { month: "Jul", baseline: 255000, optimistic: 280000, pessimistic: 220000, neural: 268000 },
+          { month: "Aug", baseline: 258000, optimistic: 285000, pessimistic: 218000, neural: 272000 },
+        ],
+        currentNOI: 242000,
+        projectedNOI: 268000,
+        noiForecastChange: 10.7,
+        incentiveImpact: {
+          currentSpend: 8500,
+          projectedReturn: 34200,
+          roi: 302,
+          optimalSpend: 11200,
+          optimalReturn: 48500,
+          optimalRoi: 333,
+        },
+        refinanceTiming: {
+          optimalWindow: "Q3 2026",
+          currentDSCR: 1.42,
+          projectedDSCR: 1.58,
+          currentLTV: 0.68,
+          projectedLTV: 0.64,
+          readyProperties: 3,
+          totalProperties: 6,
+          recommendation: "3 of 6 properties meet refinance criteria. Neural model projects optimal window in Q3 2026 when DSCR reaches 1.58 and portfolio stability exceeds 85.",
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

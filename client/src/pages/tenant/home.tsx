@@ -22,6 +22,8 @@ import {
   Flame,
   Gift,
   Repeat,
+  Brain,
+  ShieldCheck,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
@@ -245,6 +247,49 @@ export default function TenantHome() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card
+        className="border overflow-hidden"
+        style={{ backgroundColor: "hsl(var(--tenant-card))", borderColor: "hsl(var(--tenant-card-border))", borderRadius: "var(--tenant-radius-lg)", boxShadow: "var(--tenant-shadow-md)" }}
+        data-testid="card-tenant-stability-score"
+      >
+        <CardContent className="p-5">
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <Brain className="w-5 h-5" style={{ color: "hsl(var(--tenant-primary))" }} />
+            <p className="font-semibold text-sm" style={{ color: "hsl(var(--tenant-foreground))" }}>Your Stability Score</p>
+            <Badge variant="secondary" className="text-xs" style={{ backgroundColor: "hsl(var(--tenant-success) / 0.1)", color: "hsl(var(--tenant-success))" }}>
+              Excellent
+            </Badge>
+          </div>
+          <div className="flex items-center gap-6 flex-wrap">
+            <div>
+              <p className="text-4xl font-bold font-mono" style={{ color: "hsl(var(--tenant-success))" }}>87</p>
+              <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>out of 100</p>
+            </div>
+            <div className="flex-1 grid grid-cols-2 gap-2 min-w-[200px]">
+              <div className="p-2 rounded-lg text-center" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+                <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Payment</p>
+                <p className="font-bold font-mono text-sm" style={{ color: "hsl(var(--tenant-success))" }}>92</p>
+              </div>
+              <div className="p-2 rounded-lg text-center" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+                <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Engagement</p>
+                <p className="font-bold font-mono text-sm" style={{ color: "hsl(var(--tenant-primary))" }}>84</p>
+              </div>
+              <div className="p-2 rounded-lg text-center" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+                <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>P2P Activity</p>
+                <p className="font-bold font-mono text-sm" style={{ color: "hsl(var(--tenant-primary))" }}>78</p>
+              </div>
+              <div className="p-2 rounded-lg text-center" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+                <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Tenure</p>
+                <p className="font-bold font-mono text-sm" style={{ color: "hsl(var(--tenant-success))" }}>91</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs mt-3" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+            Your score reflects consistent on-time payments, active engagement, and strong tenure. This score helps qualify you for better rates and ownership programs.
+          </p>
         </CardContent>
       </Card>
 

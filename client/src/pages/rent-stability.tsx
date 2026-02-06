@@ -18,6 +18,9 @@ import {
   Home,
   FileText,
   Sparkles,
+  Brain,
+  Zap,
+  Radio,
 } from "lucide-react";
 import {
   LineChart,
@@ -495,6 +498,120 @@ export default function RentStability() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <NeuralRiskLayer />
+    </div>
+  );
+}
+
+function NeuralRiskLayer() {
+  const { data: portfolio } = useQuery<any>({
+    queryKey: ["/api/intelligence/portfolio"],
+  });
+  const { data: cohortData } = useQuery<any>({
+    queryKey: ["/api/intelligence/cohort-insights"],
+  });
+
+  const isLoadingNeural = !portfolio && !cohortData;
+
+  if (isLoadingNeural) {
+    return (
+      <div className="space-y-6" data-testid="section-neural-risk-layer-loading">
+        <div className="h-6 w-64 bg-muted animate-pulse rounded" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card><CardContent className="p-6"><div className="h-48 bg-muted animate-pulse rounded" /></CardContent></Card>
+          <Card><CardContent className="p-6"><div className="h-48 bg-muted animate-pulse rounded" /></CardContent></Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!portfolio || !cohortData) return null;
+
+  const actionableInsights = cohortData.insights?.filter((i: any) => i.actionable) || [];
+
+  return (
+    <div className="space-y-6" data-testid="section-neural-risk-layer">
+      <div className="flex items-center gap-2">
+        <Brain className="w-5 h-5 text-primary" />
+        <h2 className="text-xl font-semibold">Neuromorphic Risk Intelligence</h2>
+        <Badge variant="secondary" className="text-xs" data-testid="badge-snn-active">
+          <Radio className="w-3 h-3 mr-1 text-green-500 animate-pulse" />
+          SNN Active
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card data-testid="card-temporal-memory-risk">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 flex-wrap">
+              <Activity className="w-5 h-5 text-primary" />
+              Temporal Memory Risk Layer
+            </CardTitle>
+            <CardDescription>Signal weight decay — recent payment events weighted exponentially higher</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={portfolio.temporalMemoryDecay}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                <XAxis dataKey="daysAgo" reversed fontSize={11} />
+                <YAxis fontSize={11} domain={[0, 1]} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                  formatter={(value: number) => [(value * 100).toFixed(0) + "%"]}
+                />
+                <Area type="monotone" dataKey="memoryStrength" name="Memory" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
+                <Area type="monotone" dataKey="signalWeight" name="Signal" stroke="#f97316" fill="#f97316" fillOpacity={0.08} strokeWidth={2} strokeDasharray="5 5" />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              {portfolio.propertyScores?.slice(0, 3).map((p: any) => (
+                <div key={p.property} className="p-2 border rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground truncate">{p.property}</p>
+                  <p className={`text-lg font-bold font-mono ${p.stabilityScore >= 80 ? "text-green-600 dark:text-green-400" : p.stabilityScore >= 60 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"}`}>
+                    {p.stabilityScore}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Stability</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-cohort-callouts">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 flex-wrap">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Cohort Intelligence Alerts
+            </CardTitle>
+            <CardDescription>AI-surfaced insights from neural analysis of tenant cohorts</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {actionableInsights.slice(0, 3).map((insight: any) => {
+              const severityColors: Record<string, string> = {
+                critical: "border-red-500/20 bg-red-500/5",
+                high: "border-orange-500/20 bg-orange-500/5",
+                warning: "border-yellow-500/20 bg-yellow-500/5",
+                info: "border-blue-500/20 bg-blue-500/5",
+              };
+              return (
+                <div key={insight.id} className={`p-3 border rounded-lg space-y-1 ${severityColors[insight.severity] || ""}`} data-testid={`cohort-alert-${insight.id}`}>
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <p className="text-sm font-medium">{insight.title}</p>
+                    <Badge variant="outline" className="text-xs flex-shrink-0">{(insight.confidence * 100).toFixed(0)}%</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{insight.suggestedAction}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                    <span>{insight.affectedCount} of {insight.totalCohort} tenants</span>
+                    <span>-</span>
+                    <span>{insight.timeframe}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

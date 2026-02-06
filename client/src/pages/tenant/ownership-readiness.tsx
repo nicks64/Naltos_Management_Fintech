@@ -20,6 +20,7 @@ import {
   ChevronRight,
   PiggyBank,
   Users,
+  Brain,
 } from "lucide-react";
 
 const mockNudges = [
@@ -116,6 +117,41 @@ export default function OwnershipReadiness() {
               <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Target Date</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card
+        className="border overflow-hidden"
+        style={{ backgroundColor: "hsl(var(--tenant-card))", borderColor: "hsl(var(--tenant-card-border))", borderRadius: "var(--tenant-radius-lg)", boxShadow: "var(--tenant-shadow-md)" }}
+        data-testid="card-ownership-neural-readiness"
+      >
+        <CardContent className="p-5">
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <Brain className="w-5 h-5" style={{ color: "hsl(var(--tenant-primary))" }} />
+            <p className="font-semibold text-sm" style={{ color: "hsl(var(--tenant-foreground))" }}>AI Readiness Assessment</p>
+            <Badge variant="secondary" className="text-xs" style={{ backgroundColor: "hsl(var(--tenant-primary) / 0.1)", color: "hsl(var(--tenant-primary))" }}>
+              Neural Score
+            </Badge>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-3 rounded-lg text-center" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+              <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Ownership Readiness</p>
+              <p className="text-2xl font-bold font-mono" style={{ color: "hsl(var(--tenant-primary))" }}>72%</p>
+            </div>
+            <div className="p-3 rounded-lg text-center" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+              <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Behavioral Trajectory</p>
+              <p className="text-sm font-bold" style={{ color: "hsl(var(--tenant-success))" }}>
+                <ArrowUpRight className="w-3 h-3 inline" /> Accelerating
+              </p>
+            </div>
+            <div className="p-3 rounded-lg text-center" style={{ backgroundColor: "hsl(var(--tenant-muted))" }}>
+              <p className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Predicted Ready</p>
+              <p className="text-sm font-bold font-mono" style={{ color: "hsl(var(--tenant-foreground))" }}>Aug 2026</p>
+            </div>
+          </div>
+          <p className="text-xs mt-3" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+            Your behavioral patterns show consistent improvement. The neural engine predicts you'll reach full readiness by August 2026 based on payment consistency, savings trajectory, and credit momentum.
+          </p>
         </CardContent>
       </Card>
 

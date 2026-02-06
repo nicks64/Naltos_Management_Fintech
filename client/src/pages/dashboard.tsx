@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   TrendingUp,
   TrendingDown,
@@ -16,8 +17,12 @@ import {
   Activity,
   Target,
   AlertTriangle,
+  Brain,
+  ArrowUpRight,
+  ArrowDownRight,
+  Radio,
 } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { LineChart, Line, AreaChart, Area, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 interface KPIData {
   onTimePercent: number;
@@ -273,11 +278,125 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
+      <NeuralIntelligencePanel />
+
       {isLoading && (
         <div className="text-center py-12 text-muted-foreground">
           <div className="animate-pulse">Loading dashboard data...</div>
         </div>
       )}
+    </div>
+  );
+}
+
+function NeuralIntelligencePanel() {
+  const { data: portfolio } = useQuery<any>({
+    queryKey: ["/api/intelligence/portfolio"],
+  });
+  const { data: noiData } = useQuery<any>({
+    queryKey: ["/api/intelligence/noi-forecast"],
+  });
+  const { data: inflectionData } = useQuery<any>({
+    queryKey: ["/api/intelligence/inflection-points"],
+  });
+
+  const isLoadingIntelligence = !portfolio && !noiData && !inflectionData;
+
+  if (isLoadingIntelligence) {
+    return (
+      <div className="grid lg:grid-cols-2 gap-6" data-testid="section-neural-intelligence-loading">
+        <Card><CardContent className="p-6"><div className="h-48 bg-muted animate-pulse rounded" /></CardContent></Card>
+        <Card><CardContent className="p-6"><div className="h-48 bg-muted animate-pulse rounded" /></CardContent></Card>
+      </div>
+    );
+  }
+
+  if (!portfolio || !noiData || !inflectionData) return null;
+
+  const negativeInflections = inflectionData.inflectionPoints?.filter((ip: any) => ip.direction === "negative") || [];
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-6" data-testid="section-neural-intelligence">
+      <Card data-testid="card-neural-early-warning">
+        <CardHeader>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Brain className="w-5 h-5 text-primary" />
+            <CardTitle>Neural Early Warning System</CardTitle>
+            <Badge variant="secondary" className="text-xs" data-testid="badge-neural-live">
+              <Radio className="w-3 h-3 mr-1 text-green-500 animate-pulse" />
+              Live
+            </Badge>
+          </div>
+          <CardDescription>Spiking neural network analysis of payment behavior — detecting pre-delinquency patterns</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 border rounded-lg text-center" data-testid="metric-neural-activity">
+              <p className="text-xs text-muted-foreground">Neural Activity</p>
+              <p className="text-lg font-bold font-mono" data-testid="text-neural-activity-value">{((portfolio.neuralActivityLevel ?? 0) * 100).toFixed(0)}%</p>
+            </div>
+            <div className="p-3 border rounded-lg text-center" data-testid="metric-stability-score">
+              <p className="text-xs text-muted-foreground">Stability Score</p>
+              <p className="text-lg font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-stability-score-value">{portfolio.portfolioStabilityScore?.toFixed(1)}</p>
+            </div>
+            <div className="p-3 border rounded-lg text-center" data-testid="metric-active-alerts">
+              <p className="text-xs text-muted-foreground">Active Alerts</p>
+              <p className="text-lg font-bold font-mono text-orange-600 dark:text-orange-400" data-testid="text-active-alerts-value">{portfolio.activeInflectionPoints}</p>
+            </div>
+          </div>
+
+          {negativeInflections.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Predicted Inflection Points</p>
+              {negativeInflections.slice(0, 3).map((ip: any) => (
+                <div key={ip.id} className="flex items-center gap-3 p-2 border rounded-lg border-red-500/20 bg-red-500/5 flex-wrap" data-testid={`warning-${ip.id}`}>
+                  <ArrowDownRight className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{ip.tenant || ip.property}</p>
+                    <p className="text-xs text-muted-foreground">{ip.neuralDrivers?.[0]}</p>
+                  </div>
+                  <Badge variant="outline" className="text-xs flex-shrink-0">{(ip.probability * 100).toFixed(0)}%</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-noi-neural-forecast">
+        <CardHeader>
+          <div className="flex items-center gap-2 flex-wrap">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            <CardTitle>NOI Neural Forecast</CardTitle>
+          </div>
+          <CardDescription>6-month projection with optimistic/pessimistic uncertainty bands</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={noiData.forecast}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+              <XAxis dataKey="month" fontSize={11} />
+              <YAxis fontSize={11} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}K`} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                formatter={(value: number) => [`$${(value / 1000).toFixed(0)}K`]}
+              />
+              <Area type="monotone" dataKey="optimistic" name="Optimistic" stroke="none" fill="#22c55e" fillOpacity={0.08} />
+              <Area type="monotone" dataKey="pessimistic" name="Pessimistic" stroke="none" fill="#ef4444" fillOpacity={0.08} />
+              <Line type="monotone" dataKey="neural" name="Neural" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="baseline" name="Baseline" stroke="#94a3b8" strokeWidth={1} strokeDasharray="5 5" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+            <span className="text-muted-foreground">
+              Incentive ROI: <strong className="text-green-600 dark:text-green-400">{noiData.incentiveImpact?.roi}%</strong>
+            </span>
+            <span className="text-muted-foreground">
+              Refinance Window: <strong className="text-primary">{noiData.refinanceTiming?.optimalWindow}</strong>
+            </span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
