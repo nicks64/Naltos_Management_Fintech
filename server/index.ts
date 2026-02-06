@@ -141,20 +141,55 @@ app.use((req, res, next) => {
         .where(eq(magicCodes.email, "demo@naltos.com"));
     }
 
+    // ============ Tenant Demo User Setup ============
+    let [tenantDemoUser] = await db.select().from(users).where(eq(users.email, "tenant@demo.com"));
+    if (!tenantDemoUser) {
+      const tenantHashedPassword = await bcrypt.hash("tenant123", 10);
+      [tenantDemoUser] = await db.insert(users).values({
+        email: "tenant@demo.com",
+        password: tenantHashedPassword,
+        organizationId: demoOrg.id,
+        role: "Tenant",
+      }).returning();
+    } else if (tenantDemoUser.organizationId !== demoOrg.id || tenantDemoUser.role !== "Tenant") {
+      [tenantDemoUser] = await db.update(users)
+        .set({ organizationId: demoOrg.id, role: "Tenant" })
+        .where(eq(users.email, "tenant@demo.com"))
+        .returning();
+    }
+
+    const existingTenantCodes = await db.select().from(magicCodes)
+      .where(eq(magicCodes.email, "tenant@demo.com"));
+    
+    if (existingTenantCodes.length === 0) {
+      await db.insert(magicCodes).values({
+        email: "tenant@demo.com",
+        code: "000000",
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        used: false,
+      });
+    } else {
+      await db.update(magicCodes)
+        .set({ 
+          used: false,
+          code: "000000",
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        })
+        .where(eq(magicCodes.email, "tenant@demo.com"));
+    }
+
     // ============ Vendor Demo User Setup ============
-    // Check if vendor demo user exists
     let [vendorDemoUser] = await db.select().from(users).where(eq(users.email, "vendor@demo.com"));
     if (!vendorDemoUser) {
-      const hashedPassword = await bcrypt.hash("vendor123", 10);
+      const vendorHashedPassword = await bcrypt.hash("vendor123", 10);
       [vendorDemoUser] = await db.insert(users).values({
         email: "vendor@demo.com",
-        password: hashedPassword,
-        organizationId: null, // Vendors can access multiple orgs
+        password: vendorHashedPassword,
+        organizationId: null,
         role: "Vendor",
       }).returning();
     }
 
-    // Ensure vendor magic code exists
     const existingVendorCodes = await db.select().from(magicCodes)
       .where(eq(magicCodes.email, "vendor@demo.com"));
     
@@ -162,16 +197,66 @@ app.use((req, res, next) => {
       await db.insert(magicCodes).values({
         email: "vendor@demo.com",
         code: "111111",
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         used: false,
       });
     } else {
       await db.update(magicCodes)
         .set({ 
           used: false,
+          code: "111111",
           expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
         })
         .where(eq(magicCodes.email, "vendor@demo.com"));
+    }
+
+    // ============ Merchant Demo User Setup ============
+    const { merchants, merchantUserLinks } = await import("@shared/schema");
+    
+    let [merchantDemoUser] = await db.select().from(users).where(eq(users.email, "merchant@demo.com"));
+    if (!merchantDemoUser) {
+      const merchantHashedPassword = await bcrypt.hash("merchant123", 10);
+      [merchantDemoUser] = await db.insert(users).values({
+        email: "merchant@demo.com",
+        password: merchantHashedPassword,
+        organizationId: null,
+        role: "Merchant",
+      }).returning();
+    }
+
+    const existingMerchantCodes = await db.select().from(magicCodes)
+      .where(eq(magicCodes.email, "merchant@demo.com"));
+    
+    if (existingMerchantCodes.length === 0) {
+      await db.insert(magicCodes).values({
+        email: "merchant@demo.com",
+        code: "222222",
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        used: false,
+      });
+    } else {
+      await db.update(magicCodes)
+        .set({ 
+          used: false,
+          code: "222222",
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        })
+        .where(eq(magicCodes.email, "merchant@demo.com"));
+    }
+
+    // Ensure merchant user links exist (link to first merchant in demo org)
+    const demoMerchants = await db.select().from(merchants).where(eq(merchants.organizationId, demoOrg.id));
+    if (demoMerchants.length > 0) {
+      const existingMerchantLinks = await db.select().from(merchantUserLinks)
+        .where(eq(merchantUserLinks.userId, merchantDemoUser.id));
+      if (existingMerchantLinks.length === 0) {
+        for (const m of demoMerchants.slice(0, 3)) {
+          await db.insert(merchantUserLinks).values({
+            userId: merchantDemoUser.id,
+            merchantId: m.id,
+          });
+        }
+      }
     }
 
     log("Demo setup complete");

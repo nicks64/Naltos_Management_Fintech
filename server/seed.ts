@@ -686,6 +686,46 @@ export async function seedDatabase() {
   const seededMerchantTxs = await db.insert(merchantTransactions).values(merchantTxData).returning();
   console.log(`${seededMerchantTxs.length} merchant transactions created (showcasing 1-3 day settlement float)!`);
 
+  // ============ Merchant Portal Demo User ============
+  console.log("Seeding demo merchant user...");
+
+  let merchantDemoUser = (await db.select().from(users).where(eq(users.email, "merchant@demo.com")))[0];
+  if (!merchantDemoUser) {
+    const hashedMerchantPassword = await bcrypt.hash("merchant123", 10);
+    [merchantDemoUser] = await db.insert(users).values({
+      email: "merchant@demo.com",
+      password: hashedMerchantPassword,
+      organizationId: null,
+      role: "Merchant",
+    }).returning();
+  }
+
+  const { merchantUserLinks } = await import("@shared/schema");
+  const existingMerchantLinks = await db.select().from(merchantUserLinks).where(eq(merchantUserLinks.userId, merchantDemoUser.id));
+  
+  if (existingMerchantLinks.length === 0) {
+    for (const m of seededMerchants.slice(0, 3)) {
+      await db.insert(merchantUserLinks).values({
+        userId: merchantDemoUser.id,
+        merchantId: m.id,
+      });
+    }
+    console.log("Created merchant_user_links for demo merchant");
+  }
+
+  const existingMerchantCode = await db.select().from(magicCodes)
+    .where(eq(magicCodes.email, "merchant@demo.com"));
+  
+  if (existingMerchantCode.length === 0) {
+    await db.insert(magicCodes).values({
+      email: "merchant@demo.com",
+      code: "222222",
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      used: false,
+    });
+    console.log("Created magic code for merchant demo user");
+  }
+
   // ============ Vendor Portal Demo User ============
   console.log("Seeding demo vendor user...");
   
@@ -763,6 +803,7 @@ export async function seedDatabase() {
   console.log(`- Demo business user: demo@naltos.com (code: 000000)`);
   console.log(`- Demo tenant user: tenant@demo.com (code: 000000)`);
   console.log(`- Demo vendor user: vendor@demo.com (code: 111111)`);
+  console.log(`- Demo merchant user: merchant@demo.com (code: 222222)`);
   console.log(`- Properties: 3`);
   console.log(`- Units: 200`);
   console.log(`- Leases: 120`);

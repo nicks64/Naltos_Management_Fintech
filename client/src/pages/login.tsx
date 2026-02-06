@@ -210,12 +210,12 @@ export default function Login() {
           <h1 className="text-4xl font-semibold tracking-tight mb-2">Naltos</h1>
           <p className="text-muted-foreground">
             {userType === "business" 
-              ? "Stablecoin Orchestration Platform — Generate Yield from Idle Cash Flows" 
+              ? "Cash-Flow Intelligence Platform — Optimize Rent Collection & Treasury" 
               : userType === "vendor"
-              ? "Instant NUSD Payments — Redeem on Your Schedule"
+              ? "Instant Payments — Redeem on Your Schedule"
               : userType === "merchant"
-              ? "Accept NUSD Payments — Earn Yield on Settlement Float"
-              : "Earn Yield on Rent & Purchases"}
+              ? "Accept Payments — Earn Yield on Settlement Float"
+              : "Earn Cashback on Rent & Purchases"}
           </p>
         </div>
 
@@ -327,7 +327,9 @@ export default function Login() {
                         disabled={loading}
                         data-testid="input-magic-code"
                       />
-                      <p className="text-xs text-muted-foreground">Demo code: 000000</p>
+                      <p className="text-xs text-muted-foreground">
+                        Demo code: {userType === "vendor" ? "111111" : userType === "merchant" ? "222222" : "000000"}
+                      </p>
                     </div>
                     <Button 
                       onClick={handleLogin} 
@@ -369,7 +371,7 @@ export default function Login() {
             <Card>
               <CardHeader>
                 <CardTitle>Create Account</CardTitle>
-                <CardDescription>Start orchestrating stablecoins to generate yield from idle property cash flows</CardDescription>
+                <CardDescription>Set up your organization to optimize cash flows and generate yield from idle property payments</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">

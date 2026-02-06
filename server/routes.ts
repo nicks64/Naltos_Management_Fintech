@@ -125,7 +125,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Mark as used (except for demo accounts to allow reuse)
-      if (email !== "demo@naltos.com" && email !== "tenant@demo.com") {
+      const demoEmails = ["demo@naltos.com", "tenant@demo.com"];
+      if (!demoEmails.includes(email)) {
         await storage.markMagicCodeUsed(magicCode.id);
       }
 
@@ -219,8 +220,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete old magic codes for this email to prevent confusion
       await storage.deleteOldMagicCodes(email);
 
-      // Create magic code - always "000000" for demo
-      const code = "000000";
+      // Create magic code - always "111111" for demo
+      const code = "111111";
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
       await storage.createMagicCode({
@@ -259,8 +260,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Mark as used
-      await storage.markMagicCodeUsed(magicCode.id);
+      // Mark as used (except for demo accounts to allow reuse)
+      if (email !== "vendor@demo.com") {
+        await storage.markMagicCodeUsed(magicCode.id);
+      }
 
       // Get vendor user (must exist, vendors are invited not self-signup)
       const user = await storage.getUserByEmail(email);
@@ -367,8 +370,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Mark as used
-      await storage.markMagicCodeUsed(magicCode.id);
+      // Mark as used (except for demo accounts to allow reuse)
+      if (email !== "merchant@demo.com") {
+        await storage.markMagicCodeUsed(magicCode.id);
+      }
 
       // Get merchant user (must exist, merchants are invited not self-signup)
       const user = await storage.getUserByEmail(email);
