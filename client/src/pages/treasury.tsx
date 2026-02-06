@@ -41,10 +41,10 @@ const mockFloatTimeline = [
 ];
 
 const mockYieldRouting = [
-  { source: "Rent Float (Bucket B)", duration: "5-15d", apy: "5.0%", deployed: "$892K", yield: "$1,233/mo", product: "NRF" },
-  { source: "Vendor Float (Bucket C)", duration: "30-90d", apy: "5.2%", deployed: "$1.4M", yield: "$6,067/mo", product: "NRF+NRK" },
-  { source: "Merchant Float (Bucket D)", duration: "1-3d", apy: "4.8%", deployed: "$210K", yield: "$82/mo", product: "NRK" },
-  { source: "Immediate Reserve (Bucket A)", duration: "0-3d", apy: "4.5%", deployed: "$350K", yield: "$131/mo", product: "Cash+NRK" },
+  { source: "Rent Float (Bucket B)", duration: "5-15d", apy: "5.0%", deployed: "$892K", yield: "$1,233/mo", product: "T-Bills" },
+  { source: "Vendor Float (Bucket C)", duration: "30-90d", apy: "5.2%", deployed: "$1.4M", yield: "$6,067/mo", product: "T-Bills + MMF" },
+  { source: "Merchant Float (Bucket D)", duration: "1-3d", apy: "4.8%", deployed: "$210K", yield: "$82/mo", product: "Money Market" },
+  { source: "Immediate Reserve (Bucket A)", duration: "0-3d", apy: "4.5%", deployed: "$350K", yield: "$131/mo", product: "Cash + MMF" },
 ];
 
 const mockYieldSharing = [
@@ -96,9 +96,9 @@ export default function Treasury() {
 
   const getProductBadges = (productType: string) => {
     const badges: Record<string, string[]> = {
-      NRF: ["T-Bills", "USD returns", "5-15d float"],
+      NRF: ["Treasury Bills", "USD returns", "5-15d float"],
       NRK: ["Money Market", "USD returns", "30-90d float"],
-      NRC: ["Delta-Neutral Credit", "Enhanced USD yield", "Accredited only"],
+      NRC: ["Enhanced Credit", "USD returns", "Qualified investors"],
     };
     return badges[productType] || [];
   };
@@ -109,7 +109,7 @@ export default function Treasury() {
         <div>
           <h1 className="text-4xl font-semibold tracking-tight mb-2">Treasury & Float Management</h1>
           <p className="text-muted-foreground">
-            Deploy idle USD into T-Bills, Money Markets, and Delta-Neutral Credit — manage float routing and yield distribution
+            Deploy idle USD into treasury products — manage float routing and yield distribution
           </p>
         </div>
 

@@ -11,7 +11,6 @@ import {
   Landmark,
   Percent,
   Zap,
-  Coins,
   Layers,
   ShieldAlert,
   Activity,
@@ -30,9 +29,6 @@ interface KPIData {
   vendorFloatAUM: number;
   vendorFloatYield: number;
   rentFloatYield: number;
-  cryptoTreasuryAUM: number;
-  cryptoDeployedBalance: number;
-  cryptoYieldAPY: number;
   sparklineData: Array<{ value: number }>;
 }
 
@@ -63,8 +59,8 @@ export default function Dashboard() {
     { title: "Opex/Unit", value: kpis?.opexPerUnit ? `$${kpis.opexPerUnit.toFixed(0)}` : "—", change: "+1.2%", trend: "down" as const, icon: Home, color: "text-purple-600" },
     { title: "Treasury AUM", value: kpis?.treasuryAUM ? `$${(kpis.treasuryAUM / 1000000).toFixed(1)}M` : "—", change: "+5.3%", trend: "up" as const, icon: Landmark, color: "text-indigo-600" },
     { title: "Current Yield", value: kpis?.currentYield ? `${kpis.currentYield.toFixed(2)}%` : "—", change: "+0.15%", trend: "up" as const, icon: DollarSign, color: "text-emerald-600" },
-    { title: "Vendor Float (USD)", value: kpis?.vendorFloatAUM ? `$${(kpis.vendorFloatAUM / 1000).toFixed(0)}K` : "—", change: "Net30-90", trend: "up" as const, icon: Zap, color: "text-violet-600" },
-    { title: "Vendor Yield (USD)", value: kpis?.vendorFloatYield ? `$${kpis.vendorFloatYield.toFixed(0)}` : "—", change: "All-Time", trend: "up" as const, icon: TrendingUp, color: "text-emerald-600" },
+    { title: "Vendor Float", value: kpis?.vendorFloatAUM ? `$${(kpis.vendorFloatAUM / 1000).toFixed(0)}K` : "—", change: "Net30-90", trend: "up" as const, icon: Zap, color: "text-violet-600" },
+    { title: "Vendor Yield", value: kpis?.vendorFloatYield ? `$${kpis.vendorFloatYield.toFixed(0)}` : "—", change: "All-Time", trend: "up" as const, icon: TrendingUp, color: "text-emerald-600" },
     { title: "Rent Float Yield", value: kpis?.rentFloatYield ? `$${kpis.rentFloatYield.toFixed(0)}` : "—", change: "Last 30d", trend: "up" as const, icon: TrendingUp, color: "text-emerald-600" },
   ];
 
@@ -73,7 +69,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-4xl font-semibold tracking-tight mb-2">Business Console</h1>
         <p className="text-muted-foreground">
-          USD-based yield orchestration — turn idle rent, vendor payments, and merchant float into treasury-optimized assets
+          Real-time operational metrics — track rent collection, vendor payments, and treasury performance
         </p>
       </div>
 
@@ -166,7 +162,7 @@ export default function Dashboard() {
 
       <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-2 border-primary/10">
         <CardHeader>
-          <CardTitle className="text-2xl">How Naltos Works: USD-First Yield Orchestration</CardTitle>
+          <CardTitle className="text-2xl">How Naltos Works: Automated Treasury Management</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid md:grid-cols-3 gap-6">
@@ -185,7 +181,7 @@ export default function Dashboard() {
                 <h3 className="font-semibold">Treasury Generates Yield</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Idle USD is deployed into <strong>T-Bills (NRF)</strong>, <strong>Money Markets (NRK)</strong>, and <strong>Delta-Neutral Credit (NRC)</strong> during predictable float windows.
+                Idle USD is deployed into <strong>Treasury Bills</strong>, <strong>Money Markets</strong>, and <strong>Enhanced Credit</strong> products during predictable float windows.
               </p>
             </div>
             <div className="space-y-2">
@@ -226,7 +222,7 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">Emergency withdrawal reserve for merchant, P2P, vendor redemptions</p>
               <div className="space-y-1 text-xs mt-3">
                 <div className="flex justify-between gap-1"><span className="text-muted-foreground">Cash/Bank Reserve</span><span className="font-mono">40-60%</span></div>
-                <div className="flex justify-between gap-1"><span className="text-muted-foreground">NRK (MMF)</span><span className="font-mono">40-60%</span></div>
+                <div className="flex justify-between gap-1"><span className="text-muted-foreground">Money Market</span><span className="font-mono">40-60%</span></div>
               </div>
             </div>
             <div className="p-4 border rounded-lg space-y-3" data-testid="bucket-rent">
@@ -239,8 +235,8 @@ export default function Dashboard() {
               </div>
               <p className="text-xs text-muted-foreground">Predictable, short-duration float from multifamily rent payments</p>
               <div className="space-y-1 text-xs mt-3">
-                <div className="flex justify-between gap-1"><span className="text-muted-foreground">NRF (T-Bills)</span><span className="font-mono">70-80%</span></div>
-                <div className="flex justify-between gap-1"><span className="text-muted-foreground">NRK (MMF)</span><span className="font-mono">20-30%</span></div>
+                <div className="flex justify-between gap-1"><span className="text-muted-foreground">T-Bills</span><span className="font-mono">70-80%</span></div>
+                <div className="flex justify-between gap-1"><span className="text-muted-foreground">Money Market</span><span className="font-mono">20-30%</span></div>
                 <div className="flex justify-between gap-1 border-t pt-1 mt-2"><span className="text-muted-foreground font-medium">10-day float yield (5% APY)</span><span className="font-mono text-primary">~$1,233/mo</span></div>
               </div>
             </div>
@@ -254,9 +250,9 @@ export default function Dashboard() {
               </div>
               <p className="text-xs text-muted-foreground">Highest yield, longest duration (Net30-Net90 payment terms)</p>
               <div className="space-y-1 text-xs mt-3">
-                <div className="flex justify-between gap-1"><span className="text-muted-foreground">NRF (T-Bills)</span><span className="font-mono">50%</span></div>
-                <div className="flex justify-between gap-1"><span className="text-muted-foreground">NRK (MMF)</span><span className="font-mono">30%</span></div>
-                <div className="flex justify-between gap-1"><span className="text-muted-foreground">NRC (Credit)</span><span className="font-mono">20%</span></div>
+                <div className="flex justify-between gap-1"><span className="text-muted-foreground">T-Bills</span><span className="font-mono">50%</span></div>
+                <div className="flex justify-between gap-1"><span className="text-muted-foreground">Money Market</span><span className="font-mono">30%</span></div>
+                <div className="flex justify-between gap-1"><span className="text-muted-foreground">Enhanced Credit</span><span className="font-mono">20%</span></div>
               </div>
             </div>
             <div className="p-4 border rounded-lg space-y-3" data-testid="bucket-merchant">
@@ -265,11 +261,11 @@ export default function Dashboard() {
                   <h3 className="font-semibold text-sm">Bucket D — Merchant/P2P Micro Float</h3>
                   <p className="text-xs text-muted-foreground">1-3 days</p>
                 </div>
-                <Coins className="w-4 h-4 text-emerald-600" />
+                <Layers className="w-4 h-4 text-emerald-600" />
               </div>
               <p className="text-xs text-muted-foreground">High-volume, fast-moving merchant settlement float</p>
               <div className="space-y-1 text-xs mt-3">
-                <div className="flex justify-between gap-1"><span className="text-muted-foreground">NRK (MMF)</span><span className="font-mono">50-70%</span></div>
+                <div className="flex justify-between gap-1"><span className="text-muted-foreground">Money Market</span><span className="font-mono">50-70%</span></div>
                 <div className="flex justify-between gap-1"><span className="text-muted-foreground">Liquidity Buffer</span><span className="font-mono">30-50%</span></div>
               </div>
             </div>

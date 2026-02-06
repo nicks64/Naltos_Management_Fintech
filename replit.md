@@ -43,6 +43,14 @@ I prefer iterative development with a focus on delivering core functionality fir
 - Collection Incentives: Feature to improve rent collection rates through strategic USD cashback incentives (frontend demo with stubbed data, backend schema defined)
 - Vendor Payout System: Complete vendor redemption flow with three payout rails (ACH Net30-90, Push-to-Card instant, On-Chain instant) and comprehensive Net30-90 terms explainer showing yield calculations
 
+**Phase 3 Major Platform Evolution (February 2026):**
+- **Rent Stability Dashboard**: Portfolio risk heatmap, 5-tier ML delinquency forecasting (Green/Yellow/Orange/Red/Critical), refinance readiness package export, ownership cohort tracker (Tier 1-3), rent-to-own opportunity index with readiness scoring
+- **Business Console Dashboard**: Operational risk alerts with live anomaly detection, collection variance analysis (expected vs actual ML model), enhanced 9-metric KPI cards with sparklines
+- **Tenant Home**: Flexible payment options (full/split-2/weekly), P2P rent splitting with roommate invites, 4-tier streak-based cashback engine (Bronze $2/mo, Silver $3.50/mo, Gold $5/mo, Platinum $8/mo), yield flow visualization showing rent float mechanics
+- **Tenant Ownership Readiness**: Complete 3-tier eligibility system (Stable/FHA/NACA), escrow wallet with vesting events and yield tracking, 7-document lender handoff package with 3 matched lenders (NACA/FHA/CRA), behavioral nudging engine
+- **Treasury & Float Management**: 4-tab layout (Products/Float/Yield Routing/Sharing), float volume stacked area chart, yield routing configuration per bucket, programmable yield sharing across 4 stakeholders (Owners 85%, Tenants 5%, Vendors 3%, Platform 7%)
+- **Tenant Wallet**: Multi-tab (Yield & Settings/Rewards/Escrow/Purchase Yield), reward history with categorized rewards, escrow progress visualization, merchant purchase yield breakdown showing 3-way split
+
 **Important UI/UX Decisions (November 2025):**
 - All user-facing interfaces must display USD ONLY — no crypto terminology (USDC, USDT, DAI, stablecoin, blockchain, crypto) visible to users
 - Replacement terminology: "digital payment infrastructure", "treasury-backed", "modern payment infrastructure", "backend infrastructure"

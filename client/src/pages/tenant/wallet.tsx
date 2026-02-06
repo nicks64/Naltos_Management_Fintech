@@ -78,7 +78,7 @@ export default function TenantWallet() {
     mutationFn: (optIn: boolean) => apiRequest("POST", "/api/tenant/wallet/yield-opt-in", { optIn }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tenant/wallet"] });
-      toast({ title: "Yield Settings Updated", description: wallet?.yieldOptIn ? "You've opted out of yield earnings" : "Your balance will now earn yield via Naltos Reserve" });
+      toast({ title: "Yield Settings Updated", description: wallet?.yieldOptIn ? "You've opted out of yield earnings" : "Your balance will now earn interest automatically" });
     },
   });
 
