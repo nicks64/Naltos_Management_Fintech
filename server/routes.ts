@@ -1684,6 +1684,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Rent Stability & Ownership Routes ============
+  app.get("/api/rent-stability", requireAuth, requireRole("PropertyManager", "Admin", "CFO", "Analyst"), async (req, res) => {
+    try {
+      // Mocked for demo; in production, this would query prediction models
+      res.json({
+        volatility: 1.8,
+        delinquencyReduction: 14.2,
+        ownershipReadyUnits: 38,
+        paymentProbability: 0.94
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/readiness", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) return res.status(404).json({ error: "Tenant record not found" });
+      
+      const tenant = await storage.getTenant(tenantId);
+      res.json(tenant);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -13,6 +13,7 @@ import { LogOut, ShieldAlert } from "lucide-react";
 
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
+import RentStability from "@/pages/rent-stability";
 import Collections from "@/pages/collections";
 import CollectionIncentives from "@/pages/collection-incentives";
 import Reconciliation from "@/pages/reconciliation";
@@ -27,6 +28,7 @@ import NotFound from "@/pages/not-found";
 
 // Tenant pages
 import TenantHome from "@/pages/tenant/home";
+import OwnershipReadiness from "@/pages/tenant/ownership-readiness";
 import TenantWallet from "@/pages/tenant/wallet";
 import TenantMerchants from "@/pages/tenant/merchants";
 import TenantAgent from "@/pages/tenant/agent";
@@ -194,6 +196,9 @@ function AppContent() {
                 <Route path="/dashboard">
                   {ProtectedRouteRenderer(Dashboard, "/dashboard")}
                 </Route>
+                <Route path="/rent-stability">
+                  {ProtectedRouteRenderer(RentStability, "/rent-stability")}
+                </Route>
                 <Route path="/collections">
                   {ProtectedRouteRenderer(Collections, "/collections")}
                 </Route>
@@ -228,6 +233,9 @@ function AppContent() {
                 {/* Tenant routes */}
                 <Route path="/tenant/home">
                   {ProtectedRouteRenderer(TenantHome, "/tenant/home")}
+                </Route>
+                <Route path="/tenant/ownership">
+                  {ProtectedRouteRenderer(OwnershipReadiness, "/tenant/ownership")}
                 </Route>
                 <Route path="/tenant/wallet">
                   {ProtectedRouteRenderer(TenantWallet, "/tenant/wallet")}

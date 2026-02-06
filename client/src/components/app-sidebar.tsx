@@ -9,7 +9,8 @@ import {
   Building2,
   TrendingUp,
   Zap,
-  Award
+  Award,
+  ShieldCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +35,12 @@ const menuItems = [
     title: "Overview",
     url: "/dashboard",
     icon: LayoutDashboard,
+    roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
+  },
+  {
+    title: "Rent Stability",
+    url: "/rent-stability",
+    icon: ShieldCheck,
     roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
   },
   {

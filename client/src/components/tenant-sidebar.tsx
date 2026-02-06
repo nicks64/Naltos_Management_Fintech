@@ -18,6 +18,11 @@ const tenantNavItems = [
     icon: Home,
   },
   {
+    title: "Ownership",
+    url: "/tenant/ownership",
+    icon: Building2,
+  },
+  {
     title: "Wallet",
     url: "/tenant/wallet",
     icon: Wallet,

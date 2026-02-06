@@ -86,6 +86,9 @@ export const tenants = pgTable("tenants", {
   name: text("name").notNull(),
   email: text("email"),
   phone: text("phone"),
+  riskScore: integer("risk_score").default(0).notNull(), // 0-100 score
+  paymentProbability: decimal("payment_probability", { precision: 3, scale: 2 }).default("1.00").notNull(), // 0.00-1.00
+  ownershipReadyTier: integer("ownership_ready_tier").default(0).notNull(), // 0 (None), 1 (FHA Eligible), 2 (NACA Eligible)
 });
 
 // Leases

@@ -195,6 +195,8 @@ export interface IStorage {
   
   // Tenant methods
   getTenantByEmail(email: string): Promise<Tenant | undefined>;
+  getTenant(id: string): Promise<Tenant | undefined>;
+  updateTenant(id: string, updates: Partial<Tenant>): Promise<Tenant>;
   
   // Merchant methods for tenant-side transactions
   getMerchants(organizationId: string): Promise<Merchant[]>;
@@ -1255,6 +1257,16 @@ export class DatabaseStorage implements IStorage {
   async getTenantByEmail(email: string): Promise<Tenant | undefined> {
     const [tenant] = await db.select().from(tenants).where(eq(tenants.email, email));
     return tenant || undefined;
+  }
+
+  async getTenant(id: string): Promise<Tenant | undefined> {
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id));
+    return tenant || undefined;
+  }
+
+  async updateTenant(id: string, updates: Partial<Tenant>): Promise<Tenant> {
+    const [tenant] = await db.update(tenants).set(updates).where(eq(tenants.id, id)).returning();
+    return tenant;
   }
 
   // Vendor User Links Methods (for multi-org vendor access)
