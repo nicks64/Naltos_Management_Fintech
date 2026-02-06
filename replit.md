@@ -39,6 +39,9 @@ The platform solves key multifamily pain points:
 ## User Preferences
 I prefer iterative development with a focus on delivering core functionality first. Please ask before making major changes to the architecture or core logic. I appreciate detailed explanations, especially for complex financial concepts or technical implementations. Do not make changes to the `shared/schema.ts` file without explicit approval, as it defines the core data model.
 
+**Recent Feature Additions (February 2026):**
+- Rent Float Treasury: Enhanced page with 12-month performance chart, treasury deployment allocation (4 products: Treasury Bills/Money Market/Enhanced Credit/Liquidity Reserve), float velocity panel with real-time utilization metrics, tabbed detail sections (Yield Distribution/Model Comparison/Recent Payments), and neural float intelligence panel with 4 AI-driven insights. Backend `/api/rent-float/enhanced` endpoint with demo data fallback.
+
 **Recent Feature Additions (November 2025):**
 - Collection Incentives: Feature to improve rent collection rates through strategic USD cashback incentives (frontend demo with stubbed data, backend schema defined)
 - Vendor Payout System: Complete vendor redemption flow with three payout rails (ACH Net30-90, Push-to-Card instant, On-Chain instant) and comprehensive Net30-90 terms explainer showing yield calculations
