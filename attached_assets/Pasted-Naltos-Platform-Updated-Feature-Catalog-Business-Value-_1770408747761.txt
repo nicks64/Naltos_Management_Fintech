@@ -1,0 +1,95 @@
+Naltos Platform: Updated Feature Catalog & Business Value Proposition
+
+1. Executive Summary
+   Naltos is a Cash-Flow Intelligence and Fintech Orchestration Platform for multifamily real estate. It turns rent payments into programmable cashflow signals that improve property valuation, reduce operating risk, and unlock new ownership pathways for residents. Sitting as an orchestration layer above PMS systems like Yardi and AppFolio, Naltos offers real-time behavioral data, rent-backed yield generation, refinance-ready analytics, and embedded tenant-to-owner transitions — all without introducing balance-sheet risk.
+
+2. Updated Feature Catalog (Extensive)
+
+A. Business Console (Owners, CFOs, & Property Managers)
+
+1. Rent Stability & Capital Intelligence
+
+* **Portfolio Volatility Tracking**: Real-time heatmaps of rent volatility, unit risk scores, and payment variance across portfolios; identifies patterns across regions, asset classes, and tenant demographics.
+* **Delinquency Forecasting & Tiering**: ML-powered payment prediction engine that assigns dynamic risk scores to tenants and cohorts; integrates seasonality, lease structure, and prior delinquencies.
+* **Refinance Readiness Package**: One-click export of stabilized rent performance, cohort-level behavior analysis, NOI trends, and variance reduction for lender presentation.
+* **Ownership Transition Cohort Tracker**: Live visualization of tenant pipeline into FHA/NACA or rent-to-own transition based on consistent payment streaks and qualification progress.
+* **Rent-to-Own Opportunity Index**: Machine-learning model that flags units and tenants best suited for rent-to-own offers based on lease terms, payment consistency, property hold strategy, and neighborhood equity dynamics.
+
+2. Treasury & Yield Participation (Embedded Financial Infrastructure)
+
+* **Float Management Suite**: Automated yield engine that routes collected rent and expense float into short-term U.S. Treasury and equivalent instruments, with duration-aware deployment.
+* **Vendor Float Optimization**: Pays vendors instantly (optional), while holding settlement funds in yield-generating float until their requested payout window (Net30/60/90).
+* **Programmable Yield Sharing**: Smart logic determines how float yield is split between Owner NOI, tenant rewards, and Naltos margin. Fully auditable and customizable by portfolio.
+* **Capital Participation Routing**: For operators/investors interested in yield-backed securitization or synthetic rent yield instruments, the platform exports behavioral performance data to be bundled into capital stack participation.
+
+3. Fintech Operator Toolkit
+
+* **AppFolio/Yardi Reconciliation Layer**: Sits on top of existing PMS, translating Naltos’s payments and ledger events into PMS-readable formats. No double-entry required.
+* **Internal Ledger (NUSD)**: Fully auditable PostgreSQL ledger system tracking every cent of payment, reward, float, escrow, and credit-to-rent behavior.
+* **Operational Risk Dashboard**: Detects anomalies in payment behavior, sudden churn risk, clustering of high-delinquency units, or breakdown in P2P support networks.
+* **Custom Reporting Engine**: Operators can build custom dashboards on top of event logs for audit, investor communication, or lender presentations.
+
+B. Tenant Portal (Residents)
+
+1. Rent Payment + Behavior Engine
+
+* **Flexible Payment Options**: Pay full rent or split across dates and people. Family and friends can send funds through P2P-like interface without creating accounts.
+* **Streak-Based Cashback Engine**: Reward tenants with real cash for on-time payments, early payments, or multi-month streaks. Rewards visible and redeemable inside app.
+* **Micro-Yield on Rent**: A portion of float-generated yield is rebated to residents as micro-savings, visible in their Wallet.
+* **Rent-to-Credit Reporting**: Rent data is optionally reported to major bureaus to help residents improve FICO and access mortgage credit. Supports opt-in and full transparency.
+
+2. Ownership Progress & Rent-to-Own Engine
+
+* **Eligibility Tiering (Tier 1-3)**:
+
+  * *Tier 1*: Stable payers, subprime credit
+  * *Tier 2*: Meets FHA credit/income thresholds
+  * *Tier 3*: NACA/FHA-qualified with ownership path activated
+* **Ownership Progress Bar**: Visual dashboard shows accrued down payment (from yield/cashback), credit score delta, monthly affordability model, and lender eligibility.
+* **Rent-to-Own Contract Engine**: Configurable agreements where part of each rent payment accrues as purchase credit or a structured buyout option. Tracks equity growth, vesting events, and tenant eligibility.
+* **Escrow Wallet**: In-app visualization of accrued savings, equity, and expected time to ownership trigger.
+* **Lender Handoff Workflow**: Once residents cross Tier 2–3 thresholds, they are routed to FHA/NACA lenders with pre-filled behavioral payment profile and documentation package.
+* **Tenant Insights + Nudging Engine**: Monthly emails and in-app nudges show tenants how behavior (on-time payments, credit actions) brings them closer to ownership.
+
+C. Vendor & Merchant Ecosystem
+
+* **Push-to-Card Payouts**: Vendors and merchants can receive funds in real time via Visa/Mastercard rails, improving their liquidity and cash cycle.
+* **Multi-Org Login**: Vendors operating across properties or PMCs can track all invoices, payouts, and statuses with a single dashboard login.
+* **Settlement Rules Builder**: Vendors choose frequency (daily, weekly, monthly), method (ACH, card), and preference hierarchy.
+* **Cashback Merchant Network**: Tenants can spend rewards with participating merchants, incentivizing local economic stickiness and visibility.
+* **QR-Enabled Reward Redemption**: Mobile codes for cashback use at point of sale with local stores or digital retailers.
+
+3. Value Propositions (Expanded)
+
+For Operators
+
+* **NOI Uplift**: 0.75%–1.5% annual NOI increase via float yield, delinquency reduction, and rent-to-own stickiness.
+* **Cap Rate Impact**: $1 of NOI = $15–$20 in property valuation at typical cap rates.
+* **Portfolio Differentiation**: Properties with built-in ownership pathways and cashback retention outperform in occupancy and turnover metrics.
+* **Exit Efficiency**: Tenant ownership transitions reduce vacancy loss, make turns predictable, and improve portfolio-level liquidity.
+* **Data-Driven Refinancing**: Behavioral dashboards support lower-risk refinance packages and capital stack narratives.
+
+For Property Managers
+
+* **Reduced Collections Burden**: Incentive and P2P systems reduce the need for staff-initiated collection calls or notices.
+* **Accounting Workflow Intact**: PMS remains source of truth; Naltos abstracts only the payments layer.
+* **Leasing Performance**: Retention lift (30%+ with cashback programs) reduces churn-related leasing costs.
+* **Regulatory Safety**: Rent-to-own contracts compliant with state lease-option frameworks; legal wrapper included per jurisdiction.
+
+For Residents
+
+* **Rent as Asset**: Converts recurring rent into cash rewards, credit score growth, and down payment equity.
+* **Faster Homeownership**: Predictable visibility into FHA/NACA pathways and rent-to-own milestones.
+* **Inclusion-First**: Supports unbanked and underbanked via mobile-first flows and P2P support options.
+* **Local Spend Power**: Rewards that circulate in the community and provide economic visibility for renters.
+* **Financial Nudges**: Continuous behavioral cues to improve credit, payment timing, and financial literacy.
+
+4. Strategic Flywheel (Ecosystem Overview)
+
+* **Observe**: Capture payment behavior and float across the ecosystem.
+* **Optimize**: Use data to reduce delinquency, earn yield, and align incentives.
+* **Translate**: Convert stability and behavior into lender-ready, refinance-grade outputs.
+* **Transition**: Unlock paths to ownership for renters; clean transitions for operators; risk-reduced yield for capital markets.
+* **Reinvest**: Recirculate value — tenants gain equity, operators grow NOI, and capital finds defensible yield.
+
+Naltos is not just a software platform. It is a multi-stakeholder, yield-aware financial infrastructure for rent-backed wealth mobility, institutional-grade operating efficiency, and capital market enablement.
