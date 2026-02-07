@@ -816,9 +816,12 @@ export default function MerchantPortal() {
 
       {/* Orchestration Details */}
       <Tabs defaultValue="transactions" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="transactions" data-testid="tab-transactions">
             Transactions
+          </TabsTrigger>
+          <TabsTrigger value="statements" data-testid="tab-statements">
+            Statements
           </TabsTrigger>
           <TabsTrigger value="stablecoin" data-testid="tab-infrastructure">
             Backend Infrastructure
@@ -1124,7 +1127,104 @@ export default function MerchantPortal() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="statements" className="space-y-6">
+          <MerchantStatementsTab />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+interface MerchantStatement {
+  id: string;
+  period: string;
+  date: string;
+  transactionCount: number;
+  totalVolume: number;
+  totalYield: number;
+  avgSettlementDays: number;
+  status: string;
+}
+
+function MerchantStatementsTab() {
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery<{ statements: MerchantStatement[] }>({
+    queryKey: ["/api/merchant/statements"],
+  });
+
+  const handleDownload = (period: string) => {
+    toast({
+      title: "Statement Download",
+      description: `Downloading ${period} statement as PDF...`,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5" />
+            Monthly Statements
+          </CardTitle>
+          <CardDescription>Download transaction and settlement statements</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {data?.statements?.map((stmt) => (
+              <div
+                key={stmt.id}
+                className="flex items-center justify-between p-4 border rounded-md"
+                data-testid={`statement-${stmt.id}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{stmt.period}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {stmt.transactionCount} transactions
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className="font-mono text-sm font-medium">${stmt.totalVolume.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      +${stmt.totalYield.toFixed(2)} yield | {stmt.avgSettlementDays.toFixed(1)}d avg
+                    </p>
+                  </div>
+                  <Badge variant={stmt.status === "current" ? "secondary" : "default"}>
+                    {stmt.status === "current" ? "Current" : "Available"}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDownload(stmt.period)}
+                    data-testid={`button-download-${stmt.id}`}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

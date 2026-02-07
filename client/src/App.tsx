@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { useRBAC } from "@/lib/rbac";
 import { Button } from "@/components/ui/button";
+import { ActivityFeed } from "@/components/activity-feed";
 import { LogOut, ShieldAlert } from "lucide-react";
 
 import Login from "@/pages/login";
@@ -25,9 +26,11 @@ import Reports from "@/pages/reports";
 import Agent from "@/pages/agent";
 import Intelligence from "@/pages/intelligence";
 import Settings from "@/pages/settings";
+import CashFlowForecast from "@/pages/cash-flow-forecast";
 import NotFound from "@/pages/not-found";
 
 // Tenant pages
+import TenantPaymentCalendar from "@/pages/tenant/payment-calendar";
 import TenantHome from "@/pages/tenant/home";
 import OwnershipReadiness from "@/pages/tenant/ownership-readiness";
 import TenantWallet from "@/pages/tenant/wallet";
@@ -126,6 +129,7 @@ function AppContent() {
         <header className="flex items-center justify-between px-8 py-4 border-b">
           <div className="text-xl font-semibold">Vendor Portal</div>
           <div className="flex items-center gap-2">
+            <ActivityFeed />
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
               <LogOut className="w-5 h-5" />
@@ -151,6 +155,7 @@ function AppContent() {
         <header className="flex items-center justify-between px-8 py-4 border-b">
           <div className="text-xl font-semibold">Merchant Portal</div>
           <div className="flex items-center gap-2">
+            <ActivityFeed />
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
               <LogOut className="w-5 h-5" />
@@ -184,6 +189,7 @@ function AppContent() {
           <header className="flex items-center justify-between px-8 py-4 border-b">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2">
+              <ActivityFeed />
               <ThemeToggle />
               <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
                 <LogOut className="w-5 h-5" />
@@ -230,6 +236,9 @@ function AppContent() {
                 <Route path="/agent">
                   {ProtectedRouteRenderer(Agent, "/agent")}
                 </Route>
+                <Route path="/cash-flow-forecast">
+                  {ProtectedRouteRenderer(CashFlowForecast, "/cash-flow-forecast")}
+                </Route>
                 <Route path="/settings">
                   {ProtectedRouteRenderer(Settings, "/settings")}
                 </Route>
@@ -252,6 +261,9 @@ function AppContent() {
                 </Route>
                 <Route path="/tenant/reports">
                   {ProtectedRouteRenderer(TenantReports, "/tenant/reports")}
+                </Route>
+                <Route path="/tenant/payment-calendar">
+                  {ProtectedRouteRenderer(TenantPaymentCalendar, "/tenant/payment-calendar")}
                 </Route>
                 <Route path="/tenant/settings">
                   {ProtectedRouteRenderer(TenantSettings, "/tenant/settings")}

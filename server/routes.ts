@@ -1931,6 +1931,313 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Cash Flow Forecasting ============
+  app.get("/api/forecast", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      const today = new Date();
+      const generateDailyForecast = (days: number) => {
+        const data = [];
+        let cumulativeInflow = 0;
+        let cumulativeOutflow = 0;
+        for (let i = 0; i < days; i++) {
+          const date = new Date(today);
+          date.setDate(date.getDate() + i);
+          const dayOfMonth = date.getDate();
+          const isRentDay = dayOfMonth <= 5;
+          const isPayrollDay = dayOfMonth === 15 || dayOfMonth === 30;
+          const isVendorDay = dayOfMonth === 10 || dayOfMonth === 20;
+          const baseRent = isRentDay ? 85000 + Math.sin(i * 0.3) * 12000 : 2000 + Math.sin(i * 0.5) * 1500;
+          const vendorPayout = isVendorDay ? 28000 + Math.sin(i * 0.4) * 8000 : 3500 + Math.sin(i * 0.2) * 1200;
+          const payroll = isPayrollDay ? 42000 : 0;
+          const maintenance = 1200 + Math.sin(i * 0.7) * 800;
+          const insurance = dayOfMonth === 1 ? 8500 : 0;
+          const inflow = Math.round(baseRent + Math.random() * 3000);
+          const outflow = Math.round(vendorPayout + payroll + maintenance + insurance);
+          cumulativeInflow += inflow;
+          cumulativeOutflow += outflow;
+          data.push({
+            date: date.toISOString().split("T")[0],
+            dayLabel: `${date.getMonth() + 1}/${date.getDate()}`,
+            inflow,
+            outflow,
+            netCashFlow: inflow - outflow,
+            cumulativeNet: cumulativeInflow - cumulativeOutflow,
+            rentCollected: isRentDay ? inflow * 0.85 : inflow * 0.3,
+            vendorPayments: vendorPayout,
+            confidence: Math.max(0.6, 1 - i * 0.004),
+          });
+        }
+        return data;
+      };
+      const daily = generateDailyForecast(90);
+      const weekly = [];
+      for (let w = 0; w < 13; w++) {
+        const weekSlice = daily.slice(w * 7, (w + 1) * 7);
+        if (weekSlice.length === 0) break;
+        weekly.push({
+          week: `W${w + 1}`,
+          startDate: weekSlice[0].date,
+          inflow: weekSlice.reduce((s, d) => s + d.inflow, 0),
+          outflow: weekSlice.reduce((s, d) => s + d.outflow, 0),
+          netCashFlow: weekSlice.reduce((s, d) => s + d.netCashFlow, 0),
+          avgConfidence: weekSlice.reduce((s, d) => s + d.confidence, 0) / weekSlice.length,
+        });
+      }
+      res.json({
+        daily,
+        weekly,
+        summary: {
+          totalProjectedInflow: daily.reduce((s, d) => s + d.inflow, 0),
+          totalProjectedOutflow: daily.reduce((s, d) => s + d.outflow, 0),
+          netCashPosition: daily.reduce((s, d) => s + d.netCashFlow, 0),
+          avgDailyInflow: Math.round(daily.reduce((s, d) => s + d.inflow, 0) / 90),
+          avgDailyOutflow: Math.round(daily.reduce((s, d) => s + d.outflow, 0) / 90),
+          liquidityRiskDays: daily.filter(d => d.netCashFlow < -20000).length,
+          peakInflowDay: daily.reduce((max, d) => d.inflow > max.inflow ? d : max, daily[0]).date,
+          lowestCashDay: daily.reduce((min, d) => d.cumulativeNet < min.cumulativeNet ? d : min, daily[0]).date,
+        },
+        scenarios: [
+          { name: "Baseline", description: "Current collection rates and vendor terms maintained", probability: 0.65, noi90Day: 742000, cashReserve: 185000, delinquencyRate: 4.2 },
+          { name: "Optimistic", description: "Incentive programs improve on-time rate by 8%", probability: 0.20, noi90Day: 812000, cashReserve: 225000, delinquencyRate: 2.8 },
+          { name: "Stress", description: "Economic downturn increases delinquency by 40%", probability: 0.15, noi90Day: 628000, cashReserve: 95000, delinquencyRate: 7.1 },
+        ],
+        assumptions: {
+          occupancyRate: 94.5,
+          avgRent: 1525,
+          onTimeRate: 87.3,
+          vendorTerms: "Net45 avg",
+          maintenanceReserve: 2.5,
+          yieldOnFloat: 4.2,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Enhanced Collections ============
+  app.get("/api/collections/enhanced", requireAuth, requireRole("Admin", "PropertyManager", "CFO"), async (req, res) => {
+    try {
+      res.json({
+        summary: {
+          totalOutstanding: 187450,
+          totalTenants: 42,
+          atRiskCount: 8,
+          avgDaysPastDue: 12.4,
+          collectionRate: 87.3,
+          collectionRateChange: 2.1,
+          totalCollectedMTD: 425000,
+          projectedCollection: 485000,
+        },
+        aging: [
+          { bucket: "Current", count: 285, amount: 425000, percentage: 68.2 },
+          { bucket: "1-30 Days", count: 45, amount: 67500, percentage: 10.8 },
+          { bucket: "31-60 Days", count: 22, amount: 44000, percentage: 7.1 },
+          { bucket: "61-90 Days", count: 12, amount: 30000, percentage: 4.8 },
+          { bucket: "90+ Days", count: 8, amount: 45950, percentage: 7.4 },
+          { bucket: "Collections", count: 3, amount: 10500, percentage: 1.7 },
+        ],
+        tenants: [
+          { id: "c1", name: "Kevin M.", unit: "Riverdale #102", property: "Riverdale Apts", amountDue: 3200, dueDate: "2026-01-01", daysPastDue: 37, status: "overdue", riskScore: 92, riskLevel: "critical", lastPayment: "2025-12-15", paymentHistory: "irregular", contactAttempts: 4, lastContacted: "2026-02-03", nudgeSent: true, paylinkSent: true, hasPlan: false },
+          { id: "c2", name: "Lisa R.", unit: "Sunset #201", property: "Sunset Towers", amountDue: 1500, dueDate: "2026-01-15", daysPastDue: 23, status: "overdue", riskScore: 78, riskLevel: "high", lastPayment: "2025-12-28", paymentHistory: "declining", contactAttempts: 2, lastContacted: "2026-02-01", nudgeSent: true, paylinkSent: false, hasPlan: false },
+          { id: "c3", name: "David L.", unit: "Maple #305", property: "Maple Gardens", amountDue: 800, dueDate: "2026-02-01", daysPastDue: 6, status: "overdue", riskScore: 54, riskLevel: "medium", lastPayment: "2026-01-02", paymentHistory: "irregular", contactAttempts: 1, lastContacted: "2026-02-05", nudgeSent: false, paylinkSent: false, hasPlan: false },
+          { id: "c4", name: "Tom H.", unit: "Oak #215", property: "Oak Ridge", amountDue: 1525, dueDate: "2026-02-01", daysPastDue: 6, status: "overdue", riskScore: 45, riskLevel: "medium", lastPayment: "2026-01-04", paymentHistory: "mostly_consistent", contactAttempts: 0, lastContacted: null, nudgeSent: false, paylinkSent: false, hasPlan: false },
+          { id: "c5", name: "Anna P.", unit: "Pine #108", property: "Pine Valley", amountDue: 4800, dueDate: "2025-12-01", daysPastDue: 68, status: "overdue", riskScore: 95, riskLevel: "critical", lastPayment: "2025-11-01", paymentHistory: "critical", contactAttempts: 6, lastContacted: "2026-02-06", nudgeSent: true, paylinkSent: true, hasPlan: true },
+          { id: "c6", name: "Mike B.", unit: "Harbor #410", property: "Harbor View", amountDue: 750, dueDate: "2026-02-01", daysPastDue: 6, status: "partial", riskScore: 32, riskLevel: "low", lastPayment: "2026-02-01", paymentHistory: "consistent", contactAttempts: 0, lastContacted: null, nudgeSent: false, paylinkSent: false, hasPlan: false },
+          { id: "c7", name: "Rachel K.", unit: "Sunset #505", property: "Sunset Towers", amountDue: 1525, dueDate: "2026-02-05", daysPastDue: 2, status: "pending", riskScore: 18, riskLevel: "low", lastPayment: "2026-01-03", paymentHistory: "consistent", contactAttempts: 0, lastContacted: null, nudgeSent: false, paylinkSent: false, hasPlan: false },
+          { id: "c8", name: "Chris D.", unit: "Maple #112", property: "Maple Gardens", amountDue: 2400, dueDate: "2025-12-15", daysPastDue: 53, status: "overdue", riskScore: 88, riskLevel: "high", lastPayment: "2025-11-20", paymentHistory: "declining", contactAttempts: 3, lastContacted: "2026-01-28", nudgeSent: true, paylinkSent: true, hasPlan: false },
+        ],
+        trendData: [
+          { month: "Sep", collected: 392000, outstanding: 108000, rate: 78.4 },
+          { month: "Oct", collected: 405000, outstanding: 95000, rate: 81.0 },
+          { month: "Nov", collected: 418000, outstanding: 82000, rate: 83.6 },
+          { month: "Dec", collected: 412000, outstanding: 88000, rate: 82.4 },
+          { month: "Jan", collected: 425000, outstanding: 75000, rate: 85.0 },
+          { month: "Feb", collected: 436000, outstanding: 64000, rate: 87.2 },
+        ],
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Tenant Payment Calendar ============
+  app.get("/api/tenant/payment-calendar", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const today = new Date();
+      const events = [];
+      for (let m = -1; m <= 3; m++) {
+        const rentDate = new Date(today.getFullYear(), today.getMonth() + m, 1);
+        const isPast = rentDate < today;
+        events.push({
+          id: `rent-${m}`,
+          type: "rent",
+          title: "Monthly Rent",
+          amount: 1525,
+          date: rentDate.toISOString().split("T")[0],
+          status: isPast ? "paid" : m === 0 ? "due_soon" : "upcoming",
+          autopay: true,
+          paymentMethod: "ACH - Chase ****4521",
+        });
+        if (m >= 0) {
+          events.push({
+            id: `cashback-${m}`,
+            type: "cashback",
+            title: "On-Time Cashback",
+            amount: 3.50,
+            date: new Date(today.getFullYear(), today.getMonth() + m, 5).toISOString().split("T")[0],
+            status: isPast ? "credited" : "projected",
+            autopay: false,
+            paymentMethod: null,
+          });
+        }
+      }
+      events.push({
+        id: "split-1",
+        type: "split",
+        title: "Rent Split - Alex M.",
+        amount: 762.50,
+        date: new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0],
+        status: "received",
+        autopay: false,
+        paymentMethod: "P2P Transfer",
+      });
+      res.json({
+        events,
+        autopaySettings: {
+          enabled: true,
+          paymentMethod: "ACH - Chase ****4521",
+          scheduledDay: 1,
+          amount: 1525,
+          nextPayment: new Date(today.getFullYear(), today.getMonth() + 1, 1).toISOString().split("T")[0],
+        },
+        upcomingTotal: 1525,
+        streakMonths: 8,
+        projectedCashback: 42.00,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Toggle Autopay ============
+  app.post("/api/tenant/autopay", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      res.json({ success: true, autopayEnabled: enabled, message: enabled ? "Autopay enabled successfully" : "Autopay disabled" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Activity Feed ============
+  app.get("/api/activity", requireAuth, async (req, res) => {
+    try {
+      const userRole = req.session.userRole;
+      const activities: any[] = [];
+      const now = new Date();
+      if (userRole === "Admin" || userRole === "PropertyManager" || userRole === "CFO" || userRole === "Analyst") {
+        activities.push(
+          { id: "a1", type: "payment", icon: "dollar", title: "Rent payment received", description: "Maria G. paid $1,525 for Sunset #412", timestamp: new Date(now.getTime() - 15 * 60000).toISOString(), read: false, severity: "success" },
+          { id: "a2", type: "alert", icon: "alert", title: "Delinquency risk detected", description: "Kevin M. (Riverdale #102) flagged by neural model - 91% probability", timestamp: new Date(now.getTime() - 45 * 60000).toISOString(), read: false, severity: "critical" },
+          { id: "a3", type: "incentive", icon: "award", title: "Incentive milestone reached", description: "Early Bird program hit 340% ROI at Sunset Towers", timestamp: new Date(now.getTime() - 2 * 3600000).toISOString(), read: false, severity: "info" },
+          { id: "a4", type: "vendor", icon: "truck", title: "Vendor payment processed", description: "ABC Plumbing - $4,200 instant payment via ACH", timestamp: new Date(now.getTime() - 3 * 3600000).toISOString(), read: true, severity: "success" },
+          { id: "a5", type: "system", icon: "sync", title: "PMS sync completed", description: "AppFolio data synchronized - 12 new transactions imported", timestamp: new Date(now.getTime() - 5 * 3600000).toISOString(), read: true, severity: "info" },
+          { id: "a6", type: "collection", icon: "mail", title: "Nudge sent automatically", description: "Automated reminder sent to David L. (Maple #305)", timestamp: new Date(now.getTime() - 8 * 3600000).toISOString(), read: true, severity: "info" },
+          { id: "a7", type: "treasury", icon: "trending", title: "Float yield distributed", description: "$1,847.52 yield accrued from rent float - deposited to treasury", timestamp: new Date(now.getTime() - 12 * 3600000).toISOString(), read: true, severity: "success" },
+          { id: "a8", type: "ownership", icon: "home", title: "Tenant ownership milestone", description: "Maria G. reached FHA eligibility threshold - lender matching available", timestamp: new Date(now.getTime() - 24 * 3600000).toISOString(), read: true, severity: "info" },
+          { id: "a9", type: "alert", icon: "alert", title: "Liquidity gap predicted", description: "$85K vendor payout cluster on March 15 may create 2.1-day shortfall", timestamp: new Date(now.getTime() - 36 * 3600000).toISOString(), read: true, severity: "warning" },
+          { id: "a10", type: "payment", icon: "dollar", title: "Bulk rent collection", description: "142 payments received totaling $216,550 - 94.5% on-time rate", timestamp: new Date(now.getTime() - 48 * 3600000).toISOString(), read: true, severity: "success" }
+        );
+      } else if (userRole === "Tenant") {
+        activities.push(
+          { id: "t1", type: "payment", icon: "dollar", title: "Rent payment confirmed", description: "February rent of $1,525 processed successfully via ACH", timestamp: new Date(now.getTime() - 2 * 3600000).toISOString(), read: false, severity: "success" },
+          { id: "t2", type: "cashback", icon: "award", title: "Cashback earned", description: "$3.50 on-time payment cashback credited to your wallet", timestamp: new Date(now.getTime() - 3 * 3600000).toISOString(), read: false, severity: "success" },
+          { id: "t3", type: "streak", icon: "fire", title: "Payment streak milestone", description: "8-month on-time streak! Silver tier cashback unlocked ($3.50/mo)", timestamp: new Date(now.getTime() - 24 * 3600000).toISOString(), read: true, severity: "info" },
+          { id: "t4", type: "split", icon: "users", title: "Rent split received", description: "Alex M. sent $762.50 for their share of February rent", timestamp: new Date(now.getTime() - 48 * 3600000).toISOString(), read: true, severity: "success" },
+          { id: "t5", type: "ownership", icon: "home", title: "Ownership readiness update", description: "Your credit trajectory looks great! Review your FHA eligibility status", timestamp: new Date(now.getTime() - 72 * 3600000).toISOString(), read: true, severity: "info" },
+          { id: "t6", type: "merchant", icon: "store", title: "Purchase cashback earned", description: "$0.45 yield earned from Local Grocery purchase ($22.50)", timestamp: new Date(now.getTime() - 96 * 3600000).toISOString(), read: true, severity: "success" }
+        );
+      } else if (userRole === "Vendor") {
+        activities.push(
+          { id: "v1", type: "payment", icon: "dollar", title: "Payment received", description: "$4,200 from Naltos Demo Properties - Invoice #INV-2024-047", timestamp: new Date(now.getTime() - 1 * 3600000).toISOString(), read: false, severity: "success" },
+          { id: "v2", type: "yield", icon: "trending", title: "Float yield accrued", description: "$12.85 yield earned on Net45 float balance", timestamp: new Date(now.getTime() - 6 * 3600000).toISOString(), read: false, severity: "info" },
+          { id: "v3", type: "payout", icon: "bank", title: "ACH payout scheduled", description: "$8,500 scheduled for February 15 via ACH (Net30)", timestamp: new Date(now.getTime() - 24 * 3600000).toISOString(), read: true, severity: "info" },
+          { id: "v4", type: "invoice", icon: "file", title: "New invoice received", description: "Invoice #INV-2024-052 for $3,150 from Naltos Demo Properties", timestamp: new Date(now.getTime() - 48 * 3600000).toISOString(), read: true, severity: "info" }
+        );
+      } else if (userRole === "Merchant") {
+        activities.push(
+          { id: "m1", type: "transaction", icon: "store", title: "Transaction processed", description: "$45.00 purchase from Tenant Maria G. - settlement in 2 days", timestamp: new Date(now.getTime() - 30 * 60000).toISOString(), read: false, severity: "success" },
+          { id: "m2", type: "settlement", icon: "dollar", title: "Settlement completed", description: "$1,250.00 batch settlement deposited to your account", timestamp: new Date(now.getTime() - 5 * 3600000).toISOString(), read: false, severity: "success" },
+          { id: "m3", type: "yield", icon: "trending", title: "Settlement yield earned", description: "$2.15 yield from 2-day settlement float", timestamp: new Date(now.getTime() - 12 * 3600000).toISOString(), read: true, severity: "info" },
+          { id: "m4", type: "promotion", icon: "megaphone", title: "Promotion opportunity", description: "Offer 5% cashback to Naltos tenants and increase foot traffic", timestamp: new Date(now.getTime() - 36 * 3600000).toISOString(), read: true, severity: "info" }
+        );
+      }
+      const unreadCount = activities.filter(a => !a.read).length;
+      res.json({ activities, unreadCount });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Mark Activity Read ============
+  app.post("/api/activity/read", requireAuth, async (req, res) => {
+    try {
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Vendor Statements ============
+  app.get("/api/vendor/statements", requireVendor(storage), async (req, res) => {
+    try {
+      const statements = [];
+      const today = new Date();
+      for (let m = 0; m < 6; m++) {
+        const date = new Date(today.getFullYear(), today.getMonth() - m, 1);
+        const monthName = date.toLocaleString("default", { month: "long", year: "numeric" });
+        statements.push({
+          id: `stmt-${m}`,
+          period: monthName,
+          date: date.toISOString().split("T")[0],
+          invoiceCount: 3 + Math.floor(Math.random() * 4),
+          totalAmount: 8500 + Math.floor(Math.random() * 6000),
+          totalYield: 25 + Math.floor(Math.random() * 40),
+          status: m === 0 ? "current" : "available",
+        });
+      }
+      res.json({ statements });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Merchant Statements ============
+  app.get("/api/merchant/statements", requireMerchant(storage), async (req, res) => {
+    try {
+      const statements = [];
+      const today = new Date();
+      for (let m = 0; m < 6; m++) {
+        const date = new Date(today.getFullYear(), today.getMonth() - m, 1);
+        const monthName = date.toLocaleString("default", { month: "long", year: "numeric" });
+        statements.push({
+          id: `mstmt-${m}`,
+          period: monthName,
+          date: date.toISOString().split("T")[0],
+          transactionCount: 25 + Math.floor(Math.random() * 30),
+          totalVolume: 3200 + Math.floor(Math.random() * 2000),
+          totalYield: 8 + Math.floor(Math.random() * 12),
+          avgSettlementDays: 1.5 + Math.random() * 0.8,
+          status: m === 0 ? "current" : "available",
+        });
+      }
+      res.json({ statements });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

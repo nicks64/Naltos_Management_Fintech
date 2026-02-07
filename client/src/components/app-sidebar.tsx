@@ -12,6 +12,7 @@ import {
   Award,
   ShieldCheck,
   Brain,
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -89,6 +90,12 @@ const menuItems = [
     url: "/vendor-payments",
     icon: Zap,
     roles: ["Admin", "CFO"] as UserRole[],
+  },
+  {
+    title: "Cash Flow Forecast",
+    url: "/cash-flow-forecast",
+    icon: Activity,
+    roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
   },
   {
     title: "Reports",

@@ -8,12 +8,14 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/collections": ["Admin", "PropertyManager", "CFO"],
   "/reconciliation": ["Admin", "PropertyManager", "CFO"],
   "/treasury": ["Admin", "CFO"],
+  "/cash-flow-forecast": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/reports": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/agent": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/settings": ["Admin"],
   
   // Consumer Side (Tenants / Residents)
   "/tenant/home": ["Tenant"],
+  "/tenant/payment-calendar": ["Tenant"],
   "/tenant/wallet": ["Tenant"],
   "/tenant/agent": ["Tenant"],
   "/tenant/reports": ["Tenant"],

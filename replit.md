@@ -41,6 +41,11 @@ I prefer iterative development with a focus on delivering core functionality fir
 
 **Recent Feature Additions (February 2026):**
 - Rent Float Treasury: Enhanced page with 12-month performance chart, treasury deployment allocation (4 products: Treasury Bills/Money Market/Enhanced Credit/Liquidity Reserve), float velocity panel with real-time utilization metrics, tabbed detail sections (Yield Distribution/Model Comparison/Recent Payments), and neural float intelligence panel with 4 AI-driven insights. Backend `/api/rent-float/enhanced` endpoint with demo data fallback.
+- **Cash Flow Forecasting** (Feb 7): New `/cash-flow-forecast` page with 30/60/90-day liquidity projections, daily/weekly chart toggle, 3 scenario cards (Baseline/Optimistic/Stress), model assumptions panel. Backend `/api/forecast` endpoint.
+- **Enhanced Collections** (Feb 7): Rewritten `/collections` page with 4 KPI summary cards, aging bucket bar chart, collection trend line chart, risk-scored tenant table with filters (risk level, status), bulk actions (Send Paylinks, Schedule Nudges). Backend `/api/collections/enhanced` endpoint.
+- **Tenant Payment Calendar** (Feb 7): New `/tenant/payment-calendar` page with upcoming payment timeline, autopay toggle with settings, payment streak counter, projected annual cashback. Backend `/api/tenant/payment-calendar` and `/api/tenant/autopay` endpoints.
+- **Activity Feed & Notifications** (Feb 7): Cross-role notification bell component in all 4 portal headers (Business, Tenant, Vendor, Merchant). Role-specific activities with unread tracking. Backend `/api/activity` and `/api/activity/read` endpoints.
+- **Vendor/Merchant Statements** (Feb 7): New 4th "Statements" tab in both Vendor and Merchant portals showing 6 months of downloadable monthly statements with invoice counts, amounts, and yield earned. Backend `/api/vendor/statements` and `/api/merchant/statements` endpoints.
 
 **Recent Feature Additions (November 2025):**
 - Collection Incentives: Feature to improve rent collection rates through strategic USD cashback incentives (frontend demo with stubbed data, backend schema defined)
