@@ -11,6 +11,7 @@ import {
   Zap,
   Award,
   ShieldCheck,
+  Shield,
   Brain,
   Activity,
 } from "lucide-react";
@@ -95,6 +96,24 @@ const menuItems = [
     title: "Cash Flow Forecast",
     url: "/cash-flow-forecast",
     icon: Activity,
+    roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
+  },
+  {
+    title: "Deposit Alternatives",
+    url: "/deposit-alternatives",
+    icon: Shield,
+    roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
+  },
+  {
+    title: "Rent Pricing",
+    url: "/rent-pricing",
+    icon: TrendingUp,
+    roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
+  },
+  {
+    title: "Capital Access",
+    url: "/capital-access",
+    icon: Landmark,
     roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
   },
   {

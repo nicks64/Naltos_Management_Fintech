@@ -9,7 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Home, Wallet, Store, Bot, FileText, Settings, Building2, CalendarDays } from "lucide-react";
+import { Home, Wallet, Store, Bot, FileText, Settings, Building2, CalendarDays, DollarSign, TrendingUp } from "lucide-react";
 
 const tenantNavItems = [
   {
@@ -31,6 +31,16 @@ const tenantNavItems = [
     title: "Payments",
     url: "/tenant/payment-calendar",
     icon: CalendarDays,
+  },
+  {
+    title: "Credit Builder",
+    url: "/tenant/credit-builder",
+    icon: TrendingUp,
+  },
+  {
+    title: "Financial Hub",
+    url: "/tenant/financial-hub",
+    icon: DollarSign,
   },
   {
     title: "Merchants",

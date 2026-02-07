@@ -27,6 +27,9 @@ import Agent from "@/pages/agent";
 import Intelligence from "@/pages/intelligence";
 import Settings from "@/pages/settings";
 import CashFlowForecast from "@/pages/cash-flow-forecast";
+import DepositAlternatives from "@/pages/deposit-alternatives";
+import RentPricing from "@/pages/rent-pricing";
+import CapitalAccess from "@/pages/capital-access";
 import NotFound from "@/pages/not-found";
 
 // Tenant pages
@@ -38,6 +41,8 @@ import TenantMerchants from "@/pages/tenant/merchants";
 import TenantAgent from "@/pages/tenant/agent";
 import TenantReports from "@/pages/tenant/reports";
 import TenantSettings from "@/pages/tenant/settings";
+import FinancialHub from "@/pages/tenant/financial-hub";
+import CreditBuilder from "@/pages/tenant/credit-builder";
 import { TenantSidebar } from "@/components/tenant-sidebar";
 
 // Vendor pages
@@ -239,6 +244,15 @@ function AppContent() {
                 <Route path="/cash-flow-forecast">
                   {ProtectedRouteRenderer(CashFlowForecast, "/cash-flow-forecast")}
                 </Route>
+                <Route path="/deposit-alternatives">
+                  {ProtectedRouteRenderer(DepositAlternatives, "/deposit-alternatives")}
+                </Route>
+                <Route path="/rent-pricing">
+                  {ProtectedRouteRenderer(RentPricing, "/rent-pricing")}
+                </Route>
+                <Route path="/capital-access">
+                  {ProtectedRouteRenderer(CapitalAccess, "/capital-access")}
+                </Route>
                 <Route path="/settings">
                   {ProtectedRouteRenderer(Settings, "/settings")}
                 </Route>
@@ -264,6 +278,12 @@ function AppContent() {
                 </Route>
                 <Route path="/tenant/payment-calendar">
                   {ProtectedRouteRenderer(TenantPaymentCalendar, "/tenant/payment-calendar")}
+                </Route>
+                <Route path="/tenant/financial-hub">
+                  {ProtectedRouteRenderer(FinancialHub, "/tenant/financial-hub")}
+                </Route>
+                <Route path="/tenant/credit-builder">
+                  {ProtectedRouteRenderer(CreditBuilder, "/tenant/credit-builder")}
                 </Route>
                 <Route path="/tenant/settings">
                   {ProtectedRouteRenderer(TenantSettings, "/tenant/settings")}

@@ -9,6 +9,9 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/reconciliation": ["Admin", "PropertyManager", "CFO"],
   "/treasury": ["Admin", "CFO"],
   "/cash-flow-forecast": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/rent-pricing": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/capital-access": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/deposit-alternatives": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/reports": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/agent": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/settings": ["Admin"],
@@ -19,6 +22,8 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/tenant/wallet": ["Tenant"],
   "/tenant/agent": ["Tenant"],
   "/tenant/reports": ["Tenant"],
+  "/tenant/credit-builder": ["Tenant"],
+  "/tenant/financial-hub": ["Tenant"],
   "/tenant/settings": ["Tenant"],
 };
 

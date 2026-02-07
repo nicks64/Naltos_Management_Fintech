@@ -2061,6 +2061,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Tenant Financial Hub ============
+  app.get("/api/tenant/financial-hub", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      res.json({ status: "ok" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Tenant Payment Calendar ============
   app.get("/api/tenant/payment-calendar", requireAuth, requireRole("Tenant"), async (req, res) => {
     try {
@@ -2233,6 +2242,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.json({ statements });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/deposit-alternatives", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/rent-pricing", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/capital-access", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/credit-builder", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      res.json({
+        currentScore: 712,
+        scoreChange: 28,
+        enrolledSince: "2025-03-15",
+        bureaus: [
+          { name: "Experian", status: "active", lastReported: "2026-02-01", scoreImpact: 28 },
+          { name: "TransUnion", status: "active", lastReported: "2026-01-28", scoreImpact: 24 },
+          { name: "Equifax", status: "pending", expectedStart: "2026-03-01", scoreImpact: null },
+        ],
+        scoreHistory: [
+          { month: "May", score: 684 }, { month: "Jun", score: 688 }, { month: "Jul", score: 691 },
+          { month: "Aug", score: 695 }, { month: "Sep", score: 698 }, { month: "Oct", score: 702 },
+          { month: "Nov", score: 705 }, { month: "Dec", score: 708 }, { month: "Jan", score: 710 },
+          { month: "Feb", score: 712 },
+        ],
+        paymentHistory: [
+          { month: "February 2026", amount: 1500, status: "On Time", reported: true, impact: 2 },
+          { month: "January 2026", amount: 1500, status: "On Time", reported: true, impact: 3 },
+          { month: "December 2025", amount: 1500, status: "On Time", reported: true, impact: 2 },
+          { month: "November 2025", amount: 1500, status: "On Time", reported: true, impact: 3 },
+          { month: "October 2025", amount: 1500, status: "On Time", reported: true, impact: 2 },
+          { month: "September 2025", amount: 1500, status: "On Time", reported: true, impact: 3 },
+        ],
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
