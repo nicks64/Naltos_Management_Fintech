@@ -9,7 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Home, Wallet, Store, Bot, FileText, Settings, Building2, CalendarDays, DollarSign, TrendingUp } from "lucide-react";
+import { Home, Wallet, Store, Bot, FileText, Settings, Building2, CalendarDays, DollarSign, TrendingUp, ArrowLeftRight, Shield } from "lucide-react";
 
 const tenantNavItems = [
   {
@@ -56,6 +56,16 @@ const tenantNavItems = [
     title: "Reports",
     url: "/tenant/reports",
     icon: FileText,
+  },
+  {
+    title: "P2P Transfers",
+    url: "/tenant/p2p",
+    icon: ArrowLeftRight,
+  },
+  {
+    title: "Rental Insurance",
+    url: "/tenant/rental-insurance",
+    icon: Shield,
   },
   {
     title: "Settings",

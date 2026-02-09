@@ -43,6 +43,8 @@ import TenantReports from "@/pages/tenant/reports";
 import TenantSettings from "@/pages/tenant/settings";
 import FinancialHub from "@/pages/tenant/financial-hub";
 import CreditBuilder from "@/pages/tenant/credit-builder";
+import P2PTransfers from "@/pages/tenant/p2p-transfers";
+import RentalInsurance from "@/pages/tenant/rental-insurance";
 import { TenantSidebar } from "@/components/tenant-sidebar";
 
 // Vendor pages
@@ -284,6 +286,12 @@ function AppContent() {
                 </Route>
                 <Route path="/tenant/credit-builder">
                   {ProtectedRouteRenderer(CreditBuilder, "/tenant/credit-builder")}
+                </Route>
+                <Route path="/tenant/p2p">
+                  {ProtectedRouteRenderer(P2PTransfers, "/tenant/p2p")}
+                </Route>
+                <Route path="/tenant/rental-insurance">
+                  {ProtectedRouteRenderer(RentalInsurance, "/tenant/rental-insurance")}
                 </Route>
                 <Route path="/tenant/settings">
                   {ProtectedRouteRenderer(TenantSettings, "/tenant/settings")}

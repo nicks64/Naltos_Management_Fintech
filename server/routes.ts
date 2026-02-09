@@ -2139,6 +2139,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ P2P Transfers ============
+  app.get("/api/tenant/p2p", requireRole("Tenant"), async (req, res) => {
+    try {
+      const now = new Date();
+      const p2pData = {
+        balance: 5000,
+        monthlyVolume: 1240,
+        totalSent: 3850,
+        totalReceived: 2610,
+        activeRequests: 2,
+        contacts: [
+          { id: "c1", name: "Sarah Chen", unit: "Unit 403", avatar: "SC", isFavorite: true },
+          { id: "c2", name: "Marcus Johnson", unit: "Unit 410", avatar: "MJ", isFavorite: true },
+          { id: "c3", name: "Emily Rivera", unit: "Unit 318", avatar: "ER", isFavorite: false },
+          { id: "c4", name: "David Kim", unit: "Unit 502", avatar: "DK", isFavorite: false },
+          { id: "c5", name: "Lisa Patel", unit: "Unit 215", avatar: "LP", isFavorite: false },
+          { id: "c6", name: "James Wu", unit: "Unit 607", avatar: "JW", isFavorite: false },
+        ],
+        recentTransactions: [
+          { id: "tx1", type: "sent", counterparty: "Sarah Chen", counterpartyUnit: "Unit 403", amount: 45.00, description: "Groceries split", status: "completed", date: new Date(now.getTime() - 2 * 3600000).toISOString(), fee: 0, yieldGenerated: 0.005 },
+          { id: "tx2", type: "received", counterparty: "Marcus Johnson", counterpartyUnit: "Unit 410", amount: 120.00, description: "Utilities share", status: "completed", date: new Date(now.getTime() - 24 * 3600000).toISOString(), fee: 0, yieldGenerated: 0.012 },
+          { id: "tx3", type: "split", counterparty: "Emily Rivera", counterpartyUnit: "Unit 318", amount: 32.50, description: "Takeout order", status: "completed", date: new Date(now.getTime() - 3 * 24 * 3600000).toISOString(), fee: 0, yieldGenerated: 0.003 },
+          { id: "tx4", type: "requested", counterparty: "David Kim", counterpartyUnit: "Unit 502", amount: 75.00, description: "Parking fee split", status: "pending", date: new Date(now.getTime() - 4 * 24 * 3600000).toISOString(), fee: 0, yieldGenerated: 0 },
+          { id: "tx5", type: "sent", counterparty: "Lisa Patel", counterpartyUnit: "Unit 215", amount: 200.00, description: "Furniture purchase share", status: "completed", date: new Date(now.getTime() - 7 * 24 * 3600000).toISOString(), fee: 0, yieldGenerated: 0.021 },
+          { id: "tx6", type: "received", counterparty: "James Wu", counterpartyUnit: "Unit 607", amount: 55.00, description: "Game night supplies", status: "completed", date: new Date(now.getTime() - 10 * 24 * 3600000).toISOString(), fee: 0, yieldGenerated: 0.006 },
+        ],
+        splitExpenses: [
+          {
+            id: "sp1",
+            title: "Monthly Utilities (February)",
+            totalAmount: 240.00,
+            myShare: 80.00,
+            participants: [
+              { name: "You", share: 80.00, paid: true },
+              { name: "Sarah Chen", share: 80.00, paid: true },
+              { name: "Marcus Johnson", share: 80.00, paid: false },
+            ],
+            status: "active",
+            createdAt: new Date(now.getTime() - 5 * 24 * 3600000).toISOString(),
+          },
+          {
+            id: "sp2",
+            title: "Pizza Night",
+            totalAmount: 65.00,
+            myShare: 16.25,
+            participants: [
+              { name: "You", share: 16.25, paid: true },
+              { name: "Emily Rivera", share: 16.25, paid: true },
+              { name: "David Kim", share: 16.25, paid: true },
+              { name: "Lisa Patel", share: 16.25, paid: true },
+            ],
+            status: "settled",
+            createdAt: new Date(now.getTime() - 14 * 24 * 3600000).toISOString(),
+          },
+        ],
+      };
+      res.json(p2pData);
+    } catch (error: any) {
+      console.error("P2P data error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/p2p/send", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { contactId, amount, description } = req.body;
+      res.json({ success: true, transactionId: `p2p-${Date.now()}`, amount, description });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/p2p/request", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { contactId, amount, description } = req.body;
+      res.json({ success: true, requestId: `req-${Date.now()}`, amount, description });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Rental Insurance ============
+  app.get("/api/tenant/rental-insurance", requireRole("Tenant"), async (req, res) => {
+    try {
+      const insuranceData = {
+        activePlan: {
+          id: "plan-standard",
+          name: "Standard Coverage",
+          monthlyPremium: 18,
+          coverageAmount: 25000,
+          deductible: 250,
+          features: ["Personal Property", "Liability Protection", "Water Damage", "Theft Coverage", "Temporary Housing", "Legal Defense", "Pet Damage", "Lock Replacement"],
+          popular: true,
+          enrolled: true,
+        },
+        availablePlans: [
+          {
+            id: "plan-basic",
+            name: "Basic Coverage",
+            monthlyPremium: 9,
+            coverageAmount: 10000,
+            deductible: 500,
+            features: ["Personal Property", "Liability Protection", "Water Damage", "Lock Replacement"],
+            popular: false,
+            enrolled: false,
+          },
+          {
+            id: "plan-standard",
+            name: "Standard Coverage",
+            monthlyPremium: 18,
+            coverageAmount: 25000,
+            deductible: 250,
+            features: ["Personal Property", "Liability Protection", "Water Damage", "Theft Coverage", "Temporary Housing", "Legal Defense", "Pet Damage", "Lock Replacement"],
+            popular: true,
+            enrolled: true,
+          },
+          {
+            id: "plan-premium",
+            name: "Premium Coverage",
+            monthlyPremium: 29,
+            coverageAmount: 50000,
+            deductible: 100,
+            features: ["Personal Property", "Liability Protection", "Water Damage", "Theft Coverage", "Temporary Housing", "Legal Defense", "Pet Damage", "Lock Replacement", "Electronics Coverage", "Identity Theft", "Earthquake", "Flood"],
+            popular: false,
+            enrolled: false,
+          },
+        ],
+        claims: [
+          { id: "clm-1", type: "Water Damage", description: "Pipe leak under kitchen sink caused water damage to flooring and cabinet", amount: 1850, status: "paid", submittedDate: "Dec 15, 2025", resolvedDate: "Dec 22, 2025", paidAmount: 1600 },
+          { id: "clm-2", type: "Theft", description: "Package stolen from hallway — electronics valued at $420", amount: 420, status: "under_review", submittedDate: "Jan 28, 2026", resolvedDate: null, paidAmount: null },
+        ],
+        coveragePool: {
+          totalPoolSize: 2450000,
+          stablecoinBacking: [
+            { coin: "USDC", amount: 1470000, pct: 60 },
+            { coin: "USDT", amount: 612500, pct: 25 },
+            { coin: "DAI", amount: 367500, pct: 15 },
+          ],
+          reserveRatio: 142,
+          poolYield: 4.8,
+          yourContribution: 324.00,
+          yourYieldEarned: 12.85,
+        },
+        monthlyHistory: [
+          { month: "Sep", premium: 18, poolValue: 2180000 },
+          { month: "Oct", premium: 18, poolValue: 2240000 },
+          { month: "Nov", premium: 18, poolValue: 2310000 },
+          { month: "Dec", premium: 18, poolValue: 2360000 },
+          { month: "Jan", premium: 18, poolValue: 2410000 },
+          { month: "Feb", premium: 18, poolValue: 2450000 },
+        ],
+        stats: {
+          totalPremiumsPaid: 324.00,
+          totalClaimsPaid: 1600,
+          coverageMonths: 18,
+          yieldEarnedOnPremiums: 12.85,
+        },
+      };
+      res.json(insuranceData);
+    } catch (error: any) {
+      console.error("Rental insurance data error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/rental-insurance/enroll", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { planId } = req.body;
+      res.json({ success: true, planId, message: "Enrolled successfully" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/rental-insurance/claim", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { type, amount, description } = req.body;
+      res.json({ success: true, claimId: `clm-${Date.now()}`, type, amount });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Activity Feed ============
   app.get("/api/activity", requireAuth, async (req, res) => {
     try {

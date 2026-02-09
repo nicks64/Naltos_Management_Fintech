@@ -25,6 +25,8 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/tenant/credit-builder": ["Tenant"],
   "/tenant/financial-hub": ["Tenant"],
   "/tenant/settings": ["Tenant"],
+  "/tenant/p2p": ["Tenant"],
+  "/tenant/rental-insurance": ["Tenant"],
 };
 
 export function useRBAC() {

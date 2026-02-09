@@ -587,13 +587,87 @@ Personal account settings for tenants to manage payment methods, notification pr
 
 **Target Stakeholders:** Tenants/Residents
 
+### 28. P2P Transfers (`/tenant/p2p`)
+
+**What It Is:**
+Neighbor-to-neighbor payment system enabling residents to send money, request payments, and split shared expenses — all within the Naltos ecosystem. Every P2P transfer settles through the Naltos smart treasury, where the 1-2 day settlement float generates yield distributed back to users as cashback.
+
+**Key Sections:**
+- **KPI Dashboard:**
+  - Available balance, monthly transaction volume, total sent/received, active payment requests
+- **Activity Tab:**
+  - Complete transaction history showing sent, received, requested, and split transactions
+  - Per-transaction yield generated from settlement float displayed alongside each entry
+  - Status tracking: completed, pending, declined
+- **Contacts Tab:**
+  - Searchable neighbor directory by name or unit number
+  - Quick-action buttons to send or request from each contact
+  - Favorite contacts for frequent transactions
+- **Split Expenses Tab:**
+  - Create and track shared expenses (utilities, groceries, takeout) with multiple participants
+  - Per-person share tracking with paid/pending status
+  - Active and settled split history
+- **Send Money Dialog:**
+  - Select contact, enter USD amount and description
+  - Real-time yield estimate from settlement float
+- **Request Money Dialog:**
+  - Request payment from a neighbor with amount and reason
+- **Split Expense Dialog:**
+  - Name the expense, set total amount, and invite participants
+
+**Target Stakeholders:** Tenants/Residents
+
+**Business Value:**
+- Increases platform stickiness by making Naltos the central financial hub for community life
+- Settlement float (1-2 days) on every P2P transaction generates incremental yield for the treasury
+- Yield sharing incentivizes higher transaction volumes — more transfers = more cashback
+- Reduces friction for shared living arrangements (roommates, neighbors splitting costs)
+
+---
+
+### 29. Rental Insurance (`/tenant/rental-insurance`)
+
+**What It Is:**
+Monthly rental insurance coverage backed by a stablecoin reserve pool (USDC, USDT, DAI). Unlike traditional insurance where premiums are a sunk cost, Naltos insurance deploys premiums into yield-generating stablecoin strategies — so tenants earn yield on their insurance contributions while maintaining full coverage. All user-facing interactions display USD only; stablecoin backing is backend infrastructure.
+
+**Key Sections:**
+- **KPI Dashboard:**
+  - Monthly premium, coverage amount, total premiums paid, yield earned on premiums
+- **Active Plan Banner:**
+  - Current plan details with coverage limit, deductible, and feature list
+  - Quick-access "File a Claim" button
+- **Coverage Plans Tab:**
+  - Three-tier pricing: Basic ($9/mo, $10K coverage), Standard ($18/mo, $25K coverage, most popular), Premium ($29/mo, $50K coverage)
+  - Feature comparison across plans with enrollment workflow
+  - Plan enrollment confirmation dialog with yield projection
+- **Claims Tab:**
+  - Submit new claims with type, amount, and description
+  - Track claim status: submitted, under review, approved, paid, denied
+  - Claim history with payout amounts
+- **Coverage Pool Tab:**
+  - Total pool size with stablecoin composition breakdown (USDC 60%, USDT 25%, DAI 15%)
+  - Reserve ratio (142%) and pool APY (4.8%)
+  - Personal contribution and yield earned visualization
+  - Pool value trend chart over time (Recharts AreaChart)
+  - Step-by-step explainer: Pay Premium → Pooled in Stablecoins → Pool Earns Yield → Instant Claims
+
+**Target Stakeholders:** Tenants/Residents
+
+**Business Value:**
+- Creates a new revenue stream from insurance premiums deployed into yield-generating stablecoin strategies
+- 142% reserve ratio ensures instant claim payouts from highly liquid stablecoin reserves
+- Premiums earn 4.8% APY — transforming insurance from a pure cost into a yield-generating asset for tenants
+- Stablecoin-backed liquidity pool enables near-instant claim settlement vs. traditional insurance processing times
+- Increases platform AUM as insurance pool grows with enrollment
+- Differentiates Naltos from traditional renters insurance by offering premium yield sharing
+
 ---
 
 ## VENDOR PORTAL
 
 ---
 
-### 28. Vendor Portal (`/vendor-portal`)
+### 30. Vendor Portal (`/vendor-portal`)
 
 **What It Is:**
 A complete vendor financial management portal with 4 tabs — Dashboard, Invoices, Redemptions, and Statements — providing vendors access to their invoices, balances, and payout options across multiple property management companies.
@@ -630,7 +704,7 @@ A complete vendor financial management portal with 4 tabs — Dashboard, Invoice
 
 ---
 
-### 29. Merchant Portal (`/merchant-portal`)
+### 31. Merchant Portal (`/merchant-portal`)
 
 **What It Is:**
 A merchant-facing portal for local businesses partnered with Naltos properties, showing settlement balances, transaction history, yield earned from settlement float, and payout options.
@@ -664,7 +738,7 @@ A merchant-facing portal for local businesses partnered with Naltos properties, 
 
 ---
 
-### 30. Activity Feed & Notifications
+### 32. Activity Feed & Notifications
 
 **What It Is:**
 A universal notification bell component that appears in all 4 portal headers (Business, Tenant, Vendor, Merchant) showing role-specific activity updates with unread tracking and mark-all-read functionality.
@@ -683,7 +757,7 @@ A universal notification bell component that appears in all 4 portal headers (Bu
 
 ---
 
-### 31. Dark Mode Support
+### 33. Dark Mode Support
 
 **What It Is:**
 Complete light/dark theme toggle available across all portals and pages, with theme-aware color system ensuring readability and aesthetic consistency in both modes.
@@ -695,7 +769,7 @@ Complete light/dark theme toggle available across all portals and pages, with th
 
 ---
 
-### 32. Role-Based Access Control (RBAC)
+### 34. Role-Based Access Control (RBAC)
 
 **What It Is:**
 Granular permission system with 7 user roles controlling access to every page, action, and data point in the platform.
@@ -716,7 +790,7 @@ Granular permission system with 7 user roles controlling access to every page, a
 
 ---
 
-### 33. Multi-Tenancy & Organization Isolation
+### 35. Multi-Tenancy & Organization Isolation
 
 **What It Is:**
 Complete data isolation between property management organizations, with per-org settings, configurations, and user management.
@@ -728,7 +802,7 @@ Complete data isolation between property management organizations, with per-org 
 
 ---
 
-### 34. PMS System Integrations
+### 36. PMS System Integrations
 
 **What It Is:**
 Integration connectors for the three dominant Property Management System platforms in multifamily: AppFolio, Yardi, and Buildium.
