@@ -1103,6 +1103,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ Tenant Routes ============
+
+  app.get("/api/tenant/properties", requireRole("Tenant"), async (req, res) => {
+    try {
+      const properties = [
+        {
+          id: "prop-1",
+          name: "Sunset Towers",
+          address: "1250 Sunset Blvd, Los Angeles, CA 90028",
+          units: [
+            { id: "u-101", label: "Unit 101", floor: 1, bedrooms: 1, rent: 1800, available: true },
+            { id: "u-102", label: "Unit 102", floor: 1, bedrooms: 2, rent: 2200, available: false },
+            { id: "u-201", label: "Unit 201", floor: 2, bedrooms: 1, rent: 1850, available: true },
+            { id: "u-202", label: "Unit 202", floor: 2, bedrooms: 2, rent: 2300, available: true },
+            { id: "u-301", label: "Unit 301", floor: 3, bedrooms: 3, rent: 3200, available: true },
+            { id: "u-412", label: "Unit 412", floor: 4, bedrooms: 2, rent: 2500, available: false },
+          ],
+        },
+        {
+          id: "prop-2",
+          name: "Riverdale Apartments",
+          address: "890 River St, Austin, TX 73301",
+          units: [
+            { id: "u-r101", label: "Unit 101", floor: 1, bedrooms: 1, rent: 1400, available: true },
+            { id: "u-r102", label: "Unit 102", floor: 1, bedrooms: 2, rent: 1800, available: true },
+            { id: "u-r201", label: "Unit 201", floor: 2, bedrooms: 1, rent: 1450, available: true },
+            { id: "u-r202", label: "Unit 202", floor: 2, bedrooms: 2, rent: 1850, available: false },
+          ],
+        },
+        {
+          id: "prop-3",
+          name: "Oak Ridge",
+          address: "456 Oak Dr, Denver, CO 80202",
+          units: [
+            { id: "u-o101", label: "Unit 101", floor: 1, bedrooms: 1, rent: 1600, available: true },
+            { id: "u-o108", label: "Unit 108", floor: 1, bedrooms: 2, rent: 2100, available: true },
+            { id: "u-o205", label: "Unit 205", floor: 2, bedrooms: 3, rent: 2800, available: true },
+          ],
+        },
+      ];
+      res.json(properties);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/current-unit", requireRole("Tenant"), async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const currentUnit = (req.session as any).selectedUnit || {
+        propertyId: "prop-1",
+        propertyName: "Sunset Towers",
+        unitId: "u-412",
+        unitLabel: "Unit 412",
+        rent: 2500,
+      };
+      res.json(currentUnit);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/select-unit", requireRole("Tenant"), async (req, res) => {
+    try {
+      const { propertyId, propertyName, unitId, unitLabel, rent } = req.body;
+      if (!propertyId || !unitId || !unitLabel) {
+        return res.status(400).json({ error: "Property and unit are required" });
+      }
+      (req.session as any).selectedUnit = { propertyId, propertyName, unitId, unitLabel, rent };
+      res.json({ success: true, unit: { propertyId, propertyName, unitId, unitLabel, rent } });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/tenant/rent-summary", requireRole("Tenant"), async (req, res) => {
     try {
       // Mock data for tenant rent summary
