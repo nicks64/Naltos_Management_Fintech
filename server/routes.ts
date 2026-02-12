@@ -13,6 +13,21 @@ const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
 });
 
+interface LeaseClause {
+  id: string;
+  title: string;
+  content: string;
+  category: "financial" | "maintenance" | "rules" | "termination" | "general";
+  isCustom?: boolean;
+}
+
+interface LeaseActivityEvent {
+  id: string;
+  action: string;
+  timestamp: string;
+  detail?: string;
+}
+
 interface LeaseAgreement {
   id: string;
   propertyId: string;
@@ -21,27 +36,35 @@ interface LeaseAgreement {
   unitLabel: string;
   tenantName: string;
   tenantEmail: string;
+  tenantId?: string;
   monthlyRent: number;
   leaseTerm: number;
   startDate: string;
+  endDate: string;
   securityDeposit: number;
-  status: "draft" | "pending_tenant" | "signed" | "expired";
+  securityDepositMultiplier: number;
+  lateFeePercent: number;
+  lateFeeGraceDays: number;
+  petPolicy: boolean;
+  petDeposit: number;
+  parkingIncluded: boolean;
+  parkingFee: number;
+  utilitiesIncluded: string[];
+  specialProvisions: string;
+  status: "draft" | "pending_tenant" | "signed" | "expired" | "cancelled";
   clauses: LeaseClause[];
   createdAt: string;
+  sentAt?: string;
   signedAt?: string;
+  cancelledAt?: string;
   aiSummary: string;
   organizationId?: string;
-}
-
-interface LeaseClause {
-  id: string;
-  title: string;
-  content: string;
-  category: "financial" | "maintenance" | "rules" | "termination" | "general";
+  activity: LeaseActivityEvent[];
 }
 
 const leaseAgreements: LeaseAgreement[] = [];
 let leaseIdCounter = 1;
+let clauseIdCounter = 100;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply organization ID extraction middleware globally
@@ -2668,52 +2691,104 @@ For demo purposes, reference realistic but fictional portfolio data. The platfor
     }
   });
 
+  // ============ Property & Tenant Lookup (for Lease Wizard) ============
+
+  app.get("/api/properties", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const props = await storage.getPropertiesByOrg(req.organizationId!);
+      res.json(props);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/properties/:id/units", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const props = await storage.getPropertiesByOrg(req.organizationId!);
+      const property = props.find(p => p.id === req.params.id);
+      if (!property) return res.status(404).json({ error: "Property not found" });
+      const unitList = await storage.getUnitsByProperty(req.params.id);
+      res.json(unitList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenants", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const tenantList = await storage.getTenantsByOrg(req.organizationId!);
+      res.json(tenantList);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Lease Agreement Orchestration ============
 
   app.post("/api/lease-agreements", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
     try {
-      const { propertyId, propertyName, unitId, unitLabel, tenantName, tenantEmail, monthlyRent, leaseTerm, startDate } = req.body;
+      const {
+        propertyId, propertyName, unitId, unitLabel, tenantName, tenantEmail, tenantId,
+        monthlyRent, leaseTerm, startDate,
+        securityDepositMultiplier = 1, lateFeePercent = 5, lateFeeGraceDays = 5,
+        petPolicy = false, petDeposit = 0, parkingIncluded = false, parkingFee = 0,
+        utilitiesIncluded = [], specialProvisions = "", isDraft = false,
+      } = req.body;
       if (!propertyName || !unitLabel || !tenantName || !tenantEmail || !monthlyRent || !leaseTerm || !startDate) {
         return res.status(400).json({ error: "All fields are required" });
       }
 
-      const securityDeposit = monthlyRent;
+      const rent = Number(monthlyRent);
+      const term = Number(leaseTerm);
+      const securityDeposit = rent * Number(securityDepositMultiplier);
+      const start = new Date(startDate);
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + term);
+      const endDate = end.toISOString().split("T")[0];
 
-      const aiPrompt = `You are a property management AI assistant for Naltos, a multifamily real estate platform. Generate a professional residential lease agreement summary and clauses for the following:
+      const petSection = petPolicy ? `\nPet Policy: Pets allowed with a $${petDeposit} pet deposit.` : "\nPet Policy: No pets allowed.";
+      const parkingSection = parkingIncluded ? `\nParking: Included${parkingFee > 0 ? ` at $${parkingFee}/month` : " at no additional cost"}.` : "\nParking: Not included.";
+      const utilitiesSection = utilitiesIncluded.length > 0 ? `\nUtilities Included: ${utilitiesIncluded.join(", ")}.` : "\nUtilities: Tenant responsible for all utilities.";
+      const provisionsSection = specialProvisions ? `\nSpecial Provisions: ${specialProvisions}` : "";
+
+      const aiPrompt = `You are a property management AI assistant for Naltos, a multifamily real estate platform. Generate a professional residential lease agreement with comprehensive clauses.
 
 Property: ${propertyName}
 Unit: ${unitLabel}
 Tenant: ${tenantName} (${tenantEmail})
-Monthly Rent: $${monthlyRent}
-Lease Term: ${leaseTerm} months
-Start Date: ${startDate}
-Security Deposit: $${securityDeposit}
+Monthly Rent: $${rent}
+Lease Term: ${term} months (${startDate} to ${endDate})
+Security Deposit: $${securityDeposit} (${securityDepositMultiplier}x monthly rent)
+Late Fee: ${lateFeePercent}% after ${lateFeeGraceDays} days grace period${petSection}${parkingSection}${utilitiesSection}${provisionsSection}
 
-Generate exactly 6 lease clauses covering: rent payment terms, security deposit, maintenance responsibilities, property rules, lease termination, and general provisions. Each clause should be 2-3 sentences.
+Generate 8-12 detailed lease clauses. Each clause should be 3-5 sentences with specific, enforceable language. Cover these categories:
+- financial (2-3 clauses): rent payment terms, security deposit, late fees
+- maintenance (1-2 clauses): tenant vs landlord responsibilities
+- rules (2-3 clauses): occupancy limits, noise/quiet hours, property modifications, pet policy, parking
+- termination (1-2 clauses): early termination, lease renewal, move-out procedures
+- general (1-2 clauses): governing law, notices, liability, insurance
 
-Also write a brief 2-sentence plain-English summary of the entire lease that a non-legal person can easily understand.
+Also write a 3-sentence plain-English summary of the entire lease.
 
-Respond in valid JSON with this exact structure:
+Respond in valid JSON:
 {
   "summary": "...",
   "clauses": [
-    {"title": "...", "content": "...", "category": "financial"},
-    {"title": "...", "content": "...", "category": "financial"},
-    {"title": "...", "content": "...", "category": "maintenance"},
-    {"title": "...", "content": "...", "category": "rules"},
-    {"title": "...", "content": "...", "category": "termination"},
-    {"title": "...", "content": "...", "category": "general"}
+    {"title": "...", "content": "...", "category": "financial|maintenance|rules|termination|general"}
   ]
 }`;
 
-      let aiSummary = `This lease is for ${unitLabel} at ${propertyName}, starting ${startDate} for ${leaseTerm} months at $${monthlyRent}/month.`;
+      let aiSummary = `This lease is for ${unitLabel} at ${propertyName}, starting ${startDate} through ${endDate} (${term} months) at $${rent}/month with a $${securityDeposit} security deposit.`;
       let clauses: LeaseClause[] = [
-        { id: "c1", title: "Monthly Rent", content: `Tenant agrees to pay $${monthlyRent} on the 1st of each month. Late payments after the 5th incur a 5% late fee. Rent is payable via ACH, card, or check through the Naltos platform.`, category: "financial" },
-        { id: "c2", title: "Security Deposit", content: `A security deposit of $${securityDeposit} is required at lease signing. The deposit will be returned within 30 days of move-out, minus any deductions for damages beyond normal wear and tear.`, category: "financial" },
-        { id: "c3", title: "Maintenance", content: `Tenant is responsible for routine upkeep and minor repairs under $100. Management handles major repairs and building systems. Maintenance requests should be submitted through the Naltos portal.`, category: "maintenance" },
-        { id: "c4", title: "Property Rules", content: `Quiet hours are 10 PM to 8 AM. No unauthorized modifications to the unit. Pets require prior written approval and may be subject to additional deposit.`, category: "rules" },
-        { id: "c5", title: "Lease Termination", content: `Either party may terminate with 60 days written notice. Early termination by tenant requires payment of 2 months rent as a fee. Lease automatically converts to month-to-month after the initial term.`, category: "termination" },
-        { id: "c6", title: "General Provisions", content: `This agreement is governed by state landlord-tenant law. All notices must be in writing. Naltos platform communications constitute valid written notice.`, category: "general" },
+        { id: `c${clauseIdCounter++}`, title: "Monthly Rent Payment", content: `Tenant agrees to pay $${rent} on the 1st of each month via ACH, card, or check through the Naltos platform. Rent is due in full without deduction or offset. A grace period of ${lateFeeGraceDays} days is provided before late fees apply.`, category: "financial" },
+        { id: `c${clauseIdCounter++}`, title: "Late Fees & Penalties", content: `Payments received after the ${lateFeeGraceDays}-day grace period will incur a late fee of ${lateFeePercent}% of the monthly rent ($${(rent * lateFeePercent / 100).toFixed(2)}). If rent remains unpaid for 30 days, the landlord may initiate formal collection proceedings. Returned payment fees of $35 apply to any failed transactions.`, category: "financial" },
+        { id: `c${clauseIdCounter++}`, title: "Security Deposit", content: `A security deposit of $${securityDeposit} (${securityDepositMultiplier}x monthly rent) is required at lease signing. The deposit will be held in accordance with state law and returned within 30 days of move-out, minus any deductions for damages beyond normal wear and tear. An itemized statement of deductions will be provided.`, category: "financial" },
+        { id: `c${clauseIdCounter++}`, title: "Maintenance & Repairs", content: `Tenant is responsible for routine upkeep, cleanliness, and minor repairs under $100. Management handles major repairs, building systems, and structural maintenance. All maintenance requests should be submitted through the Naltos portal for proper tracking and timely response.`, category: "maintenance" },
+        { id: `c${clauseIdCounter++}`, title: "Property Rules & Conduct", content: `Quiet hours are observed from 10:00 PM to 8:00 AM. No unauthorized modifications, alterations, or improvements to the unit without prior written consent. Tenant shall not engage in any activity that creates a nuisance or disturbs other residents.`, category: "rules" },
+        { id: `c${clauseIdCounter++}`, title: petPolicy ? "Pet Policy" : "No-Pet Policy", content: petPolicy ? `Pets are permitted with a non-refundable pet deposit of $${petDeposit}. Tenant is responsible for all damages caused by pets and must comply with breed/weight restrictions. Pet waste must be properly disposed of, and pets must be leashed in common areas.` : `No pets are allowed on the premises without prior written approval from management. Violation of this policy may result in a $500 fine per occurrence and potential lease termination. Service animals are exempt with proper documentation.`, category: "rules" },
+        { id: `c${clauseIdCounter++}`, title: "Lease Termination", content: `Either party may terminate with 60 days written notice before the lease end date. Early termination by tenant requires payment of 2 months rent as an early termination fee. The lease automatically converts to month-to-month at the same terms after the initial term unless either party provides written notice.`, category: "termination" },
+        { id: `c${clauseIdCounter++}`, title: "Move-Out Procedures", content: `Tenant must provide written notice at least 60 days before vacating. The unit must be returned in the same condition as received, minus normal wear and tear. A move-out inspection will be scheduled within 48 hours of vacancy to assess any damages.`, category: "termination" },
+        { id: `c${clauseIdCounter++}`, title: "General Provisions", content: `This agreement is governed by state landlord-tenant law. All notices must be in writing and delivered via certified mail, email, or the Naltos platform. Naltos platform communications constitute valid written notice for all purposes under this agreement.`, category: "general" },
       ];
 
       try {
@@ -2727,8 +2802,8 @@ Respond in valid JSON with this exact structure:
         const parsed = JSON.parse(completion.choices[0].message.content || "{}");
         if (parsed.summary) aiSummary = parsed.summary;
         if (parsed.clauses && Array.isArray(parsed.clauses)) {
-          clauses = parsed.clauses.map((c: any, i: number) => ({
-            id: `c${i + 1}`,
+          clauses = parsed.clauses.map((c: any) => ({
+            id: `c${clauseIdCounter++}`,
             title: c.title,
             content: c.content,
             category: c.category || "general",
@@ -2738,6 +2813,7 @@ Respond in valid JSON with this exact structure:
         console.log("AI lease generation fallback to defaults:", aiErr);
       }
 
+      const now = new Date().toISOString();
       const agreement: LeaseAgreement = {
         id: `lease-${leaseIdCounter++}`,
         propertyId: propertyId || "prop-1",
@@ -2746,15 +2822,31 @@ Respond in valid JSON with this exact structure:
         unitLabel,
         tenantName,
         tenantEmail,
-        monthlyRent: Number(monthlyRent),
-        leaseTerm: Number(leaseTerm),
+        tenantId,
+        monthlyRent: rent,
+        leaseTerm: term,
         startDate,
+        endDate,
         securityDeposit,
-        status: "pending_tenant",
+        securityDepositMultiplier: Number(securityDepositMultiplier),
+        lateFeePercent: Number(lateFeePercent),
+        lateFeeGraceDays: Number(lateFeeGraceDays),
+        petPolicy: Boolean(petPolicy),
+        petDeposit: Number(petDeposit),
+        parkingIncluded: Boolean(parkingIncluded),
+        parkingFee: Number(parkingFee),
+        utilitiesIncluded: utilitiesIncluded || [],
+        specialProvisions: specialProvisions || "",
+        status: isDraft ? "draft" : "pending_tenant",
         clauses,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        sentAt: isDraft ? undefined : now,
         aiSummary,
         organizationId: req.organizationId,
+        activity: [
+          { id: `evt-${Date.now()}`, action: "created", timestamp: now, detail: "Lease agreement created with AI-generated clauses" },
+          ...(isDraft ? [] : [{ id: `evt-${Date.now() + 1}`, action: "sent", timestamp: now, detail: `Sent to ${tenantName} at ${tenantEmail}` }]),
+        ],
       };
 
       leaseAgreements.push(agreement);
@@ -2794,17 +2886,6 @@ Respond in valid JSON with this exact structure:
     }
   });
 
-  app.post("/api/lease-agreements/:id/send", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
-    try {
-      const agreement = leaseAgreements.find(la => la.id === req.params.id && la.organizationId === req.organizationId);
-      if (!agreement) return res.status(404).json({ error: "Agreement not found" });
-      agreement.status = "pending_tenant";
-      res.json(agreement);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   app.post("/api/lease-agreements/:id/sign", requireAuth, requireRole("Tenant"), async (req, res) => {
     try {
       const user = await storage.getUser(req.session.userId!);
@@ -2812,8 +2893,12 @@ Respond in valid JSON with this exact structure:
       const agreement = leaseAgreements.find(la => la.id === req.params.id && la.tenantEmail === user.email);
       if (!agreement) return res.status(404).json({ error: "Agreement not found" });
       if (agreement.status !== "pending_tenant") return res.status(400).json({ error: "Agreement is not awaiting signature" });
+      const now = new Date().toISOString();
       agreement.status = "signed";
-      agreement.signedAt = new Date().toISOString();
+      agreement.signedAt = now;
+      if (agreement.activity) {
+        agreement.activity.push({ id: `evt-${Date.now()}`, action: "signed", timestamp: now, detail: `Signed by ${user.email}` });
+      }
       res.json(agreement);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2828,6 +2913,173 @@ Respond in valid JSON with this exact structure:
         la.tenantEmail === user.email && (la.status === "pending_tenant" || la.status === "signed")
       );
       res.json(tenantAgreements);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ---- Lease Management Endpoints ----
+
+  app.patch("/api/lease-agreements/:id/clauses", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const agreement = leaseAgreements.find(la => la.id === req.params.id && la.organizationId === req.organizationId);
+      if (!agreement) return res.status(404).json({ error: "Agreement not found" });
+      if (agreement.status === "signed") return res.status(400).json({ error: "Cannot modify signed agreement" });
+
+      const { action, clauseId, clause } = req.body;
+      const now = new Date().toISOString();
+
+      if (action === "edit" && clauseId && clause) {
+        const idx = agreement.clauses.findIndex(c => c.id === clauseId);
+        if (idx === -1) return res.status(404).json({ error: "Clause not found" });
+        agreement.clauses[idx] = { ...agreement.clauses[idx], ...clause };
+        agreement.activity.push({ id: `evt-${Date.now()}`, action: "clause_edited", timestamp: now, detail: `Edited clause: ${agreement.clauses[idx].title}` });
+      } else if (action === "add" && clause) {
+        const newClause = { ...clause, id: `c${clauseIdCounter++}`, isCustom: true };
+        agreement.clauses.push(newClause);
+        agreement.activity.push({ id: `evt-${Date.now()}`, action: "clause_added", timestamp: now, detail: `Added custom clause: ${newClause.title}` });
+      } else if (action === "remove" && clauseId) {
+        const removed = agreement.clauses.find(c => c.id === clauseId);
+        agreement.clauses = agreement.clauses.filter(c => c.id !== clauseId);
+        agreement.activity.push({ id: `evt-${Date.now()}`, action: "clause_removed", timestamp: now, detail: `Removed clause: ${removed?.title || clauseId}` });
+      } else {
+        return res.status(400).json({ error: "Invalid action. Use 'edit', 'add', or 'remove'." });
+      }
+
+      res.json(agreement);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/lease-agreements/:id/regenerate-clause", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const agreement = leaseAgreements.find(la => la.id === req.params.id && la.organizationId === req.organizationId);
+      if (!agreement) return res.status(404).json({ error: "Agreement not found" });
+      if (agreement.status === "signed") return res.status(400).json({ error: "Cannot modify signed agreement" });
+
+      const { clauseId } = req.body;
+      const clauseIdx = agreement.clauses.findIndex(c => c.id === clauseId);
+      if (clauseIdx === -1) return res.status(404).json({ error: "Clause not found" });
+
+      const clause = agreement.clauses[clauseIdx];
+      const prompt = `You are a property management AI. Rewrite this lease clause with clearer, more professional language while keeping the same intent and category.
+
+Current clause title: ${clause.title}
+Current clause content: ${clause.content}
+Category: ${clause.category}
+
+Context: Property ${agreement.propertyName}, Unit ${agreement.unitLabel}, Rent $${agreement.monthlyRent}/month, Term ${agreement.leaseTerm} months.
+
+Respond in JSON: {"title": "...", "content": "..."}`;
+
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.5,
+        });
+        const parsed = JSON.parse(completion.choices[0].message.content || "{}");
+        if (parsed.title && parsed.content) {
+          agreement.clauses[clauseIdx] = { ...clause, title: parsed.title, content: parsed.content };
+          agreement.activity.push({ id: `evt-${Date.now()}`, action: "clause_regenerated", timestamp: new Date().toISOString(), detail: `AI regenerated clause: ${parsed.title}` });
+        }
+      } catch (aiErr) {
+        console.log("AI clause regeneration error:", aiErr);
+        return res.status(500).json({ error: "AI regeneration failed" });
+      }
+
+      res.json(agreement);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/lease-agreements/:id/cancel", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const agreement = leaseAgreements.find(la => la.id === req.params.id && la.organizationId === req.organizationId);
+      if (!agreement) return res.status(404).json({ error: "Agreement not found" });
+      if (agreement.status === "signed") return res.status(400).json({ error: "Cannot cancel a signed agreement" });
+      agreement.status = "cancelled";
+      agreement.cancelledAt = new Date().toISOString();
+      agreement.activity.push({ id: `evt-${Date.now()}`, action: "cancelled", timestamp: new Date().toISOString(), detail: "Lease agreement was cancelled" });
+      res.json(agreement);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/lease-agreements/:id/duplicate", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const original = leaseAgreements.find(la => la.id === req.params.id && la.organizationId === req.organizationId);
+      if (!original) return res.status(404).json({ error: "Agreement not found" });
+
+      const now = new Date().toISOString();
+      const duplicate: LeaseAgreement = {
+        ...JSON.parse(JSON.stringify(original)),
+        id: `lease-${leaseIdCounter++}`,
+        status: "draft",
+        createdAt: now,
+        sentAt: undefined,
+        signedAt: undefined,
+        cancelledAt: undefined,
+        clauses: original.clauses.map(c => ({ ...c, id: `c${clauseIdCounter++}` })),
+        activity: [{ id: `evt-${Date.now()}`, action: "created", timestamp: now, detail: `Duplicated from lease ${original.id}` }],
+      };
+
+      leaseAgreements.push(duplicate);
+      res.json(duplicate);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/lease-agreements/:id/send", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const agreement = leaseAgreements.find(la => la.id === req.params.id && la.organizationId === req.organizationId);
+      if (!agreement) return res.status(404).json({ error: "Agreement not found" });
+      if (agreement.status !== "draft") return res.status(400).json({ error: "Only drafts can be sent" });
+      agreement.status = "pending_tenant";
+      agreement.sentAt = new Date().toISOString();
+      agreement.activity.push({ id: `evt-${Date.now()}`, action: "sent", timestamp: new Date().toISOString(), detail: `Sent to ${agreement.tenantName} at ${agreement.tenantEmail}` });
+      res.json(agreement);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/lease-agreements/:id/renew", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const original = leaseAgreements.find(la => la.id === req.params.id && la.organizationId === req.organizationId);
+      if (!original) return res.status(404).json({ error: "Agreement not found" });
+
+      const { newTerm = original.leaseTerm, newRent = original.monthlyRent } = req.body;
+      const newStart = new Date(original.endDate);
+      const newEnd = new Date(newStart);
+      newEnd.setMonth(newEnd.getMonth() + Number(newTerm));
+      const now = new Date().toISOString();
+
+      const renewal: LeaseAgreement = {
+        ...JSON.parse(JSON.stringify(original)),
+        id: `lease-${leaseIdCounter++}`,
+        monthlyRent: Number(newRent),
+        leaseTerm: Number(newTerm),
+        startDate: newStart.toISOString().split("T")[0],
+        endDate: newEnd.toISOString().split("T")[0],
+        securityDeposit: Number(newRent) * original.securityDepositMultiplier,
+        status: "draft",
+        createdAt: now,
+        sentAt: undefined,
+        signedAt: undefined,
+        cancelledAt: undefined,
+        clauses: original.clauses.map(c => ({ ...c, id: `c${clauseIdCounter++}` })),
+        aiSummary: `Renewal of lease for ${original.unitLabel} at ${original.propertyName}. New term: ${newTerm} months starting ${newStart.toISOString().split("T")[0]} at $${newRent}/month.`,
+        activity: [{ id: `evt-${Date.now()}`, action: "created", timestamp: now, detail: `Renewal from lease ${original.id}` }],
+      };
+
+      leaseAgreements.push(renewal);
+      res.json(renewal);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -92,6 +92,11 @@ export interface IStorage {
   getOrganization(id: string): Promise<Organization | undefined>;
   createOrganization(org: InsertOrganization): Promise<Organization>;
 
+  // Property & Unit methods for lease wizard
+  getPropertiesByOrg(organizationId: string): Promise<Property[]>;
+  getUnitsByProperty(propertyId: string): Promise<Unit[]>;
+  getTenantsByOrg(organizationId: string): Promise<Tenant[]>;
+
   // Magic code methods
   createMagicCode(code: InsertMagicCode): Promise<MagicCode>;
   getMagicCode(email: string, code: string): Promise<MagicCode | undefined>;
@@ -1267,6 +1272,18 @@ export class DatabaseStorage implements IStorage {
   async updateTenant(id: string, updates: Partial<Tenant>): Promise<Tenant> {
     const [tenant] = await db.update(tenants).set(updates).where(eq(tenants.id, id)).returning();
     return tenant;
+  }
+
+  async getPropertiesByOrg(organizationId: string): Promise<Property[]> {
+    return db.select().from(properties).where(eq(properties.organizationId, organizationId));
+  }
+
+  async getUnitsByProperty(propertyId: string): Promise<Unit[]> {
+    return db.select().from(units).where(eq(units.propertyId, propertyId));
+  }
+
+  async getTenantsByOrg(organizationId: string): Promise<Tenant[]> {
+    return db.select().from(tenants).where(eq(tenants.organizationId, organizationId));
   }
 
   // Vendor User Links Methods (for multi-org vendor access)
