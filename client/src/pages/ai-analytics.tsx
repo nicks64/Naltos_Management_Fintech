@@ -322,28 +322,29 @@ export default function AIAnalytics() {
               e.preventDefault();
               sendMessage(input);
             }}
-            className="relative"
           >
-            <Textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask an analytics question about your portfolio..."
-              disabled={isStreaming}
-              rows={1}
-              className="resize-none pr-12 text-sm min-h-[44px] max-h-[200px]"
-              data-testid="input-analytics-prompt"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={isStreaming || !input.trim()}
-              className="absolute right-2 bottom-1.5 rounded-lg"
-              data-testid="button-send-analytics"
-            >
-              <ArrowUp className="h-4 w-4" />
-            </Button>
+            <div className="flex items-end gap-2 rounded-xl border bg-card p-2 shadow-sm focus-within:ring-1 focus-within:ring-ring">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask an analytics question about your portfolio..."
+                disabled={isStreaming}
+                rows={1}
+                className="flex-1 resize-none border-0 bg-transparent text-sm min-h-[36px] max-h-[200px] focus-visible:ring-0 shadow-none"
+                data-testid="input-analytics-prompt"
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={isStreaming || !input.trim()}
+                className="flex-shrink-0 rounded-lg"
+                data-testid="button-send-analytics"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+            </div>
           </form>
           <p className="text-xs text-muted-foreground text-center mt-2">
             AI analytics may produce inaccurate results. Verify critical data before making decisions.
