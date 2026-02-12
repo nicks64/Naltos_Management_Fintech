@@ -2141,14 +2141,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ============ AI Analytics (Business Console) ============
   app.post("/api/ai-analytics", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
+    }
+
+    console.log("AI Analytics request:", prompt.substring(0, 100));
+
     try {
-      const { prompt } = req.body;
-
-      res.setHeader("Content-Type", "text/plain");
-      res.setHeader("Transfer-Encoding", "chunked");
-
       const stream = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
@@ -2177,20 +2179,30 @@ For demo purposes, reference realistic but fictional portfolio data. The platfor
           },
         ],
         stream: true,
-        max_completion_tokens: 800,
       });
 
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Transfer-Encoding", "chunked");
+      res.setHeader("Cache-Control", "no-cache");
+
+      let totalContent = "";
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content || "";
         if (content) {
+          totalContent += content;
           res.write(content);
         }
       }
 
+      console.log("AI Analytics response length:", totalContent.length);
       res.end();
     } catch (error: any) {
-      console.error("AI Analytics error:", error);
-      res.status(500).json({ error: error.message });
+      console.error("AI Analytics error:", error?.message || error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to generate analytics response" });
+      } else {
+        res.end();
+      }
     }
   });
 
