@@ -1,6 +1,6 @@
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -10,7 +10,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { useRBAC } from "@/lib/rbac";
 import { Button } from "@/components/ui/button";
 import { ActivityFeed } from "@/components/activity-feed";
-import { LogOut, ShieldAlert } from "lucide-react";
+import { LogOut, ShieldAlert, Building2 } from "lucide-react";
 
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -45,6 +45,7 @@ import FinancialHub from "@/pages/tenant/financial-hub";
 import CreditBuilder from "@/pages/tenant/credit-builder";
 import P2PTransfers from "@/pages/tenant/p2p-transfers";
 import RentalInsurance from "@/pages/tenant/rental-insurance";
+import TenantWelcome from "@/pages/tenant/welcome";
 import { TenantSidebar } from "@/components/tenant-sidebar";
 
 // Vendor pages
@@ -90,6 +91,12 @@ const ProtectedRouteRenderer = (Component: React.ComponentType, path: string) =>
 function AppContent() {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+
+  const isTenant = user?.role === "Tenant";
+  const { data: currentUnit, isLoading: unitLoading } = useQuery<any>({
+    queryKey: ["/api/tenant/current-unit"],
+    enabled: isTenant,
+  });
 
   const handleLogout = () => {
     logout();
@@ -186,7 +193,31 @@ function AppContent() {
     "--sidebar-width-icon": "4rem",
   };
 
-  const isTenant = user.role === "Tenant";
+  const hasNoUnit = isTenant && !unitLoading && currentUnit === null;
+
+  if (isTenant && hasNoUnit) {
+    return (
+      <div className="flex h-screen w-full tenant-portal" style={{ backgroundColor: "hsl(var(--tenant-background))" }}>
+        <div className="flex flex-col flex-1">
+          <header className="flex items-center justify-between px-8 py-4 border-b">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" style={{ color: "hsl(var(--tenant-primary))" }} />
+              <span className="font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Naltos</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto">
+            <TenantWelcome />
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>

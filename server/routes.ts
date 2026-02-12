@@ -1150,8 +1150,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/tenant/current-unit", requireRole("Tenant"), async (req, res) => {
     try {
-      const userId = req.session.userId!;
-      const currentUnit = (req.session as any).selectedUnit || {
+      const sessionUnit = (req.session as any).selectedUnit;
+      if (sessionUnit === null) {
+        return res.json(null);
+      }
+      const currentUnit = sessionUnit || {
         propertyId: "prop-1",
         propertyName: "Sunset Towers",
         unitId: "u-412",
@@ -1172,6 +1175,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       (req.session as any).selectedUnit = { propertyId, propertyName, unitId, unitLabel, rent };
       res.json({ success: true, unit: { propertyId, propertyName, unitId, unitLabel, rent } });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/move-out", requireRole("Tenant"), async (req, res) => {
+    try {
+      (req.session as any).selectedUnit = null;
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
