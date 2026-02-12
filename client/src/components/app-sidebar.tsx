@@ -14,6 +14,7 @@ import {
   Shield,
   Brain,
   Activity,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -114,6 +115,12 @@ const menuItems = [
     title: "Capital Access",
     url: "/capital-access",
     icon: Landmark,
+    roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
+  },
+  {
+    title: "AI Analytics",
+    url: "/ai-analytics",
+    icon: Sparkles,
     roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
   },
   {

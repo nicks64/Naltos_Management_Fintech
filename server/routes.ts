@@ -2139,6 +2139,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ AI Analytics (Business Console) ============
+  app.post("/api/ai-analytics", requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      const { prompt } = req.body;
+
+      res.setHeader("Content-Type", "text/plain");
+      res.setHeader("Transfer-Encoding", "chunked");
+
+      const stream = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: `You are Naltos AI Analytics, an NLP-powered business intelligence engine for multifamily real estate property management. You provide data-driven analytical insights to property owners, managers, CFOs, and analysts.
+
+Your role:
+- Analyze portfolio performance, collections, revenue, treasury, vendor payments, and behavioral incentives
+- Provide structured, quantitative insights with specific numbers, percentages, and comparisons
+- Make actionable recommendations backed by data patterns
+- Use professional financial language appropriate for real estate executives
+- Reference realistic multifamily industry benchmarks when relevant
+
+Response format guidelines:
+- Use clear headers and sections for complex analyses
+- Include specific metrics and KPIs (On-Time %, DSO, NOI, yield rates, occupancy, etc.)
+- Provide trend indicators (increasing/decreasing/stable) with percentage changes
+- When comparing properties or time periods, use structured comparisons
+- End with 2-3 actionable recommendations when appropriate
+- Keep responses concise but comprehensive (aim for 200-400 words)
+
+For demo purposes, reference realistic but fictional portfolio data. The platform manages multiple multifamily properties with hundreds of units, generates yield from rent float and vendor payment float, and uses behavioral incentives (cashback, credit building) to improve on-time payment rates. Treasury products include NRF (tokenized T-Bills), NRK (money market), and NRC (delta-neutral credit). All user-facing values are in USD.`
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        stream: true,
+        max_completion_tokens: 800,
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          res.write(content);
+        }
+      }
+
+      res.end();
+    } catch (error: any) {
+      console.error("AI Analytics error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ P2P Transfers ============
   app.get("/api/tenant/p2p", requireRole("Tenant"), async (req, res) => {
     try {

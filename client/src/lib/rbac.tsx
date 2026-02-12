@@ -14,6 +14,7 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/deposit-alternatives": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/reports": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/agent": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/ai-analytics": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/settings": ["Admin"],
   
   // Consumer Side (Tenants / Residents)

@@ -24,6 +24,7 @@ import RentFloat from "@/pages/rent-float";
 import VendorPayments from "@/pages/vendor-payments";
 import Reports from "@/pages/reports";
 import Agent from "@/pages/agent";
+import AIAnalytics from "@/pages/ai-analytics";
 import Intelligence from "@/pages/intelligence";
 import Settings from "@/pages/settings";
 import CashFlowForecast from "@/pages/cash-flow-forecast";
@@ -242,6 +243,9 @@ function AppContent() {
                 </Route>
                 <Route path="/agent">
                   {ProtectedRouteRenderer(Agent, "/agent")}
+                </Route>
+                <Route path="/ai-analytics">
+                  {ProtectedRouteRenderer(AIAnalytics, "/ai-analytics")}
                 </Route>
                 <Route path="/cash-flow-forecast">
                   {ProtectedRouteRenderer(CashFlowForecast, "/cash-flow-forecast")}
