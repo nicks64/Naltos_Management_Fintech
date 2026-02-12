@@ -4,7 +4,6 @@ import {
   FileText, 
   Landmark, 
   BarChart3, 
-  Bot, 
   Settings,
   Building2,
   TrendingUp,
@@ -118,7 +117,7 @@ const menuItems = [
     roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
   },
   {
-    title: "AI Analytics",
+    title: "AI Analytics Agent",
     url: "/ai-analytics",
     icon: Sparkles,
     roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
@@ -127,12 +126,6 @@ const menuItems = [
     title: "Reports",
     url: "/reports",
     icon: BarChart3,
-    roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
-  },
-  {
-    title: "Agent",
-    url: "/agent",
-    icon: Bot,
     roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
   },
   {

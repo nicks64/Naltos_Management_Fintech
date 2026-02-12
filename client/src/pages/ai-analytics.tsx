@@ -193,7 +193,7 @@ export default function AIAnalytics() {
         <div className="flex items-center justify-between gap-4 px-4 py-2 border-b flex-wrap">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">AI Analytics</span>
+            <span className="text-sm font-medium">AI Analytics Agent</span>
             <Badge variant="secondary" className="text-xs" data-testid="badge-ai-model">
               NLP Intelligence
             </Badge>

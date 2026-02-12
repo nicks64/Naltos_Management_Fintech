@@ -23,7 +23,6 @@ import CryptoTreasury from "@/pages/crypto-treasury";
 import RentFloat from "@/pages/rent-float";
 import VendorPayments from "@/pages/vendor-payments";
 import Reports from "@/pages/reports";
-import Agent from "@/pages/agent";
 import AIAnalytics from "@/pages/ai-analytics";
 import Intelligence from "@/pages/intelligence";
 import Settings from "@/pages/settings";
@@ -240,9 +239,6 @@ function AppContent() {
                 </Route>
                 <Route path="/reports">
                   {ProtectedRouteRenderer(Reports, "/reports")}
-                </Route>
-                <Route path="/agent">
-                  {ProtectedRouteRenderer(Agent, "/agent")}
                 </Route>
                 <Route path="/ai-analytics">
                   {ProtectedRouteRenderer(AIAnalytics, "/ai-analytics")}
