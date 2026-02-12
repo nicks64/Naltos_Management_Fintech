@@ -75,18 +75,6 @@ const menuItems = [
     roles: ["Admin", "CFO"] as UserRole[],
   },
   {
-    title: "Treasury Management",
-    url: "/crypto-treasury",
-    icon: Landmark,
-    roles: ["Admin", "CFO"] as UserRole[],
-  },
-  {
-    title: "Rent Float Treasury",
-    url: "/rent-float",
-    icon: TrendingUp,
-    roles: ["Admin", "CFO"] as UserRole[],
-  },
-  {
     title: "Vendor Payments",
     url: "/vendor-payments",
     icon: Zap,

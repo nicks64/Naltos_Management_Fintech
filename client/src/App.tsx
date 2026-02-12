@@ -19,8 +19,7 @@ import Collections from "@/pages/collections";
 import CollectionIncentives from "@/pages/collection-incentives";
 import Reconciliation from "@/pages/reconciliation";
 import Treasury from "@/pages/treasury";
-import CryptoTreasury from "@/pages/crypto-treasury";
-import RentFloat from "@/pages/rent-float";
+
 import VendorPayments from "@/pages/vendor-payments";
 import Reports from "@/pages/reports";
 import AIAnalytics from "@/pages/ai-analytics";
@@ -260,12 +259,6 @@ function AppContent() {
                 </Route>
                 <Route path="/treasury">
                   {ProtectedRouteRenderer(Treasury, "/treasury")}
-                </Route>
-                <Route path="/crypto-treasury">
-                  {ProtectedRouteRenderer(CryptoTreasury, "/crypto-treasury")}
-                </Route>
-                <Route path="/rent-float">
-                  {ProtectedRouteRenderer(RentFloat, "/rent-float")}
                 </Route>
                 <Route path="/vendor-payments">
                   {ProtectedRouteRenderer(VendorPayments, "/vendor-payments")}

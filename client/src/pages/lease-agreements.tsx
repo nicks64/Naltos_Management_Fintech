@@ -389,8 +389,8 @@ export default function LeaseAgreements() {
     const wizardSteps = [
       { title: "Property & Unit", desc: "Select the property and unit" },
       { title: "Tenant", desc: "Choose or enter tenant details" },
-      { title: "Lease Terms", desc: "Configure financial and policy terms" },
-      { title: "Review & Create", desc: "Confirm details and generate lease" },
+      { title: "Lease Terms", desc: "AI will use these to draft your agreement" },
+      { title: "AI Review & Create", desc: "Review before AI generates your lease" },
     ];
 
     const canProceed = () => {
@@ -403,9 +403,14 @@ export default function LeaseAgreements() {
     return (
       <div className="space-y-6" data-testid="page-lease-wizard">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">New Lease Agreement</h1>
-            <p className="text-muted-foreground text-sm mt-1">Step {wizardStep + 1} of {wizardSteps.length}: {wizardSteps[wizardStep].desc}</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">AI Lease Orchestrator</h1>
+              <p className="text-muted-foreground text-sm mt-1">Step {wizardStep + 1} of {wizardSteps.length}: {wizardSteps[wizardStep].desc}</p>
+            </div>
           </div>
           <Button variant="outline" onClick={() => { setView("list"); resetWizard(); }} data-testid="button-cancel-wizard">
             Cancel
@@ -790,99 +795,160 @@ export default function LeaseAgreements() {
 
         {wizardStep === 3 && (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-muted-foreground" />
-                  <CardTitle>Final Review</CardTitle>
-                </div>
-                <CardDescription>Confirm all details before AI generates your lease agreement</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-muted-foreground" />
-                      Property
-                    </h4>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-muted-foreground">Property:</span> {wizard.propertyName}</p>
-                      <p><span className="text-muted-foreground">Unit:</span> {wizard.unitLabel}</p>
+            {createMutation.isPending ? (
+              <Card>
+                <CardContent className="py-12">
+                  <div className="max-w-md mx-auto text-center space-y-6">
+                    <div className="relative mx-auto w-16 h-16">
+                      <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                      <div className="relative w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Sparkles className="w-7 h-7 text-primary animate-pulse" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">AI is Drafting Your Lease</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Generating comprehensive, legally-sound clauses tailored to your terms</p>
+                    </div>
+                    <div className="space-y-3 text-left">
+                      {[
+                        { label: "Analyzing property and tenant data", done: true },
+                        { label: "Generating financial clauses", done: true },
+                        { label: "Drafting maintenance and policy terms", done: true },
+                        { label: "Creating termination and renewal clauses", done: false },
+                        { label: "Compiling plain-English summary", done: false },
+                      ].map((step, i) => (
+                        <div key={i} className="flex items-center gap-3 text-sm">
+                          {step.done ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
+                          )}
+                          <span className={step.done ? "text-muted-foreground" : ""}>{step.label}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      Tenant
-                    </h4>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-muted-foreground">Name:</span> {wizard.tenantName}</p>
-                      <p><span className="text-muted-foreground">Email:</span> {wizard.tenantEmail}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-5 h-5 text-muted-foreground" />
+                      <CardTitle>Final Review</CardTitle>
                     </div>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      Financials
-                    </h4>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-muted-foreground">Rent:</span> <span className="font-mono font-bold">${Number(wizard.monthlyRent).toLocaleString()}/mo</span></p>
-                      <p><span className="text-muted-foreground">Deposit:</span> <span className="font-mono">${(Number(wizard.monthlyRent) * Number(wizard.securityDepositMultiplier)).toLocaleString()}</span></p>
-                      <p><span className="text-muted-foreground">Late Fee:</span> {wizard.lateFeePercent}% after {wizard.lateFeeGraceDays} days</p>
+                    <CardDescription>Confirm all details before AI generates your lease agreement</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-muted-foreground" />
+                          Property
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><span className="text-muted-foreground">Property:</span> {wizard.propertyName}</p>
+                          <p><span className="text-muted-foreground">Unit:</span> {wizard.unitLabel}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          Tenant
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><span className="text-muted-foreground">Name:</span> {wizard.tenantName}</p>
+                          <p><span className="text-muted-foreground">Email:</span> {wizard.tenantEmail}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-muted-foreground" />
+                          Financials
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><span className="text-muted-foreground">Rent:</span> <span className="font-mono font-bold">${Number(wizard.monthlyRent).toLocaleString()}/mo</span></p>
+                          <p><span className="text-muted-foreground">Deposit:</span> <span className="font-mono">${(Number(wizard.monthlyRent) * Number(wizard.securityDepositMultiplier)).toLocaleString()}</span></p>
+                          <p><span className="text-muted-foreground">Late Fee:</span> {wizard.lateFeePercent}% after {wizard.lateFeeGraceDays} days</p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          Duration
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><span className="text-muted-foreground">Term:</span> {wizard.leaseTerm} months</p>
+                          <p><span className="text-muted-foreground">Start:</span> {new Date(wizard.startDate).toLocaleDateString()}</p>
+                          {(() => {
+                            const end = new Date(wizard.startDate);
+                            end.setMonth(end.getMonth() + Number(wizard.leaseTerm));
+                            return <p><span className="text-muted-foreground">End:</span> {end.toLocaleDateString()}</p>;
+                          })()}
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-muted-foreground" />
+                          Policies
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p><span className="text-muted-foreground">Pets:</span> {wizard.petPolicy ? `Allowed ($${wizard.petDeposit} deposit)` : "Not allowed"}</p>
+                          <p><span className="text-muted-foreground">Parking:</span> {wizard.parkingIncluded ? (Number(wizard.parkingFee) > 0 ? `$${wizard.parkingFee}/mo` : "Free") : "Not included"}</p>
+                          <p><span className="text-muted-foreground">Utilities:</span> {wizard.utilitiesIncluded.length > 0 ? wizard.utilitiesIncluded.join(", ") : "Tenant pays all"}</p>
+                        </div>
+                      </div>
+                      {wizard.specialProvisions && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-semibold flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-muted-foreground" />
+                            Special Provisions
+                          </h4>
+                          <p className="text-sm text-muted-foreground">{wizard.specialProvisions}</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      Duration
-                    </h4>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-muted-foreground">Term:</span> {wizard.leaseTerm} months</p>
-                      <p><span className="text-muted-foreground">Start:</span> {new Date(wizard.startDate).toLocaleDateString()}</p>
-                      {(() => {
-                        const end = new Date(wizard.startDate);
-                        end.setMonth(end.getMonth() + Number(wizard.leaseTerm));
-                        return <p><span className="text-muted-foreground">End:</span> {end.toLocaleDateString()}</p>;
-                      })()}
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-muted-foreground" />
-                      Policies
-                    </h4>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-muted-foreground">Pets:</span> {wizard.petPolicy ? `Allowed ($${wizard.petDeposit} deposit)` : "Not allowed"}</p>
-                      <p><span className="text-muted-foreground">Parking:</span> {wizard.parkingIncluded ? (Number(wizard.parkingFee) > 0 ? `$${wizard.parkingFee}/mo` : "Free") : "Not included"}</p>
-                      <p><span className="text-muted-foreground">Utilities:</span> {wizard.utilitiesIncluded.length > 0 ? wizard.utilitiesIncluded.join(", ") : "Tenant pays all"}</p>
-                    </div>
-                  </div>
-                  {wizard.specialProvisions && (
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-semibold flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        Special Provisions
-                      </h4>
-                      <p className="text-sm text-muted-foreground">{wizard.specialProvisions}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">AI-Powered Document Generation</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Our AI will generate 8-12 comprehensive, professionally-worded clauses covering rent terms, security deposit, late fees, maintenance, property rules, pet/parking policies, termination, move-out procedures, and general provisions. You can review, edit, regenerate, add, or remove any clause before sending to the tenant.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                        <Bot className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="space-y-3 flex-1">
+                        <div>
+                          <p className="font-semibold text-sm">AI Orchestration Preview</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            When you click "Generate," the AI will automatically:
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {[
+                            { icon: FileText, text: "Draft 8-12 professional lease clauses" },
+                            { icon: DollarSign, text: "Include rent, deposit, and late fee terms" },
+                            { icon: Shield, text: "Add maintenance, rules, and policy sections" },
+                            { icon: Wrench, text: "Generate termination and renewal clauses" },
+                            { icon: MessageSquare, text: "Write a plain-English summary" },
+                            { icon: Sparkles, text: "Enable per-clause editing and AI regeneration" },
+                          ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs">
+                              <item.icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                              <span>{item.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground border-t pt-2">
+                          After generation, you can edit, regenerate, add, or remove any clause before sending to the tenant.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
         )}
 
