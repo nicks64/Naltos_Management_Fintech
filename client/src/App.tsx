@@ -30,6 +30,7 @@ import CashFlowForecast from "@/pages/cash-flow-forecast";
 import DepositAlternatives from "@/pages/deposit-alternatives";
 import RentPricing from "@/pages/rent-pricing";
 import CapitalAccess from "@/pages/capital-access";
+import LeaseAgreements from "@/pages/lease-agreements";
 import NotFound from "@/pages/not-found";
 
 // Tenant pages
@@ -45,6 +46,7 @@ import FinancialHub from "@/pages/tenant/financial-hub";
 import CreditBuilder from "@/pages/tenant/credit-builder";
 import P2PTransfers from "@/pages/tenant/p2p-transfers";
 import RentalInsurance from "@/pages/tenant/rental-insurance";
+import TenantLeaseReview from "@/pages/tenant/lease-review";
 import TenantWelcome from "@/pages/tenant/welcome";
 import { TenantSidebar } from "@/components/tenant-sidebar";
 
@@ -286,6 +288,9 @@ function AppContent() {
                 <Route path="/capital-access">
                   {ProtectedRouteRenderer(CapitalAccess, "/capital-access")}
                 </Route>
+                <Route path="/lease-agreements">
+                  {ProtectedRouteRenderer(LeaseAgreements, "/lease-agreements")}
+                </Route>
                 <Route path="/settings">
                   {ProtectedRouteRenderer(Settings, "/settings")}
                 </Route>
@@ -323,6 +328,9 @@ function AppContent() {
                 </Route>
                 <Route path="/tenant/rental-insurance">
                   {ProtectedRouteRenderer(RentalInsurance, "/tenant/rental-insurance")}
+                </Route>
+                <Route path="/tenant/lease">
+                  {ProtectedRouteRenderer(TenantLeaseReview, "/tenant/lease")}
                 </Route>
                 <Route path="/tenant/settings">
                   {ProtectedRouteRenderer(TenantSettings, "/tenant/settings")}

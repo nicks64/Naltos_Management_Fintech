@@ -117,6 +117,12 @@ const menuItems = [
     roles: ["Admin", "PropertyManager", "CFO", "Analyst"] as UserRole[],
   },
   {
+    title: "Lease Agreements",
+    url: "/lease-agreements",
+    icon: FileText,
+    roles: ["Admin", "PropertyManager"] as UserRole[],
+  },
+  {
     title: "AI Analytics Agent",
     url: "/ai-analytics",
     icon: Sparkles,

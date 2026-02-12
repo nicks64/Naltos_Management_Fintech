@@ -31,6 +31,7 @@ const tenantNavItems = [
   { title: "Credit Builder", url: "/tenant/credit-builder", icon: TrendingUp },
   { title: "Financial Hub", url: "/tenant/financial-hub", icon: DollarSign },
   { title: "Merchants", url: "/tenant/merchants", icon: Store },
+  { title: "My Lease", url: "/tenant/lease", icon: FileText },
   { title: "Assistant", url: "/tenant/agent", icon: Bot },
   { title: "Reports", url: "/tenant/reports", icon: FileText },
   { title: "P2P Transfers", url: "/tenant/p2p", icon: ArrowLeftRight },

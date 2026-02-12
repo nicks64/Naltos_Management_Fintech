@@ -15,6 +15,7 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/reports": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/agent": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/ai-analytics": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/lease-agreements": ["Admin", "PropertyManager"],
   "/settings": ["Admin"],
   
   // Consumer Side (Tenants / Residents)
@@ -28,6 +29,7 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/tenant/settings": ["Tenant"],
   "/tenant/p2p": ["Tenant"],
   "/tenant/rental-insurance": ["Tenant"],
+  "/tenant/lease": ["Tenant"],
 };
 
 export function useRBAC() {

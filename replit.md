@@ -24,7 +24,7 @@ I prefer iterative development with a focus on delivering core functionality fir
 ## System Architecture
 
 ### AI & ML Systems
-The platform incorporates AI and ML for behavioral incentives, float optimization, and payment intelligence. Current focus includes collection incentive programs and vendor payout routing. Future phases will introduce rent payment probability models, incentive optimization, early intervention logic for delinquencies, cash-flow forecasting, and automated collection routing. Optional future phases include stablecoin bridge for treasury yield optimization and tokenized LP distributions.
+The platform incorporates AI and ML for behavioral incentives, float optimization, payment intelligence, and lease agreement orchestration. Current focus includes collection incentive programs, vendor payout routing, and AI-generated lease agreements. Future phases will introduce rent payment probability models, incentive optimization, early intervention logic for delinquencies, cash-flow forecasting, and automated collection routing. Optional future phases include stablecoin bridge for treasury yield optimization and tokenized LP distributions.
 
 ### UI/UX Decisions
 The platform features a dual-sided interface: Business Console (property managers/owners) and Tenant Portal. The Business Console offers behavioral analytics, financial dashboards, and incentive management. The Tenant Portal is mobile-first, supporting rent payments, cashback tracking, and incentive status. The design uses React, TypeScript, Tailwind CSS, Shadcn UI, with a primary blue color scheme, Inter typography, and JetBrains Mono for figures, including full dark mode support. All user-facing interfaces display only USD and avoid crypto terminology.

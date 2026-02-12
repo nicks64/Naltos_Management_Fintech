@@ -13,6 +13,36 @@ const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
 });
 
+interface LeaseAgreement {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  unitId: string;
+  unitLabel: string;
+  tenantName: string;
+  tenantEmail: string;
+  monthlyRent: number;
+  leaseTerm: number;
+  startDate: string;
+  securityDeposit: number;
+  status: "draft" | "pending_tenant" | "signed" | "expired";
+  clauses: LeaseClause[];
+  createdAt: string;
+  signedAt?: string;
+  aiSummary: string;
+  organizationId?: string;
+}
+
+interface LeaseClause {
+  id: string;
+  title: string;
+  content: string;
+  category: "financial" | "maintenance" | "rules" | "termination" | "general";
+}
+
+const leaseAgreements: LeaseAgreement[] = [];
+let leaseIdCounter = 1;
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply organization ID extraction middleware globally
   app.use("/api", extractOrganizationId);
@@ -2635,6 +2665,244 @@ For demo purposes, reference realistic but fictional portfolio data. The platfor
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============ Lease Agreement Orchestration ============
+
+  app.post("/api/lease-agreements", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const { propertyId, propertyName, unitId, unitLabel, tenantName, tenantEmail, monthlyRent, leaseTerm, startDate } = req.body;
+      if (!propertyName || !unitLabel || !tenantName || !tenantEmail || !monthlyRent || !leaseTerm || !startDate) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+
+      const securityDeposit = monthlyRent;
+
+      const aiPrompt = `You are a property management AI assistant for Naltos, a multifamily real estate platform. Generate a professional residential lease agreement summary and clauses for the following:
+
+Property: ${propertyName}
+Unit: ${unitLabel}
+Tenant: ${tenantName} (${tenantEmail})
+Monthly Rent: $${monthlyRent}
+Lease Term: ${leaseTerm} months
+Start Date: ${startDate}
+Security Deposit: $${securityDeposit}
+
+Generate exactly 6 lease clauses covering: rent payment terms, security deposit, maintenance responsibilities, property rules, lease termination, and general provisions. Each clause should be 2-3 sentences.
+
+Also write a brief 2-sentence plain-English summary of the entire lease that a non-legal person can easily understand.
+
+Respond in valid JSON with this exact structure:
+{
+  "summary": "...",
+  "clauses": [
+    {"title": "...", "content": "...", "category": "financial"},
+    {"title": "...", "content": "...", "category": "financial"},
+    {"title": "...", "content": "...", "category": "maintenance"},
+    {"title": "...", "content": "...", "category": "rules"},
+    {"title": "...", "content": "...", "category": "termination"},
+    {"title": "...", "content": "...", "category": "general"}
+  ]
+}`;
+
+      let aiSummary = `This lease is for ${unitLabel} at ${propertyName}, starting ${startDate} for ${leaseTerm} months at $${monthlyRent}/month.`;
+      let clauses: LeaseClause[] = [
+        { id: "c1", title: "Monthly Rent", content: `Tenant agrees to pay $${monthlyRent} on the 1st of each month. Late payments after the 5th incur a 5% late fee. Rent is payable via ACH, card, or check through the Naltos platform.`, category: "financial" },
+        { id: "c2", title: "Security Deposit", content: `A security deposit of $${securityDeposit} is required at lease signing. The deposit will be returned within 30 days of move-out, minus any deductions for damages beyond normal wear and tear.`, category: "financial" },
+        { id: "c3", title: "Maintenance", content: `Tenant is responsible for routine upkeep and minor repairs under $100. Management handles major repairs and building systems. Maintenance requests should be submitted through the Naltos portal.`, category: "maintenance" },
+        { id: "c4", title: "Property Rules", content: `Quiet hours are 10 PM to 8 AM. No unauthorized modifications to the unit. Pets require prior written approval and may be subject to additional deposit.`, category: "rules" },
+        { id: "c5", title: "Lease Termination", content: `Either party may terminate with 60 days written notice. Early termination by tenant requires payment of 2 months rent as a fee. Lease automatically converts to month-to-month after the initial term.`, category: "termination" },
+        { id: "c6", title: "General Provisions", content: `This agreement is governed by state landlord-tenant law. All notices must be in writing. Naltos platform communications constitute valid written notice.`, category: "general" },
+      ];
+
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: aiPrompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+        });
+
+        const parsed = JSON.parse(completion.choices[0].message.content || "{}");
+        if (parsed.summary) aiSummary = parsed.summary;
+        if (parsed.clauses && Array.isArray(parsed.clauses)) {
+          clauses = parsed.clauses.map((c: any, i: number) => ({
+            id: `c${i + 1}`,
+            title: c.title,
+            content: c.content,
+            category: c.category || "general",
+          }));
+        }
+      } catch (aiErr) {
+        console.log("AI lease generation fallback to defaults:", aiErr);
+      }
+
+      const agreement: LeaseAgreement = {
+        id: `lease-${leaseIdCounter++}`,
+        propertyId: propertyId || "prop-1",
+        propertyName,
+        unitId: unitId || "u-101",
+        unitLabel,
+        tenantName,
+        tenantEmail,
+        monthlyRent: Number(monthlyRent),
+        leaseTerm: Number(leaseTerm),
+        startDate,
+        securityDeposit,
+        status: "pending_tenant",
+        clauses,
+        createdAt: new Date().toISOString(),
+        aiSummary,
+        organizationId: req.organizationId,
+      };
+
+      leaseAgreements.push(agreement);
+      res.json(agreement);
+    } catch (error: any) {
+      console.error("Lease agreement creation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/lease-agreements", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const orgAgreements = leaseAgreements.filter(la => la.organizationId === req.organizationId);
+      res.json(orgAgreements);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/lease-agreements/:id", requireAuth, async (req, res) => {
+    try {
+      const agreement = leaseAgreements.find(la => la.id === req.params.id);
+      if (!agreement) return res.status(404).json({ error: "Agreement not found" });
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      const isManager = ["Admin", "PropertyManager"].includes(user.role);
+      const isTenantOwner = user.role === "Tenant" && agreement.tenantEmail === user.email;
+      if (isManager && agreement.organizationId !== req.organizationId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      if (!isManager && !isTenantOwner) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      res.json(agreement);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/lease-agreements/:id/send", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const agreement = leaseAgreements.find(la => la.id === req.params.id && la.organizationId === req.organizationId);
+      if (!agreement) return res.status(404).json({ error: "Agreement not found" });
+      agreement.status = "pending_tenant";
+      res.json(agreement);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/lease-agreements/:id/sign", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      const agreement = leaseAgreements.find(la => la.id === req.params.id && la.tenantEmail === user.email);
+      if (!agreement) return res.status(404).json({ error: "Agreement not found" });
+      if (agreement.status !== "pending_tenant") return res.status(400).json({ error: "Agreement is not awaiting signature" });
+      agreement.status = "signed";
+      agreement.signedAt = new Date().toISOString();
+      res.json(agreement);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/lease-agreements", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      const tenantAgreements = leaseAgreements.filter(la =>
+        la.tenantEmail === user.email && (la.status === "pending_tenant" || la.status === "signed")
+      );
+      res.json(tenantAgreements);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/lease-agreements/ai-chat", requireAuth, async (req, res) => {
+    try {
+      const { message, leaseId, context } = req.body;
+      if (!message) return res.status(400).json({ error: "Message required" });
+
+      let leaseContext = "";
+      if (leaseId) {
+        const user = await storage.getUser(req.session.userId!);
+        const agreement = leaseAgreements.find(la => {
+          if (la.id !== leaseId) return false;
+          if (!user) return false;
+          if (["Admin", "PropertyManager"].includes(user.role)) return la.organizationId === req.organizationId;
+          if (user.role === "Tenant") return la.tenantEmail === user.email;
+          return false;
+        });
+        if (agreement) {
+          leaseContext = `
+Current Lease Details:
+- Property: ${agreement.propertyName}, Unit: ${agreement.unitLabel}
+- Tenant: ${agreement.tenantName}
+- Monthly Rent: $${agreement.monthlyRent}
+- Lease Term: ${agreement.leaseTerm} months starting ${agreement.startDate}
+- Security Deposit: $${agreement.securityDeposit}
+- Status: ${agreement.status}
+Clauses:
+${agreement.clauses.map(c => `- ${c.title}: ${c.content}`).join("\n")}`;
+        }
+      }
+
+      const systemPrompt = `You are Naltos AI, a friendly and knowledgeable lease agreement assistant for a multifamily real estate platform. You help both property managers and tenants understand lease terms clearly.
+
+${leaseContext}
+${context || ""}
+
+Guidelines:
+- Explain lease terms in plain, simple English
+- Be concise but thorough - 2-4 sentences per response
+- If asked about specific clauses, reference the relevant terms
+- For managers: help with lease structure, pricing, and tenant communication
+- For tenants: explain rights, responsibilities, and what each clause means
+- Always be professional and helpful
+- Never provide actual legal advice - suggest consulting a lawyer for legal questions`;
+
+      res.setHeader("Content-Type", "text/plain");
+      res.setHeader("Transfer-Encoding", "chunked");
+
+      const stream = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message },
+        ],
+        stream: true,
+        temperature: 0.4,
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
+          res.write(content);
+        }
+      }
+      res.end();
+    } catch (error: any) {
+      console.error("Lease AI chat error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.end();
+      }
     }
   });
 
