@@ -194,6 +194,9 @@ export default function LeaseAgreements() {
       setSelectedLease(updated);
       queryClient.invalidateQueries({ queryKey: ["/api/lease-agreements"] });
     },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update clause", variant: "destructive" });
+    },
   });
 
   const regenerateClauseMutation = useMutation({
@@ -216,6 +219,9 @@ export default function LeaseAgreements() {
       queryClient.invalidateQueries({ queryKey: ["/api/lease-agreements"] });
       toast({ title: "Sent", description: "Lease agreement sent to tenant for review." });
     },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to send agreement", variant: "destructive" });
+    },
   });
 
   const cancelMutation = useMutation({
@@ -224,6 +230,9 @@ export default function LeaseAgreements() {
       setSelectedLease(updated);
       queryClient.invalidateQueries({ queryKey: ["/api/lease-agreements"] });
       toast({ title: "Cancelled", description: "Lease agreement has been cancelled." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to cancel agreement", variant: "destructive" });
     },
   });
 
@@ -234,6 +243,9 @@ export default function LeaseAgreements() {
       setSelectedLease(dup);
       toast({ title: "Duplicated", description: "A draft copy has been created. Modify and send when ready." });
     },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to duplicate agreement", variant: "destructive" });
+    },
   });
 
   const renewMutation = useMutation({
@@ -243,6 +255,9 @@ export default function LeaseAgreements() {
       setSelectedLease(renewed);
       setRenewForm({ show: false, newTerm: "12", newRent: "" });
       toast({ title: "Renewal Created", description: "A renewal draft has been created. Review and send to tenant." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to renew agreement", variant: "destructive" });
     },
   });
 
