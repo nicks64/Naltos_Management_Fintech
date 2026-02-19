@@ -179,7 +179,39 @@ export async function seedDatabase() {
     monthlyOpex: "35000.00",
   }).returning();
 
-  // Create units (200 total)
+  const [prop4] = await db.insert(properties).values({
+    organizationId: demoOrg.id,
+    name: "The Metropolitan",
+    address: "1200 Market St, San Francisco, CA 94103",
+    unitCount: 24,
+    monthlyOpex: "22000.00",
+  }).returning();
+
+  const [prop5] = await db.insert(properties).values({
+    organizationId: demoOrg.id,
+    name: "Willow Creek Apartments",
+    address: "3400 Willow Creek Rd, Sacramento, CA 95833",
+    unitCount: 36,
+    monthlyOpex: "28000.00",
+  }).returning();
+
+  const [prop6] = await db.insert(properties).values({
+    organizationId: demoOrg.id,
+    name: "Oceanfront Towers",
+    address: "900 Pacific Coast Hwy, Long Beach, CA 90802",
+    unitCount: 18,
+    monthlyOpex: "19500.00",
+  }).returning();
+
+  const [prop7] = await db.insert(properties).values({
+    organizationId: demoOrg.id,
+    name: "Cedar Ridge Villas",
+    address: "5600 Cedar Ridge Dr, Irvine, CA 92620",
+    unitCount: 12,
+    monthlyOpex: "12000.00",
+  }).returning();
+
+  // Create units
   const unitPromises = [];
   for (let i = 1; i <= 80; i++) {
     unitPromises.push(db.insert(units).values({
@@ -197,6 +229,30 @@ export async function seedDatabase() {
     unitPromises.push(db.insert(units).values({
       propertyId: prop3.id,
       unitNumber: `PR-${i.toString().padStart(3, '0')}`,
+    }));
+  }
+  for (let i = 1; i <= 24; i++) {
+    unitPromises.push(db.insert(units).values({
+      propertyId: prop4.id,
+      unitNumber: `MT-${i.toString().padStart(3, '0')}`,
+    }));
+  }
+  for (let i = 1; i <= 36; i++) {
+    unitPromises.push(db.insert(units).values({
+      propertyId: prop5.id,
+      unitNumber: `WC-${i.toString().padStart(3, '0')}`,
+    }));
+  }
+  for (let i = 1; i <= 18; i++) {
+    unitPromises.push(db.insert(units).values({
+      propertyId: prop6.id,
+      unitNumber: `OF-${i.toString().padStart(3, '0')}`,
+    }));
+  }
+  for (let i = 1; i <= 12; i++) {
+    unitPromises.push(db.insert(units).values({
+      propertyId: prop7.id,
+      unitNumber: `CR-${i.toString().padStart(3, '0')}`,
     }));
   }
   await Promise.all(unitPromises);
