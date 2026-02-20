@@ -32,6 +32,19 @@ import CapitalAccess from "@/pages/capital-access";
 import LeaseAgreements from "@/pages/lease-agreements";
 import NotFound from "@/pages/not-found";
 
+import AuditTrail from "@/pages/audit-trail";
+import TransactionLedger from "@/pages/transaction-ledger";
+import FraudDetection from "@/pages/fraud-detection";
+import RenewalPrediction from "@/pages/renewal-prediction";
+import InvestorReporting from "@/pages/investor-reporting";
+import RefiReadiness from "@/pages/refi-readiness";
+import StaffWorkload from "@/pages/staff-workload";
+import VendorOnboarding from "@/pages/vendor-onboarding";
+import VendorPerformance from "@/pages/vendor-performance";
+import VendorCompliance from "@/pages/vendor-compliance";
+import MerchantOnboarding from "@/pages/merchant-onboarding";
+import MerchantRewards from "@/pages/merchant-rewards";
+
 // Tenant pages
 import TenantPaymentCalendar from "@/pages/tenant/payment-calendar";
 import TenantHome from "@/pages/tenant/home";
@@ -283,6 +296,42 @@ function AppContent() {
                 </Route>
                 <Route path="/lease-agreements">
                   {ProtectedRouteRenderer(LeaseAgreements, "/lease-agreements")}
+                </Route>
+                <Route path="/audit-trail">
+                  {ProtectedRouteRenderer(AuditTrail, "/audit-trail")}
+                </Route>
+                <Route path="/transaction-ledger">
+                  {ProtectedRouteRenderer(TransactionLedger, "/transaction-ledger")}
+                </Route>
+                <Route path="/fraud-detection">
+                  {ProtectedRouteRenderer(FraudDetection, "/fraud-detection")}
+                </Route>
+                <Route path="/renewal-prediction">
+                  {ProtectedRouteRenderer(RenewalPrediction, "/renewal-prediction")}
+                </Route>
+                <Route path="/investor-reporting">
+                  {ProtectedRouteRenderer(InvestorReporting, "/investor-reporting")}
+                </Route>
+                <Route path="/refi-readiness">
+                  {ProtectedRouteRenderer(RefiReadiness, "/refi-readiness")}
+                </Route>
+                <Route path="/staff-workload">
+                  {ProtectedRouteRenderer(StaffWorkload, "/staff-workload")}
+                </Route>
+                <Route path="/vendor-onboarding">
+                  {ProtectedRouteRenderer(VendorOnboarding, "/vendor-onboarding")}
+                </Route>
+                <Route path="/vendor-performance">
+                  {ProtectedRouteRenderer(VendorPerformance, "/vendor-performance")}
+                </Route>
+                <Route path="/vendor-compliance">
+                  {ProtectedRouteRenderer(VendorCompliance, "/vendor-compliance")}
+                </Route>
+                <Route path="/merchant-onboarding">
+                  {ProtectedRouteRenderer(MerchantOnboarding, "/merchant-onboarding")}
+                </Route>
+                <Route path="/merchant-rewards">
+                  {ProtectedRouteRenderer(MerchantRewards, "/merchant-rewards")}
                 </Route>
                 <Route path="/settings">
                   {ProtectedRouteRenderer(Settings, "/settings")}

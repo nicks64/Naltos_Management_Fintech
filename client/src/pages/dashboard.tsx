@@ -72,9 +72,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-8" data-testid="page-dashboard">
       <div>
-        <h1 className="text-4xl font-semibold tracking-tight mb-2">Business Console</h1>
+        <h1 className="text-4xl font-semibold tracking-tight mb-2">Operator Dashboard</h1>
         <p className="text-muted-foreground">
-          Real-time operational metrics — track rent collection, vendor payments, and treasury performance
+          AI-powered financial intelligence — real-time rent collection, vendor payments, and treasury performance
         </p>
       </div>
 

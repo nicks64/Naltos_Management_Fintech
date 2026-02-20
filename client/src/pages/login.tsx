@@ -210,7 +210,7 @@ export default function Login() {
           <h1 className="text-4xl font-semibold tracking-tight mb-2">Naltos</h1>
           <p className="text-muted-foreground">
             {userType === "business" 
-              ? "Cash-Flow Intelligence Platform — Optimize Rent Collection & Treasury" 
+              ? "AI-Native Financial Operating Network for Multifamily" 
               : userType === "vendor"
               ? "Instant Payments — Redeem on Your Schedule"
               : userType === "merchant"

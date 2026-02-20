@@ -1,9 +1,7 @@
 import type { UserRole } from "@shared/schema";
 import { useAuth } from "./auth-context";
 
-// Define page access rules by role
 const pageAccessRules: Record<string, UserRole[]> = {
-  // Business Side (Property Managers / Owners)
   "/dashboard": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/collections": ["Admin", "PropertyManager", "CFO"],
   "/reconciliation": ["Admin", "PropertyManager", "CFO"],
@@ -15,10 +13,26 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/reports": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/agent": ["Admin", "PropertyManager", "CFO", "Analyst"],
   "/ai-analytics": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/intelligence": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/rent-stability": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/collection-incentives": ["Admin", "PropertyManager", "CFO"],
   "/lease-agreements": ["Admin", "PropertyManager"],
   "/settings": ["Admin"],
-  
-  // Consumer Side (Tenants / Residents)
+
+  "/transaction-ledger": ["Admin", "CFO"],
+  "/audit-trail": ["Admin", "CFO"],
+  "/fraud-detection": ["Admin", "CFO"],
+  "/renewal-prediction": ["Admin", "PropertyManager", "CFO", "Analyst"],
+  "/investor-reporting": ["Admin", "CFO"],
+  "/refi-readiness": ["Admin", "CFO"],
+  "/staff-workload": ["Admin", "PropertyManager"],
+  "/vendor-payments": ["Admin", "CFO"],
+  "/vendor-onboarding": ["Admin", "PropertyManager"],
+  "/vendor-performance": ["Admin", "PropertyManager", "CFO"],
+  "/vendor-compliance": ["Admin", "PropertyManager", "CFO"],
+  "/merchant-onboarding": ["Admin", "PropertyManager"],
+  "/merchant-rewards": ["Admin", "PropertyManager", "CFO"],
+
   "/tenant/home": ["Tenant"],
   "/tenant/payment-calendar": ["Tenant"],
   "/tenant/wallet": ["Tenant"],
@@ -39,7 +53,7 @@ export function useRBAC() {
     if (!user) return false;
     
     const allowedRoles = pageAccessRules[path];
-    if (!allowedRoles) return true; // No restrictions if not in rules
+    if (!allowedRoles) return true;
     
     return allowedRoles.includes(user.role as UserRole);
   };
