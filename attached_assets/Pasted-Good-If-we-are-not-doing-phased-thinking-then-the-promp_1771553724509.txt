@@ -1,0 +1,275 @@
+Good. If we are not doing phased thinking, then the prompt must enforce **modular full-stack architecture from day one** without losing discipline.
+
+This means:
+
+* Built as one cohesive system
+* Designed as modular components
+* Financial-first core
+* Vendor + merchant extensibility
+* Tenant engagement embedded
+* AI-native across workflows
+
+Below is the updated master prompt.
+
+---
+
+# MASTER PLATFORM DESIGN PROMPT
+
+**Naltos – AI-Native Financial Operating Network for Multifamily**
+
+---
+
+### CONTEXT
+
+Design a full-stack, modular CRM/PMS platform called **Naltos**.
+
+This is NOT a generic property management system.
+
+This is:
+
+> An AI-native financial operating network for multifamily real estate that unifies operators, accounting teams, vendors, merchants, and tenants into one programmable financial infrastructure.
+
+It must:
+
+* Replace traditional PMS/CRM tools over time
+* Integrate financial intelligence deeply into workflows
+* Automate collections, reconciliation, treasury, renewals
+* Support vendors and merchants natively
+* Embed tenant financial engagement (wallet, incentives, split rent)
+* Create high transaction density
+* Improve NOI, liquidity, and refinance readiness
+
+Do not design this as a feature checklist PMS clone.
+
+Design it as a **financial intelligence platform with operational extensions.**
+
+---
+
+# REQUIRED OUTPUT STRUCTURE
+
+---
+
+## 1️⃣ CORE PLATFORM IDENTITY
+
+Define clearly:
+
+* Primary identity of the platform (Financial OS? Multifamily Network? AI Ledger?)
+* Primary buyer
+* Primary pain removed
+* Core differentiation vs incumbents like
+  Yardi
+  AppFolio
+  Entrata
+
+---
+
+## 2️⃣ SYSTEM ARCHITECTURE
+
+Design the platform as 6 modular but unified layers:
+
+### Layer 1 – Core Financial Ledger
+
+* Unified transaction engine
+* Role-based permissions
+* Audit logs
+* Multi-entity accounting
+* Event-driven triggers
+
+### Layer 2 – AI Intelligence Engines
+
+* Collections AI
+* Reconciliation AI
+* Treasury forecasting AI
+* Renewal/churn prediction AI
+* Vendor optimization AI
+* Fraud detection AI
+
+Define:
+Inputs, outputs, automation logic, feedback loops.
+
+---
+
+### Layer 3 – Operator Module
+
+* Asset dashboard
+* NOI stabilization tools
+* Investor reporting automation
+* Refi readiness scoring
+* Cashflow forecasting
+* Staff workload automation
+
+---
+
+### Layer 4 – Vendor Module
+
+* Vendor onboarding
+* Invoice submission & auto-matching
+* Performance scoring
+* SLA compliance tracking
+* Automated payment timing
+* Vendor financing tools
+* Insurance & compliance tracking
+
+---
+
+### Layer 5 – Merchant Module
+
+* Merchant onboarding
+* Rent-linked rewards
+* Cashback ecosystem
+* Closed-loop building payments
+* Embedded promotions
+* Revenue-sharing structure
+
+---
+
+### Layer 6 – Tenant Financial Layer
+
+* Rent payments
+* Split payments
+* Deposit alternatives
+* Insurance contributions
+* Rewards
+* Optional wallet (verticalized P2P)
+* Amenity & in-building payments
+
+Clarify how this increases transaction frequency without competing directly with
+Venmo or
+Cash App.
+
+---
+
+## 3️⃣ AI-FIRST WORKFLOW DESIGN
+
+Map full workflows for:
+
+* Operator
+* Accounting team
+* Property manager
+* Maintenance team
+* Tenant
+* Vendor
+* Merchant
+
+At each step define:
+
+* What is manual today
+* What Naltos automates
+* What decisions AI makes
+* Where human approval is required
+* Risk safeguards
+
+---
+
+## 4️⃣ DATA MODEL DESIGN
+
+Define:
+
+* Multi-entity data schema
+* Transaction object model
+* Policy engine rules
+* Event-driven triggers
+* Permissions hierarchy
+* Audit/compliance structure
+* Reporting architecture
+
+---
+
+## 5️⃣ REVENUE MODEL
+
+Design multi-sided monetization:
+
+* SaaS per unit
+* Payment margin
+* Float optimization
+* Vendor marketplace take rate
+* Merchant revenue share
+* Incentive partnerships
+* Premium analytics for refi
+* Embedded financial services margin
+
+---
+
+## 6️⃣ DEFENSIBILITY & MOAT
+
+Explain:
+
+* Why incumbents cannot easily replicate
+* Network effects across operators + vendors + tenants
+* Data advantage
+* AI learning loops
+* Switching friction once embedded
+
+---
+
+## 7️⃣ RISK & REGULATORY ANALYSIS
+
+Identify:
+
+* Trust accounting compliance risk
+* AML/KYC implications
+* Payment licensing
+* Data security
+* Fraud exposure
+* Treasury regulatory considerations
+
+---
+
+## 8️⃣ SCALE ARCHITECTURE
+
+Design infrastructure for:
+
+* 1M+ tenants
+* Millions of monthly transactions
+* Real-time reconciliation
+* High fraud resilience
+* Multi-property scaling
+
+---
+
+## 9️⃣ PRODUCT DISCIPLINE
+
+Define:
+
+* What NOT to build initially
+* What must remain core
+* What must remain modular
+* What creates complexity risk
+
+---
+
+# CRITICAL CONSTRAINTS
+
+* Financial-first architecture
+* AI embedded in decision workflows
+* Modular but unified system
+* Avoid feature bloat
+* Design for ecosystem expansion
+* Operator pain removal must be measurable
+
+---
+
+This version forces:
+
+* Full-stack thinking
+* Modular extensibility
+* Financial dominance
+* Ecosystem orientation
+* AI as core infrastructure
+
+---
+
+Now I want to pressure test your ambition.
+
+Are you building:
+
+A) Infrastructure company
+B) Software company
+C) Network company
+D) Fintech company
+
+You can only prioritize one as your identity.
+
+Everything else becomes secondary architecture.
+
+Which one?
