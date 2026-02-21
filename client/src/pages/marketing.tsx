@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import type { MarketingListing, MarketingLead, MarketingShowing } from "@shared/schema";
 import {
   Megaphone,
   Building,
@@ -36,50 +40,6 @@ const agentInsights = [
   { text: "3 leads ready for showing — auto-scheduled", severity: "opportunity" as const },
 ];
 
-const kpiCards = [
-  { title: "Vacant Units", value: "4", change: "-2 from last month", trend: "up", icon: Building, color: "text-orange-600" },
-  { title: "Avg Days on Market", value: "18", change: "-3 days", trend: "up", icon: Clock, color: "text-blue-600" },
-  { title: "Active Leads", value: "27", change: "+8 this week", trend: "up", icon: Users, color: "text-emerald-600" },
-  { title: "Showings This Week", value: "9", change: "+4 vs last week", trend: "up", icon: Calendar, color: "text-violet-600" },
-  { title: "Listing Views (MTD)", value: "1,842", change: "+22%", trend: "up", icon: Eye, color: "text-indigo-600" },
-  { title: "Conversion Rate", value: "14.2%", change: "+1.8%", trend: "up", icon: Target, color: "text-green-600" },
-];
-
-const activeListings = [
-  { unit: "3C", bed: 2, bath: 1, sqft: 950, rent: 2250, dom: 28, views: 312, inquiries: 8, status: "Active", channels: ["Zillow", "Apartments.com", "Internal"], updated: "2 hours ago", aiScore: 62 },
-  { unit: "7A", bed: 1, bath: 1, sqft: 720, rent: 1850, dom: 5, views: 487, inquiries: 14, status: "Active", channels: ["Zillow", "Apartments.com"], updated: "1 day ago", aiScore: 91 },
-  { unit: "5D", bed: 3, bath: 2, sqft: 1200, rent: 3100, dom: 12, views: 198, inquiries: 5, status: "Active", channels: ["Zillow", "Internal"], updated: "3 hours ago", aiScore: 78 },
-  { unit: "2B", bed: 1, bath: 1, sqft: 680, rent: 1700, dom: 22, views: 156, inquiries: 3, status: "Under Review", channels: ["Internal"], updated: "5 hours ago", aiScore: 55 },
-  { unit: "9F", bed: 2, bath: 2, sqft: 1050, rent: 2600, dom: 3, views: 89, inquiries: 2, status: "Pending", channels: ["Apartments.com"], updated: "6 hours ago", aiScore: 85 },
-  { unit: "1A", bed: "Studio", bath: 1, sqft: 520, rent: 1450, dom: 15, views: 224, inquiries: 6, status: "Active", channels: ["Zillow", "Apartments.com", "Internal"], updated: "4 hours ago", aiScore: 72 },
-];
-
-const leads = [
-  { name: "Sarah Chen", source: "Zillow", unit: "7A", status: "Showing Scheduled", score: 94, lastContact: "Today", followUp: "Tomorrow", priority: true },
-  { name: "Marcus Rivera", source: "Website", unit: "5D", status: "Application Submitted", score: 91, lastContact: "Yesterday", followUp: "Today", priority: true },
-  { name: "Jennifer Park", source: "Apartments.com", unit: "7A", status: "Contacted", score: 87, lastContact: "2 days ago", followUp: "Tomorrow", priority: true },
-  { name: "David Thompson", source: "Referral", unit: "3C", status: "New", score: 82, lastContact: "3 days ago", followUp: "Today", priority: false },
-  { name: "Emily Watson", source: "Walk-in", unit: "9F", status: "Showing Scheduled", score: 79, lastContact: "Today", followUp: "Feb 24", priority: false },
-  { name: "Robert Kim", source: "Website", unit: "1A", status: "Contacted", score: 76, lastContact: "4 days ago", followUp: "Tomorrow", priority: false },
-  { name: "Lisa Martinez", source: "Zillow", unit: "5D", status: "New", score: 73, lastContact: "1 day ago", followUp: "Today", priority: false },
-  { name: "James Wilson", source: "Apartments.com", unit: "2B", status: "Approved", score: 95, lastContact: "Today", followUp: "-", priority: false },
-  { name: "Amanda Foster", source: "Referral", unit: "3C", status: "Declined", score: 42, lastContact: "5 days ago", followUp: "-", priority: false },
-  { name: "Kevin Nguyen", source: "Website", unit: "9F", status: "Contacted", score: 68, lastContact: "2 days ago", followUp: "Feb 25", priority: false },
-  { name: "Rachel Adams", source: "Walk-in", unit: "7A", status: "Showing Scheduled", score: 85, lastContact: "Today", followUp: "Today", priority: false },
-  { name: "Brian Cooper", source: "Zillow", unit: "1A", status: "New", score: 71, lastContact: "3 days ago", followUp: "Tomorrow", priority: false },
-];
-
-const showings = [
-  { date: "Feb 22, 2026 10:00 AM", unit: "7A", lead: "Sarah Chen", agent: "Lisa Park", status: "Scheduled", notes: "Interested in natural lighting", feedback: "" },
-  { date: "Feb 22, 2026 2:00 PM", unit: "9F", lead: "Emily Watson", agent: "David Carter", status: "Scheduled", notes: "Has a pet — confirm policy", feedback: "" },
-  { date: "Feb 22, 2026 4:30 PM", unit: "7A", lead: "Rachel Adams", agent: "Lisa Park", status: "Scheduled", notes: "Relocating from out of state", feedback: "" },
-  { date: "Feb 21, 2026 11:00 AM", unit: "5D", lead: "Marcus Rivera", agent: "David Carter", status: "Completed", notes: "Very interested, requested application", feedback: "Loved the layout, asked about parking" },
-  { date: "Feb 20, 2026 3:00 PM", unit: "3C", lead: "David Thompson", agent: "Lisa Park", status: "Completed", notes: "First-time renter", feedback: "Concerned about rent price" },
-  { date: "Feb 20, 2026 1:00 PM", unit: "2B", lead: "Kevin Nguyen", agent: "David Carter", status: "No-Show", notes: "No response to confirmation", feedback: "" },
-  { date: "Feb 19, 2026 10:00 AM", unit: "1A", lead: "Robert Kim", agent: "Lisa Park", status: "Completed", notes: "Looking for short-term lease", feedback: "Positive, needs to check work commute" },
-  { date: "Feb 18, 2026 2:30 PM", unit: "7A", lead: "Amanda Foster", agent: "David Carter", status: "Cancelled", notes: "Found another unit", feedback: "" },
-];
-
 const statusConfig: Record<string, { variant: "default" | "secondary" | "outline" | "destructive" }> = {
   Active: { variant: "default" },
   Pending: { variant: "secondary" },
@@ -102,7 +62,104 @@ function getScoreColor(score: number) {
   return "text-red-600 dark:text-red-400";
 }
 
+function formatCurrency(value: string | number | null | undefined): string {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (num == null || isNaN(num)) return "$0";
+  return `$${num.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+function formatRelativeTime(dateStr: string | Date | null | undefined): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return String(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs} hour${diffHrs > 1 ? "s" : ""} ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  return date.toLocaleDateString();
+}
+
+function KpiSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Card key={i}>
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-4 w-4 rounded" />
+          </CardHeader>
+          <CardContent className="px-3 pb-3">
+            <Skeleton className="h-6 w-12 mb-1" />
+            <Skeleton className="h-3 w-16" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function TableSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className="h-10 w-full" />
+      ))}
+    </div>
+  );
+}
+
 export default function Marketing() {
+  const { data: listings = [], isLoading: listingsLoading, isError: listingsError } = useQuery<MarketingListing[]>({
+    queryKey: ['/api/marketing/listings'],
+  });
+
+  const { data: leads = [], isLoading: leadsLoading, isError: leadsError } = useQuery<MarketingLead[]>({
+    queryKey: ['/api/marketing/leads'],
+  });
+
+  const { data: showings = [], isLoading: showingsLoading, isError: showingsError } = useQuery<MarketingShowing[]>({
+    queryKey: ['/api/marketing/showings'],
+  });
+
+  const isLoading = listingsLoading || leadsLoading || showingsLoading;
+  const isError = listingsError || leadsError || showingsError;
+
+  const kpiCards = useMemo(() => {
+    const avgDom = listings.length > 0
+      ? Math.round(listings.reduce((sum, l) => sum + (l.daysOnMarket ?? 0), 0) / listings.length)
+      : 0;
+    const scheduledCount = showings.filter(s => s.status === "Scheduled").length;
+    const totalViews = listings.reduce((sum, l) => sum + (l.views ?? 0), 0);
+
+    return [
+      { title: "Vacant Units", value: String(listings.length), change: "Current", trend: "up", icon: Building, color: "text-orange-600" },
+      { title: "Avg Days on Market", value: String(avgDom), change: "Average", trend: "up", icon: Clock, color: "text-blue-600" },
+      { title: "Active Leads", value: String(leads.length), change: "Total", trend: "up", icon: Users, color: "text-emerald-600" },
+      { title: "Showings This Week", value: String(scheduledCount), change: "Scheduled", trend: "up", icon: Calendar, color: "text-violet-600" },
+      { title: "Listing Views (MTD)", value: totalViews.toLocaleString(), change: "Month to date", trend: "up", icon: Eye, color: "text-indigo-600" },
+      { title: "Conversion Rate", value: "14.2%", change: "+1.8%", trend: "up", icon: Target, color: "text-green-600" },
+    ];
+  }, [listings, leads, showings]);
+
+  const sortedLeads = useMemo(() => {
+    return [...leads].sort((a, b) => {
+      if (a.priority && !b.priority) return -1;
+      if (!a.priority && b.priority) return 1;
+      return (b.score ?? 0) - (a.score ?? 0);
+    });
+  }, [leads]);
+
+  const sortedShowings = useMemo(() => {
+    return [...showings].sort((a, b) => {
+      return new Date(a.showingDate).getTime() - new Date(b.showingDate).getTime();
+    });
+  }, [showings]);
+
   return (
     <div className="space-y-6" data-testid="page-marketing">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -138,23 +195,27 @@ export default function Marketing() {
         icon={TrendingUp}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {kpiCards.map((card, index) => (
-          <Card key={card.title} className="hover-elevate" data-testid={`card-kpi-${index}`}>
-            <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground">{card.title}</CardTitle>
-              <card.icon className={`w-4 h-4 ${card.color}`} />
-            </CardHeader>
-            <CardContent className="px-3 pb-3">
-              <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
-              <div className="flex items-center gap-1 text-xs mt-0.5">
-                <TrendingUp className="w-3 h-3 text-green-600" />
-                <span className="text-green-600">{card.change}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {isLoading ? (
+        <KpiSkeleton />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {kpiCards.map((card, index) => (
+            <Card key={card.title} className="hover-elevate" data-testid={`card-kpi-${index}`}>
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{card.title}</CardTitle>
+                <card.icon className={`w-4 h-4 ${card.color}`} />
+              </CardHeader>
+              <CardContent className="px-3 pb-3">
+                <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
+                <div className="flex items-center gap-1 text-xs mt-0.5">
+                  <TrendingUp className="w-3 h-3 text-green-600" />
+                  <span className="text-green-600">{card.change}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Tabs defaultValue="listings" className="space-y-4">
         <TabsList data-testid="tabs-marketing">
@@ -171,63 +232,74 @@ export default function Marketing() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Megaphone className="w-5 h-5 text-primary" />
                   <CardTitle>Active Vacancy Listings</CardTitle>
-                  <Badge variant="secondary" className="text-xs">{activeListings.length} units</Badge>
+                  <Badge variant="secondary" className="text-xs" data-testid="badge-listings-count">{listings.length} units</Badge>
                 </div>
               </div>
               <CardDescription>Current vacancy listings with AI market scoring and syndication tracking</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Bed/Bath</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Sq Ft</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Asking Rent</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">DOM</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Views</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Inquiries</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Status</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">AI Score</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Channels</th>
-                      <th className="pb-2 font-medium text-muted-foreground">Updated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeListings.map((listing, idx) => (
-                      <tr key={listing.unit} className="border-b last:border-0" data-testid={`row-listing-${idx}`}>
-                        <td className="py-2.5 pr-3 font-medium">{listing.unit}</td>
-                        <td className="py-2.5 pr-3">{listing.bed}/{listing.bath}</td>
-                        <td className="py-2.5 pr-3">{listing.sqft.toLocaleString()}</td>
-                        <td className="py-2.5 pr-3 font-mono">${listing.rent.toLocaleString()}</td>
-                        <td className="py-2.5 pr-3">{listing.dom}d</td>
-                        <td className="py-2.5 pr-3">{listing.views.toLocaleString()}</td>
-                        <td className="py-2.5 pr-3">{listing.inquiries}</td>
-                        <td className="py-2.5 pr-3">
-                          <Badge variant={statusConfig[listing.status]?.variant || "outline"} className="text-xs">
-                            {listing.status}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          <Badge variant="outline" className={`text-xs ${getScoreColor(listing.aiScore)}`} data-testid={`badge-ai-score-${idx}`}>
-                            <Star className="w-3 h-3 mr-1" />
-                            {listing.aiScore}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {listing.channels.map((ch) => (
-                              <Badge key={ch} variant="secondary" className="text-[10px]">{ch}</Badge>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-2.5 text-muted-foreground text-xs">{listing.updated}</td>
+              {listingsLoading ? (
+                <TableSkeleton rows={6} />
+              ) : listingsError ? (
+                <div className="flex items-center gap-2 text-sm text-destructive p-4" data-testid="error-listings">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Failed to load listings</span>
+                </div>
+              ) : listings.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8" data-testid="empty-listings">No listings found</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Bed/Bath</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Sq Ft</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Asking Rent</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">DOM</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Views</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Inquiries</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Status</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">AI Score</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Channels</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Updated</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {listings.map((listing, idx) => (
+                        <tr key={listing.id} className="border-b last:border-0" data-testid={`row-listing-${listing.id}`}>
+                          <td className="py-2.5 pr-3 font-medium">{listing.unitNumber}</td>
+                          <td className="py-2.5 pr-3">{listing.beds}/{listing.baths}</td>
+                          <td className="py-2.5 pr-3">{listing.sqft?.toLocaleString() ?? "-"}</td>
+                          <td className="py-2.5 pr-3 font-mono">{formatCurrency(listing.rent)}</td>
+                          <td className="py-2.5 pr-3">{listing.daysOnMarket ?? 0}d</td>
+                          <td className="py-2.5 pr-3">{(listing.views ?? 0).toLocaleString()}</td>
+                          <td className="py-2.5 pr-3">{listing.inquiries ?? 0}</td>
+                          <td className="py-2.5 pr-3">
+                            <Badge variant={statusConfig[listing.status ?? ""]?.variant || "outline"} className="text-xs">
+                              {listing.status}
+                            </Badge>
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <Badge variant="outline" className={`text-xs ${getScoreColor(listing.aiScore ?? 0)}`} data-testid={`badge-ai-score-${listing.id}`}>
+                              <Star className="w-3 h-3 mr-1" />
+                              {listing.aiScore ?? 0}
+                            </Badge>
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {(listing.channels ?? []).map((ch) => (
+                                <Badge key={ch} variant="secondary" className="text-[10px]">{ch}</Badge>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-2.5 text-muted-foreground text-xs">{formatRelativeTime(listing.updatedAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -238,7 +310,7 @@ export default function Marketing() {
               <div className="flex items-center gap-2 flex-wrap">
                 <Users className="w-5 h-5 text-primary" />
                 <CardTitle>Lead Pipeline</CardTitle>
-                <Badge variant="secondary" className="text-xs">{leads.length} leads</Badge>
+                <Badge variant="secondary" className="text-xs" data-testid="badge-leads-count">{leads.length} leads</Badge>
                 <Badge variant="outline" className="text-xs">
                   <Brain className="w-3 h-3 mr-1" />
                   Agent-Prioritized
@@ -247,49 +319,60 @@ export default function Marketing() {
               <CardDescription>CRM-style lead tracking with AI-generated lead scoring and priority ranking</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Lead</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Source</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Status</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Lead Score</th>
-                      <th className="pb-2 pr-3 font-medium text-muted-foreground">Last Contact</th>
-                      <th className="pb-2 font-medium text-muted-foreground">Follow-up</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leads.map((lead, idx) => (
-                      <tr key={idx} className="border-b last:border-0" data-testid={`row-lead-${idx}`}>
-                        <td className="py-2.5 pr-3">
-                          <div className="flex items-center gap-1.5">
-                            {lead.priority && <Sparkles className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
-                            <span className="font-medium">{lead.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          <Badge variant="secondary" className="text-xs">{lead.source}</Badge>
-                        </td>
-                        <td className="py-2.5 pr-3">{lead.unit}</td>
-                        <td className="py-2.5 pr-3">
-                          <Badge variant={statusConfig[lead.status]?.variant || "outline"} className="text-xs">
-                            {lead.status}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          <span className={`font-mono font-semibold ${getScoreColor(lead.score)}`} data-testid={`text-lead-score-${idx}`}>
-                            {lead.score}
-                          </span>
-                        </td>
-                        <td className="py-2.5 pr-3 text-muted-foreground">{lead.lastContact}</td>
-                        <td className="py-2.5 text-muted-foreground">{lead.followUp}</td>
+              {leadsLoading ? (
+                <TableSkeleton rows={8} />
+              ) : leadsError ? (
+                <div className="flex items-center gap-2 text-sm text-destructive p-4" data-testid="error-leads">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Failed to load leads</span>
+                </div>
+              ) : leads.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8" data-testid="empty-leads">No leads found</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Lead</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Source</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Status</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Lead Score</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Last Contact</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Follow-up</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {sortedLeads.map((lead) => (
+                        <tr key={lead.id} className="border-b last:border-0" data-testid={`row-lead-${lead.id}`}>
+                          <td className="py-2.5 pr-3">
+                            <div className="flex items-center gap-1.5">
+                              {lead.priority && <Sparkles className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
+                              <span className="font-medium">{lead.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <Badge variant="secondary" className="text-xs">{lead.source}</Badge>
+                          </td>
+                          <td className="py-2.5 pr-3">{lead.unitNumber}</td>
+                          <td className="py-2.5 pr-3">
+                            <Badge variant={statusConfig[lead.status ?? ""]?.variant || "outline"} className="text-xs">
+                              {lead.status}
+                            </Badge>
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <span className={`font-mono font-semibold ${getScoreColor(lead.score ?? 0)}`} data-testid={`text-lead-score-${lead.id}`}>
+                              {lead.score ?? 0}
+                            </span>
+                          </td>
+                          <td className="py-2.5 pr-3 text-muted-foreground">{lead.lastContact ?? "-"}</td>
+                          <td className="py-2.5 text-muted-foreground">{lead.followUp ?? "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -301,7 +384,7 @@ export default function Marketing() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Calendar className="w-5 h-5 text-primary" />
                   <CardTitle>Showings</CardTitle>
-                  <Badge variant="secondary" className="text-xs">{showings.filter(s => s.status === "Scheduled").length} upcoming</Badge>
+                  <Badge variant="secondary" className="text-xs" data-testid="badge-showings-count">{showings.filter(s => s.status === "Scheduled").length} upcoming</Badge>
                 </div>
                 <Button data-testid="button-schedule-showing">
                   <Plus className="w-4 h-4 mr-1" />
@@ -311,38 +394,49 @@ export default function Marketing() {
               <CardDescription>Upcoming and recent property showings with lead feedback tracking</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {showings.map((showing, idx) => (
-                  <div key={idx} className="p-3 border rounded-lg space-y-2" data-testid={`card-showing-${idx}`}>
-                    <div className="flex items-start justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <CalendarDays className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm font-medium">{showing.date}</span>
-                        <Badge variant="outline" className="text-xs">Unit {showing.unit}</Badge>
+              {showingsLoading ? (
+                <TableSkeleton rows={5} />
+              ) : showingsError ? (
+                <div className="flex items-center gap-2 text-sm text-destructive p-4" data-testid="error-showings">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Failed to load showings</span>
+                </div>
+              ) : showings.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8" data-testid="empty-showings">No showings found</div>
+              ) : (
+                <div className="space-y-3">
+                  {sortedShowings.map((showing) => (
+                    <div key={showing.id} className="p-3 border rounded-lg space-y-2" data-testid={`card-showing-${showing.id}`}>
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CalendarDays className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-sm font-medium">{showing.showingDate}</span>
+                          <Badge variant="outline" className="text-xs">Unit {showing.unitNumber}</Badge>
+                        </div>
+                        <Badge variant={statusConfig[showing.status ?? ""]?.variant || "outline"} className="text-xs">
+                          {showing.status === "Completed" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                          {showing.status === "No-Show" && <XCircle className="w-3 h-3 mr-1" />}
+                          {showing.status === "Scheduled" && <Clock className="w-3 h-3 mr-1" />}
+                          {showing.status}
+                        </Badge>
                       </div>
-                      <Badge variant={statusConfig[showing.status]?.variant || "outline"} className="text-xs">
-                        {showing.status === "Completed" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                        {showing.status === "No-Show" && <XCircle className="w-3 h-3 mr-1" />}
-                        {showing.status === "Scheduled" && <Clock className="w-3 h-3 mr-1" />}
-                        {showing.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {showing.lead}</span>
-                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {showing.agent}</span>
-                    </div>
-                    {showing.notes && (
-                      <p className="text-xs text-muted-foreground">{showing.notes}</p>
-                    )}
-                    {showing.feedback && (
-                      <div className="flex items-start gap-1.5 text-xs p-2 rounded-md bg-muted/50">
-                        <Brain className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-                        <span>{showing.feedback}</span>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {showing.leadName}</span>
+                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {showing.agent}</span>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      {showing.notes && (
+                        <p className="text-xs text-muted-foreground">{showing.notes}</p>
+                      )}
+                      {showing.feedback && (
+                        <div className="flex items-start gap-1.5 text-xs p-2 rounded-md bg-muted/50">
+                          <Brain className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                          <span>{showing.feedback}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

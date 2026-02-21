@@ -854,6 +854,225 @@ export async function seedDatabase() {
     console.log("Created magic code for vendor demo user");
   }
 
+  // ============ PHASE 3: SEED DATA ============
+  console.log("Seeding Phase 3 data...");
+
+  const {
+    moveIns, moveOuts, moveChecklists,
+    tenantMessages, announcements, tenantNotices, complaints,
+    leasingApplications, applicantWaitlist,
+    marketingListings, marketingLeads, marketingShowings,
+    communityEvents, communityPrograms,
+  } = await import("@shared/schema");
+
+  const orgId = demoOrg.id;
+
+  // Delete existing Phase 3 data for this org
+  await db.delete(moveIns).where(eq(moveIns.organizationId, orgId));
+  await db.delete(moveOuts).where(eq(moveOuts.organizationId, orgId));
+  await db.delete(moveChecklists).where(eq(moveChecklists.organizationId, orgId));
+  await db.delete(tenantMessages).where(eq(tenantMessages.organizationId, orgId));
+  await db.delete(announcements).where(eq(announcements.organizationId, orgId));
+  await db.delete(tenantNotices).where(eq(tenantNotices.organizationId, orgId));
+  await db.delete(complaints).where(eq(complaints.organizationId, orgId));
+  await db.delete(leasingApplications).where(eq(leasingApplications.organizationId, orgId));
+  await db.delete(applicantWaitlist).where(eq(applicantWaitlist.organizationId, orgId));
+  await db.delete(marketingListings).where(eq(marketingListings.organizationId, orgId));
+  await db.delete(marketingLeads).where(eq(marketingLeads.organizationId, orgId));
+  await db.delete(marketingShowings).where(eq(marketingShowings.organizationId, orgId));
+  await db.delete(communityEvents).where(eq(communityEvents.organizationId, orgId));
+  await db.delete(communityPrograms).where(eq(communityPrograms.organizationId, orgId));
+
+  // === Move-Ins (8) ===
+  await db.insert(moveIns).values([
+    { organizationId: orgId, tenantName: "Alice Chen", unitNumber: "SG-015", moveInDate: new Date("2026-03-01"), checklistPercent: 100, keyStatus: "Issued", utilityStatus: "Connected", welcomePacket: true },
+    { organizationId: orgId, tenantName: "Brian Foster", unitNumber: "HV-022", moveInDate: new Date("2026-03-05"), checklistPercent: 85, keyStatus: "Issued", utilityStatus: "Pending", welcomePacket: true },
+    { organizationId: orgId, tenantName: "Carmen Rivera", unitNumber: "PR-008", moveInDate: new Date("2026-03-10"), checklistPercent: 60, keyStatus: "Pending", utilityStatus: "Pending", welcomePacket: false },
+    { organizationId: orgId, tenantName: "Derek Wang", unitNumber: "MT-003", moveInDate: new Date("2026-03-12"), checklistPercent: 45, keyStatus: "Pending", utilityStatus: "Pending", welcomePacket: false },
+    { organizationId: orgId, tenantName: "Elena Popov", unitNumber: "WC-018", moveInDate: new Date("2026-03-15"), checklistPercent: 30, keyStatus: "Pending", utilityStatus: "Not Started", welcomePacket: false },
+    { organizationId: orgId, tenantName: "Frank Nguyen", unitNumber: "OF-005", moveInDate: new Date("2026-03-18"), checklistPercent: 20, keyStatus: "Pending", utilityStatus: "Not Started", welcomePacket: false },
+    { organizationId: orgId, tenantName: "Grace Kim", unitNumber: "CR-002", moveInDate: new Date("2026-03-22"), checklistPercent: 10, keyStatus: "Pending", utilityStatus: "Not Started", welcomePacket: false },
+    { organizationId: orgId, tenantName: "Henry Patel", unitNumber: "SG-042", moveInDate: new Date("2026-03-25"), checklistPercent: 0, keyStatus: "Pending", utilityStatus: "Not Started", welcomePacket: false },
+  ]);
+  console.log("8 move-ins seeded");
+
+  // === Move-Outs (6) ===
+  await db.insert(moveOuts).values([
+    { organizationId: orgId, tenantName: "Irene Cooper", unitNumber: "SG-030", moveOutDate: new Date("2026-03-01"), inspectionStatus: "Completed", depositStatus: "Returned", forwardingAddress: true },
+    { organizationId: orgId, tenantName: "Jake Morrison", unitNumber: "HV-011", moveOutDate: new Date("2026-03-08"), inspectionStatus: "Scheduled", depositStatus: "Processing", forwardingAddress: true },
+    { organizationId: orgId, tenantName: "Karen Lee", unitNumber: "PR-019", moveOutDate: new Date("2026-03-15"), inspectionStatus: "Scheduled", depositStatus: "Pending", forwardingAddress: false },
+    { organizationId: orgId, tenantName: "Leo Santos", unitNumber: "MT-010", moveOutDate: new Date("2026-03-20"), inspectionStatus: "Not Scheduled", depositStatus: "Pending", forwardingAddress: false },
+    { organizationId: orgId, tenantName: "Mia Thompson", unitNumber: "WC-025", moveOutDate: new Date("2026-03-28"), inspectionStatus: "Not Scheduled", depositStatus: "Pending", forwardingAddress: false },
+    { organizationId: orgId, tenantName: "Nolan Wright", unitNumber: "OF-012", moveOutDate: new Date("2026-04-01"), inspectionStatus: "Not Scheduled", depositStatus: "Pending", forwardingAddress: false },
+  ]);
+  console.log("6 move-outs seeded");
+
+  // === Move Checklists (7) ===
+  await db.insert(moveChecklists).values([
+    { organizationId: orgId, name: "Standard Move-In Checklist", type: "Move-In", items: 24, completedUses: 142, compliance: 98 },
+    { organizationId: orgId, name: "Standard Move-Out Checklist", type: "Move-Out", items: 18, completedUses: 128, compliance: 95 },
+    { organizationId: orgId, name: "Pet-Friendly Move-In", type: "Move-In", items: 28, completedUses: 34, compliance: 100 },
+    { organizationId: orgId, name: "Furnished Unit Move-In", type: "Move-In", items: 32, completedUses: 21, compliance: 97 },
+    { organizationId: orgId, name: "Express Move-Out", type: "Move-Out", items: 12, completedUses: 56, compliance: 92 },
+    { organizationId: orgId, name: "ADA Accessible Move-In", type: "Move-In", items: 30, completedUses: 8, compliance: 100 },
+    { organizationId: orgId, name: "Corporate Relocation", type: "Move-In", items: 35, completedUses: 15, compliance: 96 },
+  ]);
+  console.log("7 move checklists seeded");
+
+  // === Tenant Messages (10) ===
+  await db.insert(tenantMessages).values([
+    { organizationId: orgId, senderName: "John Smith 1", unitNumber: "SG-001", subject: "Parking spot question", preview: "Hi, I wanted to ask about the availability of covered parking...", sentAt: new Date("2026-02-20T09:15:00Z"), read: true, priority: false, category: "General" },
+    { organizationId: orgId, senderName: "Emma Johnson 2", unitNumber: "HV-002", subject: "Lease renewal inquiry", preview: "My lease is coming up for renewal and I wanted to discuss...", sentAt: new Date("2026-02-20T10:30:00Z"), read: false, priority: true, category: "Lease" },
+    { organizationId: orgId, senderName: "Michael Brown 3", unitNumber: "PR-003", subject: "Noise complaint follow-up", preview: "Following up on my previous noise complaint about unit PR-004...", sentAt: new Date("2026-02-19T14:00:00Z"), read: true, priority: false, category: "Complaint" },
+    { organizationId: orgId, senderName: "Sarah Davis 4", unitNumber: "SG-004", subject: "Package delivery issue", preview: "I have been having trouble receiving packages at the front desk...", sentAt: new Date("2026-02-19T16:45:00Z"), read: false, priority: false, category: "General" },
+    { organizationId: orgId, senderName: "James Wilson 5", unitNumber: "HV-005", subject: "Maintenance request update", preview: "Just wanted to check on the status of my kitchen faucet repair...", sentAt: new Date("2026-02-18T11:20:00Z"), read: true, priority: false, category: "Maintenance" },
+    { organizationId: orgId, senderName: "Emily Martinez 6", unitNumber: "PR-006", subject: "Guest parking passes", preview: "I have family visiting this weekend and need additional parking...", sentAt: new Date("2026-02-18T08:00:00Z"), read: true, priority: false, category: "General" },
+    { organizationId: orgId, senderName: "Robert Anderson 7", unitNumber: "MT-001", subject: "Water leak in bathroom", preview: "There is a leak under my bathroom sink that started this morning...", sentAt: new Date("2026-02-17T22:30:00Z"), read: false, priority: true, category: "Maintenance" },
+    { organizationId: orgId, senderName: "Jessica Taylor 8", unitNumber: "WC-010", subject: "Community garden access", preview: "I would like to request a plot in the community garden...", sentAt: new Date("2026-02-17T13:15:00Z"), read: true, priority: false, category: "Community" },
+    { organizationId: orgId, senderName: "William Thomas 9", unitNumber: "OF-003", subject: "AC not working properly", preview: "My air conditioning unit is making strange noises and not cooling...", sentAt: new Date("2026-02-16T15:45:00Z"), read: false, priority: true, category: "Maintenance" },
+    { organizationId: orgId, senderName: "Ashley Garcia 10", unitNumber: "CR-001", subject: "Move-out date confirmation", preview: "I want to confirm my move-out date of March 31st as discussed...", sentAt: new Date("2026-02-16T10:00:00Z"), read: true, priority: false, category: "Lease" },
+  ]);
+  console.log("10 tenant messages seeded");
+
+  // === Announcements (5) ===
+  await db.insert(announcements).values([
+    { organizationId: orgId, title: "Spring Maintenance Schedule", date: new Date("2026-02-15"), audience: "All Residents", sent: 290, read: 245, clicked: 180, status: "Delivered" },
+    { organizationId: orgId, title: "Pool Opening Day - March 15th", date: new Date("2026-02-18"), audience: "All Residents", sent: 290, read: 210, clicked: 155, status: "Delivered" },
+    { organizationId: orgId, title: "Parking Lot Resurfacing Notice", date: new Date("2026-02-20"), audience: "Sunset Gardens", sent: 80, read: 62, clicked: 45, status: "Delivered" },
+    { organizationId: orgId, title: "Rent Payment Portal Upgrade", date: new Date("2026-02-21"), audience: "All Residents", sent: 290, read: 178, clicked: 120, status: "Delivered" },
+    { organizationId: orgId, title: "Community BBQ Event - March 8th", date: new Date("2026-02-22"), audience: "All Residents", sent: 290, read: 195, clicked: 88, status: "Scheduled" },
+  ]);
+  console.log("5 announcements seeded");
+
+  // === Tenant Notices (8) ===
+  await db.insert(tenantNotices).values([
+    { organizationId: orgId, tenantName: "John Smith 1", unitNumber: "SG-001", type: "Lease Renewal", sentDate: new Date("2026-02-01"), response: "Accepted", daysUntil: 0 },
+    { organizationId: orgId, tenantName: "Emma Johnson 2", unitNumber: "HV-002", type: "Lease Renewal", sentDate: new Date("2026-02-05"), response: "Pending", daysUntil: 45 },
+    { organizationId: orgId, tenantName: "Michael Brown 3", unitNumber: "PR-003", type: "Rent Increase", sentDate: new Date("2026-02-10"), response: "Acknowledged", daysUntil: 30 },
+    { organizationId: orgId, tenantName: "Sarah Davis 4", unitNumber: "SG-004", type: "Violation Warning", sentDate: new Date("2026-02-12"), response: "Pending", daysUntil: 14 },
+    { organizationId: orgId, tenantName: "James Wilson 5", unitNumber: "HV-005", type: "Lease Termination", sentDate: new Date("2026-01-15"), response: "Acknowledged", daysUntil: 0 },
+    { organizationId: orgId, tenantName: "Emily Martinez 6", unitNumber: "PR-006", type: "Inspection Notice", sentDate: new Date("2026-02-18"), response: "Pending", daysUntil: 7 },
+    { organizationId: orgId, tenantName: "Robert Anderson 7", unitNumber: "MT-001", type: "Late Payment", sentDate: new Date("2026-02-19"), response: "Pending", daysUntil: 5 },
+    { organizationId: orgId, tenantName: "Jessica Taylor 8", unitNumber: "WC-010", type: "Lease Renewal", sentDate: new Date("2026-02-20"), response: "Pending", daysUntil: 60 },
+  ]);
+  console.log("8 tenant notices seeded");
+
+  // === Complaints (7) ===
+  await db.insert(complaints).values([
+    { organizationId: orgId, complaintId: "CMP-001", tenantName: "Michael Brown 3", unitNumber: "PR-003", category: "Noise", severity: "Medium", status: "Open", openedAt: new Date("2026-02-18"), slaStatus: "Within SLA", aiResolution: "Noise monitoring scheduled for affected floor" },
+    { organizationId: orgId, complaintId: "CMP-002", tenantName: "Robert Anderson 7", unitNumber: "MT-001", category: "Plumbing", severity: "High", status: "In Progress", openedAt: new Date("2026-02-17"), slaStatus: "Within SLA", aiResolution: "Plumber dispatched, ETA 2 hours" },
+    { organizationId: orgId, complaintId: "CMP-003", tenantName: "Sarah Davis 4", unitNumber: "SG-004", category: "Pest Control", severity: "Medium", status: "Open", openedAt: new Date("2026-02-16"), slaStatus: "Approaching SLA", aiResolution: "Pest inspection scheduled for Feb 22" },
+    { organizationId: orgId, complaintId: "CMP-004", tenantName: "William Thomas 9", unitNumber: "OF-003", category: "HVAC", severity: "High", status: "In Progress", openedAt: new Date("2026-02-15"), slaStatus: "Within SLA", aiResolution: "HVAC technician assigned, parts ordered" },
+    { organizationId: orgId, complaintId: "CMP-005", tenantName: "Emma Johnson 2", unitNumber: "HV-002", category: "Parking", severity: "Low", status: "Resolved", openedAt: new Date("2026-02-10"), slaStatus: "Met", aiResolution: "Assigned new parking space HV-P22" },
+    { organizationId: orgId, complaintId: "CMP-006", tenantName: "Ashley Garcia 10", unitNumber: "CR-001", category: "Security", severity: "High", status: "Open", openedAt: new Date("2026-02-19"), slaStatus: "Within SLA", aiResolution: "Security patrol increased, camera review in progress" },
+    { organizationId: orgId, complaintId: "CMP-007", tenantName: "Jessica Taylor 8", unitNumber: "WC-010", category: "Common Areas", severity: "Low", status: "Resolved", openedAt: new Date("2026-02-08"), slaStatus: "Met", aiResolution: "Laundry room equipment serviced and repaired" },
+  ]);
+  console.log("7 complaints seeded");
+
+  // === Leasing Applications (10 across pipeline stages) ===
+  await db.insert(leasingApplications).values([
+    { organizationId: orgId, applicantName: "Olivia Turner", unitNumber: "SG-050", submittedAt: new Date("2026-02-20"), incomeRatio: "3.20", risk: "Low", missingDocs: 0, stage: "Decision", creditScore: 780, criminal: "Clear", eviction: "None", incomeVerified: "Verified", referencesStatus: "Positive", recommendation: "Approve", confidence: "0.95", approved: true, leaseStart: new Date("2026-03-01"), depositStatus: "Paid", welcomePacket: true, keyPickup: "Scheduled", moveInInspection: "Scheduled" },
+    { organizationId: orgId, applicantName: "Patrick Hayes", unitNumber: "HV-035", submittedAt: new Date("2026-02-19"), incomeRatio: "2.80", risk: "Medium", missingDocs: 0, stage: "Decision", creditScore: 720, criminal: "Clear", eviction: "None", incomeVerified: "Verified", referencesStatus: "Positive", recommendation: "Approve", confidence: "0.88", approved: true, leaseStart: new Date("2026-03-15"), depositStatus: "Pending", welcomePacket: false, keyPickup: "Not Scheduled", moveInInspection: "Not Scheduled" },
+    { organizationId: orgId, applicantName: "Quinn Adams", unitNumber: "PR-025", submittedAt: new Date("2026-02-18"), incomeRatio: "2.50", risk: "Medium", missingDocs: 0, stage: "Under Review", creditScore: 680, criminal: "Clear", eviction: "None", incomeVerified: "Verified", referencesStatus: "Pending" },
+    { organizationId: orgId, applicantName: "Rachel Brooks", unitNumber: "MT-015", submittedAt: new Date("2026-02-17"), incomeRatio: "3.50", risk: "Low", missingDocs: 0, stage: "Under Review", creditScore: 750, criminal: "Clear", eviction: "None", incomeVerified: "Verified", referencesStatus: "In Progress" },
+    { organizationId: orgId, applicantName: "Samuel Chen", unitNumber: "WC-020", submittedAt: new Date("2026-02-16"), incomeRatio: "2.90", risk: "Low", missingDocs: 0, stage: "Screening", creditScore: 740 },
+    { organizationId: orgId, applicantName: "Tanya Romero", unitNumber: "OF-008", submittedAt: new Date("2026-02-15"), incomeRatio: "2.60", risk: "Medium", missingDocs: 0, stage: "Screening" },
+    { organizationId: orgId, applicantName: "Umar Farouk", unitNumber: "CR-006", submittedAt: new Date("2026-02-14"), incomeRatio: "3.10", risk: "Low", missingDocs: 1, stage: "Documents Pending" },
+    { organizationId: orgId, applicantName: "Violet Park", unitNumber: "SG-060", submittedAt: new Date("2026-02-13"), incomeRatio: "2.40", risk: "High", missingDocs: 2, stage: "Documents Pending" },
+    { organizationId: orgId, applicantName: "Wesley Grant", unitNumber: "HV-045", submittedAt: new Date("2026-02-21"), stage: "Submitted", missingDocs: 0 },
+    { organizationId: orgId, applicantName: "Xena Liu", unitNumber: "PR-030", submittedAt: new Date("2026-02-21"), stage: "Submitted", missingDocs: 0 },
+  ]);
+  console.log("10 leasing applications seeded");
+
+  // === Applicant Waitlist (6) ===
+  await db.insert(applicantWaitlist).values([
+    { organizationId: orgId, applicantName: "Yolanda Martinez", unitType: "2BR/2BA", dateAdded: new Date("2026-01-15"), position: 1, contact: "Email", notes: "Prefers Sunset Gardens property" },
+    { organizationId: orgId, applicantName: "Zachary Thompson", unitType: "1BR/1BA", dateAdded: new Date("2026-01-20"), position: 2, contact: "Phone", notes: "Needs ground floor for accessibility" },
+    { organizationId: orgId, applicantName: "Abigail Moore", unitType: "Studio", dateAdded: new Date("2026-01-25"), position: 3, contact: "Email", notes: "Student, flexible on location" },
+    { organizationId: orgId, applicantName: "Benjamin Clark", unitType: "3BR/2BA", dateAdded: new Date("2026-02-01"), position: 4, contact: "Phone", notes: "Family of four, pet-friendly required" },
+    { organizationId: orgId, applicantName: "Charlotte Hill", unitType: "2BR/1BA", dateAdded: new Date("2026-02-08"), position: 5, contact: "Email", notes: "Corporate relocation, urgent timeline" },
+    { organizationId: orgId, applicantName: "Daniel Ross", unitType: "1BR/1BA", dateAdded: new Date("2026-02-15"), position: 6, contact: "Text", notes: "Prefers Harbor View location" },
+  ]);
+  console.log("6 waitlist entries seeded");
+
+  // === Marketing Listings (6) ===
+  await db.insert(marketingListings).values([
+    { organizationId: orgId, unitNumber: "SG-055", beds: "2BR/2BA", baths: 2, sqft: 1050, rent: "2450.00", daysOnMarket: 5, views: 342, inquiries: 18, status: "Active", channels: ["Zillow", "Apartments.com", "Website"], aiScore: 85 },
+    { organizationId: orgId, unitNumber: "HV-040", beds: "1BR/1BA", baths: 1, sqft: 720, rent: "1850.00", daysOnMarket: 12, views: 567, inquiries: 24, status: "Active", channels: ["Zillow", "Apartments.com", "Craigslist", "Website"], aiScore: 78 },
+    { organizationId: orgId, unitNumber: "PR-035", beds: "Studio", baths: 1, sqft: 480, rent: "1350.00", daysOnMarket: 3, views: 189, inquiries: 8, status: "Active", channels: ["Apartments.com", "Website"], aiScore: 92 },
+    { organizationId: orgId, unitNumber: "MT-020", beds: "3BR/2BA", baths: 2, sqft: 1400, rent: "3200.00", daysOnMarket: 21, views: 423, inquiries: 12, status: "Active", channels: ["Zillow", "Realtor.com", "Website"], aiScore: 65 },
+    { organizationId: orgId, unitNumber: "WC-030", beds: "2BR/1BA", baths: 1, sqft: 900, rent: "1950.00", daysOnMarket: 8, views: 298, inquiries: 15, status: "Active", channels: ["Zillow", "Apartments.com", "Website"], aiScore: 80 },
+    { organizationId: orgId, unitNumber: "OF-015", beds: "1BR/1BA", baths: 1, sqft: 650, rent: "2100.00", daysOnMarket: 15, views: 156, inquiries: 6, status: "Pending", channels: ["Website"], aiScore: 55 },
+  ]);
+  console.log("6 marketing listings seeded");
+
+  // === Marketing Leads (12) ===
+  await db.insert(marketingLeads).values([
+    { organizationId: orgId, name: "Amanda Foster", source: "Zillow", unitNumber: "SG-055", status: "Tour Scheduled", score: 90, lastContact: "Today", followUp: "Tomorrow 2pm showing", priority: true },
+    { organizationId: orgId, name: "Brandon Lee", source: "Apartments.com", unitNumber: "HV-040", status: "Application Sent", score: 85, lastContact: "Yesterday", followUp: "Follow up on application", priority: true },
+    { organizationId: orgId, name: "Christina Yang", source: "Website", unitNumber: "PR-035", status: "New", score: 75, lastContact: "Today", followUp: "Initial contact call", priority: false },
+    { organizationId: orgId, name: "David Kim", source: "Referral", unitNumber: "MT-020", status: "Tour Completed", score: 80, lastContact: "2 days ago", followUp: "Send application link", priority: true },
+    { organizationId: orgId, name: "Elena Vasquez", source: "Craigslist", unitNumber: "HV-040", status: "New", score: 65, lastContact: "Today", followUp: "Schedule showing", priority: false },
+    { organizationId: orgId, name: "Felix Okafor", source: "Zillow", unitNumber: "WC-030", status: "Tour Scheduled", score: 88, lastContact: "Yesterday", followUp: "Friday 10am showing", priority: true },
+    { organizationId: orgId, name: "Georgia Patel", source: "Website", unitNumber: "SG-055", status: "Contacted", score: 70, lastContact: "3 days ago", followUp: "Second follow-up call", priority: false },
+    { organizationId: orgId, name: "Hassan Ali", source: "Apartments.com", unitNumber: "MT-020", status: "New", score: 60, lastContact: "Today", followUp: "Email property details", priority: false },
+    { organizationId: orgId, name: "Isabelle Roux", source: "Realtor.com", unitNumber: "OF-015", status: "Contacted", score: 55, lastContact: "4 days ago", followUp: "Check interest level", priority: false },
+    { organizationId: orgId, name: "Jordan Blake", source: "Referral", unitNumber: "PR-035", status: "Tour Completed", score: 92, lastContact: "Yesterday", followUp: "Application follow-up", priority: true },
+    { organizationId: orgId, name: "Kyra Simmons", source: "Website", unitNumber: "WC-030", status: "Contacted", score: 72, lastContact: "2 days ago", followUp: "Schedule virtual tour", priority: false },
+    { organizationId: orgId, name: "Liam Chen", source: "Zillow", unitNumber: "SG-055", status: "New", score: 68, lastContact: "Today", followUp: "Initial response email", priority: false },
+  ]);
+  console.log("12 marketing leads seeded");
+
+  // === Marketing Showings (8) ===
+  await db.insert(marketingShowings).values([
+    { organizationId: orgId, showingDate: "2026-02-22 10:00 AM", unitNumber: "SG-055", leadName: "Amanda Foster", agent: "Lisa Park", status: "Confirmed", notes: "Very interested in 2BR units" },
+    { organizationId: orgId, showingDate: "2026-02-22 2:00 PM", unitNumber: "WC-030", leadName: "Felix Okafor", agent: "Lisa Park", status: "Confirmed", notes: "Relocating from out of state" },
+    { organizationId: orgId, showingDate: "2026-02-23 11:00 AM", unitNumber: "HV-040", leadName: "Elena Vasquez", agent: "Mark Torres", status: "Scheduled", notes: "First-time renter" },
+    { organizationId: orgId, showingDate: "2026-02-23 3:00 PM", unitNumber: "MT-020", leadName: "Hassan Ali", agent: "Mark Torres", status: "Scheduled" },
+    { organizationId: orgId, showingDate: "2026-02-20 10:00 AM", unitNumber: "PR-035", leadName: "Jordan Blake", agent: "Lisa Park", status: "Completed", feedback: "Loved the studio layout, ready to apply" },
+    { organizationId: orgId, showingDate: "2026-02-19 2:00 PM", unitNumber: "MT-020", leadName: "David Kim", agent: "Mark Torres", status: "Completed", feedback: "Wants to discuss parking options" },
+    { organizationId: orgId, showingDate: "2026-02-18 11:00 AM", unitNumber: "SG-055", leadName: "Georgia Patel", agent: "Lisa Park", status: "Completed", feedback: "Comparing with other properties" },
+    { organizationId: orgId, showingDate: "2026-02-24 10:00 AM", unitNumber: "OF-015", leadName: "Isabelle Roux", agent: "Mark Torres", status: "Scheduled", notes: "Requested virtual option" },
+  ]);
+  console.log("8 marketing showings seeded");
+
+  // === Community Events (16: 8 upcoming + 8 past) ===
+  await db.insert(communityEvents).values([
+    // 8 upcoming events
+    { organizationId: orgId, name: "Community BBQ & Welcome Party", eventDate: "2026-03-08", location: "Main Courtyard", category: "Social", rsvps: 65, capacity: 100, organizer: "Community Team", budget: "$800", status: "Confirmed", isPast: false },
+    { organizationId: orgId, name: "Spring Yoga in the Park", eventDate: "2026-03-12", location: "Garden Area", category: "Wellness", rsvps: 28, capacity: 40, organizer: "Wellness Committee", budget: "$200", status: "Confirmed", isPast: false },
+    { organizationId: orgId, name: "Financial Literacy Workshop", eventDate: "2026-03-15", location: "Community Room A", category: "Education", rsvps: 18, capacity: 30, organizer: "Naltos Team", budget: "$150", status: "Planning", isPast: false },
+    { organizationId: orgId, name: "Kids Movie Night", eventDate: "2026-03-20", location: "Clubhouse", category: "Family", rsvps: 42, capacity: 60, organizer: "Family Events Team", budget: "$300", status: "Confirmed", isPast: false },
+    { organizationId: orgId, name: "Pet Adoption Fair", eventDate: "2026-03-25", location: "Parking Lot B", category: "Community", rsvps: 35, capacity: 80, organizer: "Local Shelter Partnership", budget: "$500", status: "Planning", isPast: false },
+    { organizationId: orgId, name: "Maintenance Q&A Town Hall", eventDate: "2026-03-28", location: "Community Room B", category: "Information", rsvps: 22, capacity: 50, organizer: "Property Management", budget: "$100", status: "Confirmed", isPast: false },
+    { organizationId: orgId, name: "Spring Cleaning Supply Drive", eventDate: "2026-04-01", location: "Lobby", category: "Community", rsvps: 15, capacity: 200, organizer: "Volunteer Committee", budget: "$250", status: "Planning", isPast: false },
+    { organizationId: orgId, name: "Outdoor Movie Night", eventDate: "2026-04-05", location: "Pool Deck", category: "Social", rsvps: 55, capacity: 80, organizer: "Social Committee", budget: "$450", status: "Planning", isPast: false },
+    // 8 past events
+    { organizationId: orgId, name: "New Year's Celebration", eventDate: "2026-01-01", location: "Main Courtyard", category: "Social", rsvps: 120, capacity: 150, organizer: "Community Team", budget: "$1,200", status: "Completed", isPast: true, attendance: 98, satisfaction: "4.8", photos: 45, feedback: "Excellent turnout and great atmosphere" },
+    { organizationId: orgId, name: "Winter Wellness Workshop", eventDate: "2026-01-15", location: "Community Room A", category: "Wellness", rsvps: 25, capacity: 30, organizer: "Wellness Committee", budget: "$180", status: "Completed", isPast: true, attendance: 22, satisfaction: "4.5", photos: 12, feedback: "Residents appreciated the meditation session" },
+    { organizationId: orgId, name: "Super Bowl Watch Party", eventDate: "2026-02-08", location: "Clubhouse", category: "Social", rsvps: 80, capacity: 100, organizer: "Social Committee", budget: "$600", status: "Completed", isPast: true, attendance: 72, satisfaction: "4.7", photos: 30, feedback: "Great food and big screen setup" },
+    { organizationId: orgId, name: "Valentine's Day Mixer", eventDate: "2026-02-14", location: "Pool Deck", category: "Social", rsvps: 45, capacity: 60, organizer: "Social Committee", budget: "$400", status: "Completed", isPast: true, attendance: 38, satisfaction: "4.3", photos: 22, feedback: "Nice decorations, could use more seating" },
+    { organizationId: orgId, name: "Tax Prep Seminar", eventDate: "2026-02-01", location: "Community Room B", category: "Education", rsvps: 35, capacity: 40, organizer: "Naltos Team", budget: "$200", status: "Completed", isPast: true, attendance: 30, satisfaction: "4.6", photos: 8, feedback: "Very helpful, residents requested follow-up session" },
+    { organizationId: orgId, name: "Resident Appreciation Lunch", eventDate: "2026-01-25", location: "Main Courtyard", category: "Social", rsvps: 90, capacity: 120, organizer: "Property Management", budget: "$900", status: "Completed", isPast: true, attendance: 85, satisfaction: "4.9", photos: 38, feedback: "Huge success, best attended event this quarter" },
+    { organizationId: orgId, name: "Safety & Emergency Prep", eventDate: "2026-01-10", location: "Community Room A", category: "Information", rsvps: 40, capacity: 50, organizer: "Safety Officer", budget: "$100", status: "Completed", isPast: true, attendance: 35, satisfaction: "4.4", photos: 5, feedback: "Important info shared about fire safety and earthquake prep" },
+    { organizationId: orgId, name: "Holiday Cookie Exchange", eventDate: "2025-12-20", location: "Clubhouse", category: "Social", rsvps: 55, capacity: 70, organizer: "Community Team", budget: "$250", status: "Completed", isPast: true, attendance: 48, satisfaction: "4.7", photos: 28, feedback: "Wonderful community bonding event" },
+  ]);
+  console.log("16 community events seeded (8 upcoming + 8 past)");
+
+  // === Community Programs (7) ===
+  await db.insert(communityPrograms).values([
+    { organizationId: orgId, name: "Book Club", iconKey: "BookOpen", members: 18, frequency: "Bi-weekly", nextMeeting: "2026-03-05", organizer: "Maria Lopez", active: true },
+    { organizationId: orgId, name: "Garden Committee", iconKey: "Flower2", members: 12, frequency: "Weekly", nextMeeting: "2026-02-28", organizer: "Tom Green", active: true },
+    { organizationId: orgId, name: "Walking Group", iconKey: "Footprints", members: 24, frequency: "Daily", nextMeeting: "Tomorrow 7am", organizer: "Sarah Kim", active: true },
+    { organizationId: orgId, name: "Game Night", iconKey: "Gamepad2", members: 32, frequency: "Weekly", nextMeeting: "2026-02-27", organizer: "Alex Rivera", active: true },
+    { organizationId: orgId, name: "Cooking Class", iconKey: "ChefHat", members: 15, frequency: "Monthly", nextMeeting: "2026-03-10", organizer: "Chef Paolo", active: true },
+    { organizationId: orgId, name: "Tech Help Desk", iconKey: "Monitor", members: 8, frequency: "Weekly", nextMeeting: "2026-02-26", organizer: "James Wu", active: true },
+    { organizationId: orgId, name: "Sustainability Club", iconKey: "Leaf", members: 20, frequency: "Monthly", nextMeeting: "2026-03-15", organizer: "Eco Team", active: true },
+  ]);
+  console.log("7 community programs seeded");
+
+  console.log("Phase 3 seeding complete!");
+
   console.log("Database seeded successfully!");
   console.log(`- Organization: ${demoOrg.name}`);
   console.log(`- Demo business user: demo@naltos.com (code: 000000)`);

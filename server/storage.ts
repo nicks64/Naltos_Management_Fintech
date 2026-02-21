@@ -110,6 +110,20 @@ import {
   tenantHouseholdMembers,
   tenantPets,
   tenantVehicles,
+  moveIns,
+  moveOuts,
+  moveChecklists,
+  tenantMessages,
+  announcements,
+  tenantNotices,
+  complaints,
+  leasingApplications,
+  applicantWaitlist,
+  marketingListings,
+  marketingLeads,
+  marketingShowings,
+  communityEvents,
+  communityPrograms,
   type MaintenanceWorkOrder,
   type InsertMaintenanceWorkOrder,
   type MaintenancePreventiveTask,
@@ -373,6 +387,30 @@ export interface IStorage {
   getVehiclesByTenant(tenantId: string): Promise<TenantVehicle[]>;
   getVehiclesByOrg(organizationId: string): Promise<TenantVehicle[]>;
   createVehicle(data: InsertTenantVehicle): Promise<TenantVehicle>;
+
+  // Phase 3: Move-In/Move-Out
+  getMoveInsByOrg(organizationId: string): Promise<any[]>;
+  getMoveOutsByOrg(organizationId: string): Promise<any[]>;
+  getMoveChecklistsByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 3: Communications
+  getTenantMessagesByOrg(organizationId: string): Promise<any[]>;
+  getAnnouncementsByOrg(organizationId: string): Promise<any[]>;
+  getTenantNoticesByOrg(organizationId: string): Promise<any[]>;
+  getComplaintsByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 3: Applications
+  getLeasingApplicationsByOrg(organizationId: string): Promise<any[]>;
+  getApplicantWaitlistByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 3: Marketing
+  getMarketingListingsByOrg(organizationId: string): Promise<any[]>;
+  getMarketingLeadsByOrg(organizationId: string): Promise<any[]>;
+  getMarketingShowingsByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 3: Community
+  getCommunityEventsByOrg(organizationId: string): Promise<any[]>;
+  getCommunityProgramsByOrg(organizationId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2649,6 +2687,67 @@ export class DatabaseStorage implements IStorage {
   async createVehicle(data: InsertTenantVehicle): Promise<TenantVehicle> {
     const [vehicle] = await db.insert(tenantVehicles).values(data).returning();
     return vehicle;
+  }
+
+  // Phase 3: Move-In/Move-Out
+  async getMoveInsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(moveIns).where(eq(moveIns.organizationId, organizationId));
+  }
+
+  async getMoveOutsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(moveOuts).where(eq(moveOuts.organizationId, organizationId));
+  }
+
+  async getMoveChecklistsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(moveChecklists).where(eq(moveChecklists.organizationId, organizationId));
+  }
+
+  // Phase 3: Communications
+  async getTenantMessagesByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(tenantMessages).where(eq(tenantMessages.organizationId, organizationId));
+  }
+
+  async getAnnouncementsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(announcements).where(eq(announcements.organizationId, organizationId));
+  }
+
+  async getTenantNoticesByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(tenantNotices).where(eq(tenantNotices.organizationId, organizationId));
+  }
+
+  async getComplaintsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(complaints).where(eq(complaints.organizationId, organizationId));
+  }
+
+  // Phase 3: Applications
+  async getLeasingApplicationsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(leasingApplications).where(eq(leasingApplications.organizationId, organizationId));
+  }
+
+  async getApplicantWaitlistByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(applicantWaitlist).where(eq(applicantWaitlist.organizationId, organizationId));
+  }
+
+  // Phase 3: Marketing
+  async getMarketingListingsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(marketingListings).where(eq(marketingListings.organizationId, organizationId));
+  }
+
+  async getMarketingLeadsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(marketingLeads).where(eq(marketingLeads.organizationId, organizationId));
+  }
+
+  async getMarketingShowingsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(marketingShowings).where(eq(marketingShowings.organizationId, organizationId));
+  }
+
+  // Phase 3: Community
+  async getCommunityEventsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(communityEvents).where(eq(communityEvents.organizationId, organizationId));
+  }
+
+  async getCommunityProgramsByOrg(organizationId: string): Promise<any[]> {
+    return db.select().from(communityPrograms).where(eq(communityPrograms.organizationId, organizationId));
   }
 }
 

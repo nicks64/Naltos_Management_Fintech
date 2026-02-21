@@ -1759,6 +1759,258 @@ export const insertTenantHouseholdMemberSchema = createInsertSchema(tenantHouseh
 export const insertTenantPetSchema = createInsertSchema(tenantPets).omit({ id: true, registeredAt: true });
 export const insertTenantVehicleSchema = createInsertSchema(tenantVehicles).omit({ id: true });
 
+// ========== Phase 3: Move-In/Move-Out, Communications, Applications, Marketing, Community ==========
+
+export const moveIns = pgTable("move_ins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  tenantName: text("tenant_name").notNull(),
+  unitNumber: text("unit_number").notNull(),
+  moveInDate: timestamp("move_in_date").notNull(),
+  checklistPercent: integer("checklist_percent").default(0),
+  keyStatus: text("key_status").default("Pending"),
+  utilityStatus: text("utility_status").default("Pending"),
+  welcomePacket: boolean("welcome_packet").default(false),
+});
+
+export const moveOuts = pgTable("move_outs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  tenantName: text("tenant_name").notNull(),
+  unitNumber: text("unit_number").notNull(),
+  moveOutDate: timestamp("move_out_date").notNull(),
+  inspectionStatus: text("inspection_status").default("Not Scheduled"),
+  depositStatus: text("deposit_status").default("Pending"),
+  forwardingAddress: boolean("forwarding_address").default(false),
+});
+
+export const moveChecklists = pgTable("move_checklists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  items: integer("items").notNull(),
+  completedUses: integer("completed_uses").default(0),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  compliance: integer("compliance").default(0),
+});
+
+export const tenantMessages = pgTable("tenant_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
+  senderName: text("sender_name").notNull(),
+  unitNumber: text("unit_number").notNull(),
+  subject: text("subject").notNull(),
+  preview: text("preview"),
+  sentAt: timestamp("sent_at").defaultNow(),
+  read: boolean("read").default(false),
+  priority: boolean("priority").default(false),
+  category: text("category"),
+});
+
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  date: timestamp("date").notNull(),
+  audience: text("audience").notNull(),
+  sent: integer("sent").default(0),
+  read: integer("read").default(0),
+  clicked: integer("clicked").default(0),
+  status: text("status").default("Delivered"),
+});
+
+export const tenantNotices = pgTable("tenant_notices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
+  tenantName: text("tenant_name").notNull(),
+  unitNumber: text("unit_number").notNull(),
+  type: text("type").notNull(),
+  sentDate: timestamp("sent_date").notNull(),
+  response: text("response").default("Pending"),
+  daysUntil: integer("days_until").default(0),
+});
+
+export const complaints = pgTable("complaints", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  complaintId: text("complaint_id").notNull(),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
+  tenantName: text("tenant_name").notNull(),
+  unitNumber: text("unit_number").notNull(),
+  category: text("category").notNull(),
+  severity: text("severity").default("Medium"),
+  status: text("status").default("Open"),
+  openedAt: timestamp("opened_at").defaultNow(),
+  slaStatus: text("sla_status"),
+  aiResolution: text("ai_resolution"),
+});
+
+export const leasingApplications = pgTable("leasing_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  applicantName: text("applicant_name").notNull(),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  unitNumber: text("unit_number").notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  incomeRatio: decimal("income_ratio", { precision: 4, scale: 2 }),
+  risk: text("risk").default("Medium"),
+  missingDocs: integer("missing_docs").default(0),
+  stage: text("stage").default("Submitted"),
+  creditScore: integer("credit_score"),
+  criminal: text("criminal"),
+  eviction: text("eviction"),
+  incomeVerified: text("income_verified"),
+  referencesStatus: text("references_status"),
+  recommendation: text("recommendation"),
+  confidence: decimal("confidence", { precision: 3, scale: 2 }),
+  approved: boolean("approved").default(false),
+  leaseStart: timestamp("lease_start"),
+  depositStatus: text("deposit_status"),
+  welcomePacket: boolean("welcome_packet").default(false),
+  keyPickup: text("key_pickup"),
+  moveInInspection: text("move_in_inspection"),
+});
+
+export const applicantWaitlist = pgTable("applicant_waitlist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  applicantName: text("applicant_name").notNull(),
+  unitType: text("unit_type").notNull(),
+  dateAdded: timestamp("date_added").defaultNow(),
+  position: integer("position").notNull(),
+  contact: text("contact").default("Email"),
+  notes: text("notes"),
+});
+
+export const marketingListings = pgTable("marketing_listings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  unitNumber: text("unit_number").notNull(),
+  beds: text("beds").notNull(),
+  baths: integer("baths").default(1),
+  sqft: integer("sqft"),
+  rent: decimal("rent", { precision: 10, scale: 2 }),
+  daysOnMarket: integer("days_on_market").default(0),
+  views: integer("views").default(0),
+  inquiries: integer("inquiries").default(0),
+  status: text("status").default("Active"),
+  channels: text("channels").array(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  aiScore: integer("ai_score").default(50),
+});
+
+export const marketingLeads = pgTable("marketing_leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  source: text("source").notNull(),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  unitNumber: text("unit_number").notNull(),
+  status: text("status").default("New"),
+  score: integer("score").default(50),
+  lastContact: text("last_contact"),
+  followUp: text("follow_up"),
+  priority: boolean("priority").default(false),
+});
+
+export const marketingShowings = pgTable("marketing_showings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  showingDate: text("showing_date").notNull(),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  unitNumber: text("unit_number").notNull(),
+  leadName: text("lead_name").notNull(),
+  agent: text("agent").notNull(),
+  status: text("status").default("Scheduled"),
+  notes: text("notes"),
+  feedback: text("feedback"),
+});
+
+export const communityEvents = pgTable("community_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  eventDate: text("event_date").notNull(),
+  location: text("location").notNull(),
+  category: text("category").notNull(),
+  rsvps: integer("rsvps").default(0),
+  capacity: integer("capacity").default(0),
+  organizer: text("organizer").notNull(),
+  budget: text("budget"),
+  status: text("status").default("Planning"),
+  isPast: boolean("is_past").default(false),
+  attendance: integer("attendance"),
+  satisfaction: decimal("satisfaction", { precision: 3, scale: 1 }),
+  photos: integer("photos"),
+  feedback: text("feedback"),
+});
+
+export const communityPrograms = pgTable("community_programs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  iconKey: text("icon_key").notNull(),
+  members: integer("members").default(0),
+  frequency: text("frequency").notNull(),
+  nextMeeting: text("next_meeting"),
+  organizer: text("organizer").notNull(),
+  active: boolean("active").default(true),
+});
+
+// Phase 3 Insert Schemas
+export const insertMoveInSchema = createInsertSchema(moveIns).omit({ id: true });
+export const insertMoveOutSchema = createInsertSchema(moveOuts).omit({ id: true });
+export const insertMoveChecklistSchema = createInsertSchema(moveChecklists).omit({ id: true });
+export const insertTenantMessageSchema = createInsertSchema(tenantMessages).omit({ id: true });
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true });
+export const insertTenantNoticeSchema = createInsertSchema(tenantNotices).omit({ id: true });
+export const insertComplaintSchema = createInsertSchema(complaints).omit({ id: true });
+export const insertLeasingApplicationSchema = createInsertSchema(leasingApplications).omit({ id: true });
+export const insertApplicantWaitlistSchema = createInsertSchema(applicantWaitlist).omit({ id: true });
+export const insertMarketingListingSchema = createInsertSchema(marketingListings).omit({ id: true });
+export const insertMarketingLeadSchema = createInsertSchema(marketingLeads).omit({ id: true });
+export const insertMarketingShowingSchema = createInsertSchema(marketingShowings).omit({ id: true });
+export const insertCommunityEventSchema = createInsertSchema(communityEvents).omit({ id: true });
+export const insertCommunityProgramSchema = createInsertSchema(communityPrograms).omit({ id: true });
+
+// Phase 3 Types
+export type MoveIn = typeof moveIns.$inferSelect;
+export type InsertMoveIn = z.infer<typeof insertMoveInSchema>;
+export type MoveOut = typeof moveOuts.$inferSelect;
+export type InsertMoveOut = z.infer<typeof insertMoveOutSchema>;
+export type MoveChecklist = typeof moveChecklists.$inferSelect;
+export type InsertMoveChecklist = z.infer<typeof insertMoveChecklistSchema>;
+export type TenantMessage = typeof tenantMessages.$inferSelect;
+export type InsertTenantMessage = z.infer<typeof insertTenantMessageSchema>;
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type TenantNotice = typeof tenantNotices.$inferSelect;
+export type InsertTenantNotice = z.infer<typeof insertTenantNoticeSchema>;
+export type Complaint = typeof complaints.$inferSelect;
+export type InsertComplaint = z.infer<typeof insertComplaintSchema>;
+export type LeasingApplication = typeof leasingApplications.$inferSelect;
+export type InsertLeasingApplication = z.infer<typeof insertLeasingApplicationSchema>;
+export type ApplicantWaitlistEntry = typeof applicantWaitlist.$inferSelect;
+export type InsertApplicantWaitlistEntry = z.infer<typeof insertApplicantWaitlistSchema>;
+export type MarketingListing = typeof marketingListings.$inferSelect;
+export type InsertMarketingListing = z.infer<typeof insertMarketingListingSchema>;
+export type MarketingLead = typeof marketingLeads.$inferSelect;
+export type InsertMarketingLead = z.infer<typeof insertMarketingLeadSchema>;
+export type MarketingShowing = typeof marketingShowings.$inferSelect;
+export type InsertMarketingShowing = z.infer<typeof insertMarketingShowingSchema>;
+export type CommunityEvent = typeof communityEvents.$inferSelect;
+export type InsertCommunityEvent = z.infer<typeof insertCommunityEventSchema>;
+export type CommunityProgram = typeof communityPrograms.$inferSelect;
+export type InsertCommunityProgram = z.infer<typeof insertCommunityProgramSchema>;
+
 // Phase 2 Types
 export type MaintenanceWorkOrder = typeof maintenanceWorkOrders.$inferSelect;
 export type InsertMaintenanceWorkOrder = z.infer<typeof insertMaintenanceWorkOrderSchema>;

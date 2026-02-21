@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import type { CommunityEvent, CommunityProgram } from "@shared/schema";
+import type { LucideIcon } from "lucide-react";
 import {
   Calendar,
   Users,
@@ -34,6 +39,12 @@ import {
   Award,
   CalendarDays,
   MessageSquare,
+  Flower2,
+  Footprints,
+  Monitor,
+  Leaf,
+  ChefHat,
+  AlertCircle,
 } from "lucide-react";
 
 const agentInsights = [
@@ -42,63 +53,134 @@ const agentInsights = [
   { text: "Agent suggests: Post-holiday mixer could boost retention by 8%", severity: "opportunity" as const },
 ];
 
-const kpiCards = [
-  { title: "Events This Month", value: "6", change: "+2 vs last month", icon: Calendar, color: "text-violet-600" },
-  { title: "Total Attendees", value: "142", change: "+18%", icon: Users, color: "text-blue-600" },
-  { title: "Engagement Score", value: "72%", change: "+5%", icon: Heart, color: "text-rose-600" },
-  { title: "Active Programs", value: "7", change: "+1 new", icon: BookOpen, color: "text-emerald-600" },
-  { title: "Volunteer Sign-ups", value: "23", change: "+5 this week", icon: UserCheck, color: "text-indigo-600" },
-  { title: "Community Budget Used", value: "68%", change: "$4,200 remaining", icon: DollarSign, color: "text-orange-600" },
-];
-
-const upcomingEvents = [
-  { name: "Movie Night", date: "Feb 24, 2026 7:00 PM", location: "Community Room", category: "Social", rsvps: 28, capacity: 40, organizer: "Lisa Park", budget: "$350", status: "Confirmed" },
-  { name: "Yoga in the Park", date: "Feb 26, 2026 8:00 AM", location: "Courtyard", category: "Fitness", rsvps: 15, capacity: 25, organizer: "David Carter", budget: "$150", status: "Confirmed" },
-  { name: "Holiday Party", date: "Mar 1, 2026 6:00 PM", location: "Rooftop", category: "Holiday", rsvps: 52, capacity: 60, organizer: "Sarah Mitchell", budget: "$1,200", status: "Confirmed" },
-  { name: "Pet Social", date: "Mar 5, 2026 4:00 PM", location: "Courtyard", category: "Social", rsvps: 18, capacity: 30, organizer: "Rachel Adams", budget: "$200", status: "Planning" },
-  { name: "Financial Literacy Workshop", date: "Mar 8, 2026 2:00 PM", location: "Community Room", category: "Educational", rsvps: 12, capacity: 30, organizer: "James Wilson", budget: "$100", status: "Confirmed" },
-  { name: "Kids Art Class", date: "Mar 10, 2026 10:00 AM", location: "Community Room", category: "Kids", rsvps: 8, capacity: 15, organizer: "Emily Rodriguez", budget: "$250", status: "Planning" },
-  { name: "Resident Mixer", date: "Mar 14, 2026 6:30 PM", location: "Rooftop", category: "Networking", rsvps: 35, capacity: 50, organizer: "Lisa Park", budget: "$500", status: "Confirmed" },
-  { name: "Farmers Market Visit", date: "Mar 16, 2026 9:00 AM", location: "Pool Area", category: "Social", rsvps: 22, capacity: 22, organizer: "David Carter", budget: "$0", status: "Sold Out" },
-];
-
-const pastEvents = [
-  { name: "Winter Welcome Mixer", date: "Feb 14, 2026", attendance: 45, satisfaction: 4.6, photos: 32, cost: "$480", feedback: "Great turnout, tenants loved the themed decorations" },
-  { name: "Super Bowl Watch Party", date: "Feb 9, 2026", attendance: 38, satisfaction: 4.8, photos: 28, cost: "$620", feedback: "Excellent energy, multiple requests for future sports events" },
-  { name: "Cooking Class: Italian", date: "Feb 5, 2026", attendance: 18, satisfaction: 4.9, photos: 15, cost: "$320", feedback: "Highest rated event, chef was phenomenal" },
-  { name: "Game Night", date: "Jan 31, 2026", attendance: 24, satisfaction: 4.3, photos: 12, cost: "$80", feedback: "Good mix of board games, need more table space" },
-  { name: "New Year Social", date: "Jan 1, 2026", attendance: 62, satisfaction: 4.5, photos: 48, cost: "$900", feedback: "Largest event yet, rooftop venue was perfect" },
-  { name: "Book Club Launch", date: "Dec 15, 2025", attendance: 12, satisfaction: 4.4, photos: 5, cost: "$50", feedback: "Small but engaged group, monthly cadence set" },
-  { name: "Holiday Cookie Exchange", date: "Dec 12, 2025", attendance: 28, satisfaction: 4.7, photos: 22, cost: "$150", feedback: "Family-friendly hit, kids loved it" },
-  { name: "Fitness Challenge Kickoff", date: "Dec 1, 2025", attendance: 20, satisfaction: 4.2, photos: 10, cost: "$200", feedback: "Good participation, ongoing tracking requested" },
-];
-
-const programs = [
-  { name: "Book Club", icon: BookOpen, members: 12, frequency: "Monthly", nextMeeting: "Mar 15, 2026", organizer: "Sarah Mitchell", active: true },
-  { name: "Running Group", icon: Dumbbell, members: 8, frequency: "Weekly", nextMeeting: "Feb 23, 2026", organizer: "David Carter", active: true },
-  { name: "Garden Committee", icon: TreePine, members: 15, frequency: "Bi-weekly", nextMeeting: "Mar 1, 2026", organizer: "Lisa Park", active: true },
-  { name: "Parent Group", icon: Baby, members: 10, frequency: "Monthly", nextMeeting: "Mar 10, 2026", organizer: "Emily Rodriguez", active: true },
-  { name: "Pet Owners", icon: Dog, members: 22, frequency: "Monthly", nextMeeting: "Mar 5, 2026", organizer: "Rachel Adams", active: true },
-  { name: "Game Night", icon: Gamepad2, members: 18, frequency: "Bi-weekly", nextMeeting: "Feb 28, 2026", organizer: "James Wilson", active: true },
-  { name: "Cooking Club", icon: Utensils, members: 14, frequency: "Monthly", nextMeeting: "Mar 12, 2026", organizer: "Marcus Rivera", active: true },
-];
+const iconMap: Record<string, LucideIcon> = {
+  BookOpen,
+  Dumbbell,
+  TreePine,
+  Baby,
+  Dog,
+  Gamepad2,
+  Utensils,
+  Flower2,
+  Footprints,
+  Monitor,
+  Leaf,
+  ChefHat,
+  Palette,
+  PartyPopper,
+  Briefcase,
+};
 
 const categoryConfig: Record<string, { color: string; bg: string }> = {
   Social: { color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30" },
   Educational: { color: "text-violet-700 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-900/30" },
+  Education: { color: "text-violet-700 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-900/30" },
   Fitness: { color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
+  Wellness: { color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
   Holiday: { color: "text-rose-700 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30" },
   Kids: { color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30" },
+  Family: { color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30" },
   Networking: { color: "text-indigo-700 dark:text-indigo-400", bg: "bg-indigo-100 dark:bg-indigo-900/30" },
+  Community: { color: "text-teal-700 dark:text-teal-400", bg: "bg-teal-100 dark:bg-teal-900/30" },
+  Information: { color: "text-slate-700 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-900/30" },
 };
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   Confirmed: "default",
   Planning: "secondary",
   "Sold Out": "outline",
+  Completed: "outline",
 };
 
+function KpiSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Card key={i}>
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-4 w-4 rounded" />
+          </CardHeader>
+          <CardContent className="px-3 pb-3">
+            <Skeleton className="h-6 w-12 mb-1" />
+            <Skeleton className="h-3 w-24" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function EventsSkeleton() {
+  return (
+    <div className="grid md:grid-cols-2 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4 space-y-3">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-60" />
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-2 w-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <Card data-testid="error-state">
+      <CardContent className="p-6 flex items-center gap-3">
+        <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
+        <p className="text-sm text-muted-foreground">{message}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Community() {
+  const { data: eventsData, isLoading: eventsLoading, error: eventsError } = useQuery<CommunityEvent[]>({
+    queryKey: ['/api/community/events'],
+  });
+
+  const { data: programsData, isLoading: programsLoading, error: programsError } = useQuery<CommunityProgram[]>({
+    queryKey: ['/api/community/programs'],
+  });
+
+  const upcomingEvents = useMemo(() => {
+    if (!eventsData) return [];
+    return eventsData.filter((e) => !e.isPast);
+  }, [eventsData]);
+
+  const pastEvents = useMemo(() => {
+    if (!eventsData) return [];
+    return eventsData.filter((e) => e.isPast);
+  }, [eventsData]);
+
+  const activePrograms = useMemo(() => {
+    if (!programsData) return [];
+    return programsData.filter((p) => p.active);
+  }, [programsData]);
+
+  const kpiCards = useMemo(() => {
+    const eventsThisMonth = upcomingEvents.length;
+    const totalAttendees = pastEvents.reduce((sum, e) => sum + (e.attendance ?? 0), 0)
+      || upcomingEvents.reduce((sum, e) => sum + (e.rsvps ?? 0), 0);
+    const activeProgramCount = activePrograms.length;
+
+    return [
+      { title: "Events This Month", value: String(eventsThisMonth), change: "+2 vs last month", icon: Calendar, color: "text-violet-600" },
+      { title: "Total Attendees", value: String(totalAttendees), change: "+18%", icon: Users, color: "text-blue-600" },
+      { title: "Engagement Score", value: "72%", change: "+5%", icon: Heart, color: "text-rose-600" },
+      { title: "Active Programs", value: String(activeProgramCount), change: "+1 new", icon: BookOpen, color: "text-emerald-600" },
+      { title: "Volunteer Sign-ups", value: "23", change: "+5 this week", icon: UserCheck, color: "text-indigo-600" },
+      { title: "Community Budget Used", value: "68%", change: "$4,200 remaining", icon: DollarSign, color: "text-orange-600" },
+    ];
+  }, [upcomingEvents, pastEvents, activePrograms]);
+
+  const isLoading = eventsLoading || programsLoading;
+
   return (
     <div className="space-y-6" data-testid="page-community">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -134,23 +216,29 @@ export default function Community() {
         icon={Heart}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {kpiCards.map((card, index) => (
-          <Card key={card.title} className="hover-elevate" data-testid={`card-kpi-${index}`}>
-            <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground">{card.title}</CardTitle>
-              <card.icon className={`w-4 h-4 ${card.color}`} />
-            </CardHeader>
-            <CardContent className="px-3 pb-3">
-              <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
-              <div className="flex items-center gap-1 text-xs mt-0.5">
-                <TrendingUp className="w-3 h-3 text-green-600" />
-                <span className="text-green-600">{card.change}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {isLoading ? (
+        <KpiSkeleton />
+      ) : (eventsError || programsError) ? (
+        <ErrorState message="Failed to load community data. Please try again." />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {kpiCards.map((card, index) => (
+            <Card key={card.title} className="hover-elevate" data-testid={`card-kpi-${index}`}>
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{card.title}</CardTitle>
+                <card.icon className={`w-4 h-4 ${card.color}`} />
+              </CardHeader>
+              <CardContent className="px-3 pb-3">
+                <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
+                <div className="flex items-center gap-1 text-xs mt-0.5">
+                  <TrendingUp className="w-3 h-3 text-green-600" />
+                  <span className="text-green-600">{card.change}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Tabs defaultValue="upcoming" className="space-y-4">
         <TabsList data-testid="tabs-community">
@@ -161,130 +249,156 @@ export default function Community() {
         </TabsList>
 
         <TabsContent value="upcoming" className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            {upcomingEvents.map((event, idx) => {
-              const catStyle = categoryConfig[event.category] || categoryConfig.Social;
-              return (
-                <Card key={idx} className="hover-elevate" data-testid={`card-event-${idx}`}>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-2 flex-wrap">
-                      <div>
-                        <h3 className="text-sm font-semibold" data-testid={`text-event-name-${idx}`}>{event.name}</h3>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
-                          <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> {event.date}</span>
-                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {event.location}</span>
+          {eventsLoading ? (
+            <EventsSkeleton />
+          ) : eventsError ? (
+            <ErrorState message="Failed to load upcoming events." />
+          ) : upcomingEvents.length === 0 ? (
+            <Card data-testid="empty-upcoming">
+              <CardContent className="p-6 text-center text-muted-foreground text-sm">
+                No upcoming events scheduled.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {upcomingEvents.map((event, idx) => {
+                const catStyle = categoryConfig[event.category] || categoryConfig.Social;
+                return (
+                  <Card key={event.id} className="hover-elevate" data-testid={`card-event-${event.id}`}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div>
+                          <h3 className="text-sm font-semibold" data-testid={`text-event-name-${event.id}`}>{event.name}</h3>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> {event.eventDate}</span>
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {event.location}</span>
+                          </div>
                         </div>
+                        <Badge variant={statusVariant[event.status ?? "Planning"] || "outline"} className="text-xs" data-testid={`badge-event-status-${event.id}`}>
+                          {event.status}
+                        </Badge>
                       </div>
-                      <Badge variant={statusVariant[event.status] || "outline"} className="text-xs" data-testid={`badge-event-status-${idx}`}>
-                        {event.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${catStyle.bg} ${catStyle.color}`}>
-                        {event.category}
-                      </span>
-                      <span className="text-xs text-muted-foreground">Organized by {event.organizer}</span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span>RSVPs: {event.rsvps}/{event.capacity}</span>
-                        <span className="text-muted-foreground">Budget: {event.budget}</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${catStyle.bg} ${catStyle.color}`}>
+                          {event.category}
+                        </span>
+                        <span className="text-xs text-muted-foreground">Organized by {event.organizer}</span>
                       </div>
-                      <Progress value={(event.rsvps / event.capacity) * 100} data-testid={`progress-rsvp-${idx}`} />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span data-testid={`text-rsvps-${event.id}`}>RSVPs: {event.rsvps}/{event.capacity}</span>
+                          <span className="text-muted-foreground">Budget: {event.budget}</span>
+                        </div>
+                        <Progress value={((event.rsvps ?? 0) / (event.capacity ?? 1)) * 100} data-testid={`progress-rsvp-${event.id}`} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="past" className="space-y-4">
-          <Card data-testid="card-past-events">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Calendar className="w-5 h-5 text-primary" />
-                <CardTitle>Past Events</CardTitle>
-                <Badge variant="secondary" className="text-xs">{pastEvents.length} events</Badge>
-              </div>
-              <CardDescription>Historical event performance with satisfaction scores and feedback</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pastEvents.map((event, idx) => (
-                  <div key={idx} className="p-3 border rounded-lg space-y-2" data-testid={`card-past-event-${idx}`}>
-                    <div className="flex items-start justify-between gap-2 flex-wrap">
-                      <div>
-                        <span className="text-sm font-medium">{event.name}</span>
-                        <p className="text-xs text-muted-foreground">{event.date}</p>
+          {eventsLoading ? (
+            <EventsSkeleton />
+          ) : eventsError ? (
+            <ErrorState message="Failed to load past events." />
+          ) : (
+            <Card data-testid="card-past-events">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  <CardTitle>Past Events</CardTitle>
+                  <Badge variant="secondary" className="text-xs">{pastEvents.length} events</Badge>
+                </div>
+                <CardDescription>Historical event performance with satisfaction scores and feedback</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {pastEvents.map((event) => (
+                    <div key={event.id} className="p-3 border rounded-lg space-y-2" data-testid={`card-past-event-${event.id}`}>
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div>
+                          <span className="text-sm font-medium" data-testid={`text-past-event-name-${event.id}`}>{event.name}</span>
+                          <p className="text-xs text-muted-foreground">{event.eventDate}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="text-xs" data-testid={`badge-satisfaction-${event.id}`}>
+                            <Star className="w-3 h-3 mr-1 text-amber-500" />
+                            {event.satisfaction}/5
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs" data-testid={`badge-attendance-${event.id}`}>
+                            <Users className="w-3 h-3 mr-1" />
+                            {event.attendance}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className="text-xs">
-                          <Star className="w-3 h-3 mr-1 text-amber-500" />
-                          {event.satisfaction}/5
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          <Users className="w-3 h-3 mr-1" />
-                          {event.attendance}
-                        </Badge>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1"><Camera className="w-3 h-3" /> {event.photos} photos</span>
+                        <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> {event.budget}</span>
                       </div>
+                      {event.feedback && (
+                        <div className="flex items-start gap-1.5 text-xs p-2 rounded-md bg-muted/50">
+                          <MessageSquare className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                          <span className="text-muted-foreground" data-testid={`text-feedback-${event.id}`}>{event.feedback}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1"><Camera className="w-3 h-3" /> {event.photos} photos</span>
-                      <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> {event.cost}</span>
-                    </div>
-                    <div className="flex items-start gap-1.5 text-xs p-2 rounded-md bg-muted/50">
-                      <MessageSquare className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">{event.feedback}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="programs" className="space-y-4">
-          <Card data-testid="card-programs">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Award className="w-5 h-5 text-primary" />
-                <CardTitle>Programs & Clubs</CardTitle>
-                <Badge variant="secondary" className="text-xs">{programs.length} active</Badge>
-              </div>
-              <CardDescription>Ongoing community programs and resident-led clubs</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-3">
-                {programs.map((program, idx) => {
-                  const IconComp = program.icon;
-                  return (
-                    <div key={idx} className="p-3 border rounded-lg space-y-2" data-testid={`card-program-${idx}`}>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                            <IconComp className="w-4 h-4 text-muted-foreground" />
+          {programsLoading ? (
+            <EventsSkeleton />
+          ) : programsError ? (
+            <ErrorState message="Failed to load programs." />
+          ) : (
+            <Card data-testid="card-programs">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Award className="w-5 h-5 text-primary" />
+                  <CardTitle>Programs & Clubs</CardTitle>
+                  <Badge variant="secondary" className="text-xs">{activePrograms.length} active</Badge>
+                </div>
+                <CardDescription>Ongoing community programs and resident-led clubs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {(programsData ?? []).map((program) => {
+                    const IconComp = iconMap[program.iconKey] || BookOpen;
+                    return (
+                      <div key={program.id} className="p-3 border rounded-lg space-y-2" data-testid={`card-program-${program.id}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                              <IconComp className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium" data-testid={`text-program-name-${program.id}`}>{program.name}</span>
+                              <p className="text-xs text-muted-foreground">{program.frequency}</p>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-sm font-medium">{program.name}</span>
-                            <p className="text-xs text-muted-foreground">{program.frequency}</p>
-                          </div>
+                          <Badge variant={program.active ? "default" : "secondary"} className="text-xs" data-testid={`badge-program-status-${program.id}`}>
+                            {program.active ? "Active" : "Inactive"}
+                          </Badge>
                         </div>
-                        <Badge variant={program.active ? "default" : "secondary"} className="text-xs">
-                          {program.active ? "Active" : "Inactive"}
-                        </Badge>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {program.members} members</span>
+                          <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Next: {program.nextMeeting}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Organizer: {program.organizer}</p>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                        <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {program.members} members</span>
-                        <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Next: {program.nextMeeting}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Organizer: {program.organizer}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">

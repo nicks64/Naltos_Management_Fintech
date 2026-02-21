@@ -4233,6 +4233,170 @@ Guidelines:
     }
   });
 
+  // ====== PHASE 3: MOVE-IN/MOVE-OUT API ======
+
+  app.get("/api/move-ins", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getMoveInsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/move-outs", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getMoveOutsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/move-checklists", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getMoveChecklistsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 3: COMMUNICATIONS API ======
+
+  app.get("/api/communications/messages", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getTenantMessagesByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/communications/announcements", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getAnnouncementsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/communications/notices", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getTenantNoticesByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/communications/complaints", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getComplaintsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 3: APPLICATIONS API ======
+
+  app.get("/api/applications", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getLeasingApplicationsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/applications/waitlist", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getApplicantWaitlistByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 3: MARKETING API ======
+
+  app.get("/api/marketing/listings", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getMarketingListingsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/marketing/leads", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getMarketingLeadsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/marketing/showings", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getMarketingShowingsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 3: COMMUNITY API ======
+
+  app.get("/api/community/events", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getCommunityEventsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/community/programs", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getCommunityProgramsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
