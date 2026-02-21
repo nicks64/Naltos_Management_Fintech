@@ -561,7 +561,7 @@ export default function MerchantPortal() {
       </div>
 
       <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="flex flex-wrap gap-1">
           <TabsTrigger value="dashboard" data-testid="tab-dashboard">
             <BarChart3 className="h-4 w-4 mr-1.5" />
             Dashboard
@@ -573,6 +573,14 @@ export default function MerchantPortal() {
           <TabsTrigger value="promotions" data-testid="tab-promotions">
             <Gift className="h-4 w-4 mr-1.5" />
             Promotions
+          </TabsTrigger>
+          <TabsTrigger value="events" data-testid="tab-events">
+            <Calendar className="h-4 w-4 mr-1.5" />
+            Events
+          </TabsTrigger>
+          <TabsTrigger value="loyalty" data-testid="tab-loyalty">
+            <Users className="h-4 w-4 mr-1.5" />
+            Loyalty
           </TabsTrigger>
           <TabsTrigger value="financials" data-testid="tab-financials">
             <DollarSign className="h-4 w-4 mr-1.5" />
@@ -1073,6 +1081,242 @@ export default function MerchantPortal() {
                   <Bar dataKey="roi" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="ROI %" />
                 </BarChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="events" className="space-y-6">
+          <AINudgeCard
+            title="Event Sponsorship Opportunity"
+            insight="Agent detected that the property is hosting a Resident Appreciation BBQ on Mar 22 with 120+ expected attendees. Sponsoring this event with a 20% discount booth could generate an estimated $1,800 in same-day sales and 35 new loyalty sign-ups."
+            severity="opportunity"
+            confidence={0.85}
+            actionLabel="Sponsor Event"
+            onAction={() => {}}
+            metric="+$1.8K"
+            metricLabel="Est. Sales Impact"
+            agentSource="Merchant Agent"
+            compact
+          />
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Events Sponsored</p>
+                <p className="text-2xl font-bold" data-testid="text-events-sponsored">4</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Total Reach</p>
+                <p className="text-2xl font-bold" data-testid="text-event-reach">480</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Event Sales</p>
+                <p className="text-2xl font-bold text-emerald-600" data-testid="text-event-sales">$6,240</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">New Customers</p>
+                <p className="text-2xl font-bold" data-testid="text-event-customers">92</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 flex-wrap">
+                <Calendar className="h-5 w-5" />
+                Upcoming Community Events
+              </CardTitle>
+              <CardDescription>Property events you can participate in or sponsor</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { id: "evt-1", name: "Resident Appreciation BBQ", date: "Mar 22, 2025", location: "Pool Courtyard", expectedAttendees: 120, sponsorSpots: 3, spotsLeft: 1, category: "Social", yourStatus: "Not Signed Up" },
+                  { id: "evt-2", name: "Spring Farmers Market", date: "Apr 5, 2025", location: "Main Lobby", expectedAttendees: 200, sponsorSpots: 8, spotsLeft: 4, category: "Market", yourStatus: "Booth Reserved" },
+                  { id: "evt-3", name: "Financial Literacy Workshop", date: "Apr 12, 2025", location: "Community Room", expectedAttendees: 40, sponsorSpots: 2, spotsLeft: 2, category: "Educational", yourStatus: "Not Signed Up" },
+                  { id: "evt-4", name: "Movie Night Under the Stars", date: "Apr 19, 2025", location: "Rooftop", expectedAttendees: 80, sponsorSpots: 4, spotsLeft: 3, category: "Social", yourStatus: "Not Signed Up" },
+                  { id: "evt-5", name: "Pet Adoption Day", date: "May 3, 2025", location: "Dog Park", expectedAttendees: 150, sponsorSpots: 5, spotsLeft: 5, category: "Community", yourStatus: "Not Signed Up" },
+                ].map((event) => (
+                  <div key={event.id} className="flex items-center gap-4 p-4 border rounded-lg hover-elevate cursor-pointer flex-wrap" data-testid={`event-${event.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-medium text-sm">{event.name}</span>
+                        <Badge variant="secondary">{event.category}</Badge>
+                        {event.yourStatus === "Booth Reserved" && (
+                          <Badge variant="default">Booth Reserved</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{event.date}</span>
+                        <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{event.location}</span>
+                        <span className="flex items-center gap-1"><Users className="h-3 w-3" />{event.expectedAttendees} expected</span>
+                        <span>{event.spotsLeft} sponsor spots left</span>
+                      </div>
+                    </div>
+                    {event.yourStatus !== "Booth Reserved" ? (
+                      <Button size="sm" data-testid={`btn-sponsor-${event.id}`}>Reserve Booth</Button>
+                    ) : (
+                      <Button variant="outline" size="sm" data-testid={`btn-manage-${event.id}`}>Manage</Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 flex-wrap">
+                <BarChart3 className="h-5 w-5" />
+                Past Event Performance
+              </CardTitle>
+              <CardDescription>ROI from your event sponsorships and booth sales</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { id: "past-1", name: "Holiday Market 2024", date: "Dec 14, 2024", sales: "$2,480", newCustomers: 38, roi: "+240%", satisfaction: "4.8/5" },
+                  { id: "past-2", name: "Fall Festival", date: "Oct 26, 2024", sales: "$1,920", newCustomers: 25, roi: "+185%", satisfaction: "4.6/5" },
+                  { id: "past-3", name: "Summer Pool Party", date: "Jul 20, 2024", sales: "$1,340", newCustomers: 19, roi: "+150%", satisfaction: "4.7/5" },
+                  { id: "past-4", name: "Community Welcome Week", date: "Sep 7, 2024", sales: "$500", newCustomers: 10, roi: "+80%", satisfaction: "4.3/5" },
+                ].map((event) => (
+                  <div key={event.id} className="flex items-center gap-4 p-4 border rounded-lg flex-wrap" data-testid={`past-event-${event.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm mb-1">{event.name}</div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        <span>{event.date}</span>
+                        <span>Sales: {event.sales}</span>
+                        <span>+{event.newCustomers} customers</span>
+                        <span>Satisfaction: {event.satisfaction}</span>
+                      </div>
+                    </div>
+                    <Badge variant="default">{event.roi} ROI</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="loyalty" className="space-y-6">
+          <AgentInsightStrip insights={[
+            { text: "Loyalty members spend 2.3x more than non-members", severity: "positive" as const },
+            { text: "12 members at risk of churn (no visit in 30+ days)", severity: "warning" as const, confidence: 0.82 },
+            { text: "Referral program generating 8 new members/month", severity: "positive" as const },
+          ]} />
+
+          <AINudgeCard
+            title="Re-engagement Campaign Needed"
+            insight="Agent identified 12 loyalty members who haven't visited in 30+ days. A personalized re-engagement offer (e.g., 25% off next purchase) has historically recovered 45% of at-risk members. Estimated revenue recovery: $960/month."
+            severity="warning"
+            confidence={0.82}
+            actionLabel="Launch Campaign"
+            onAction={() => {}}
+            metric="$960/mo"
+            metricLabel="Recovery Potential"
+            agentSource="Merchant Agent"
+            compact
+          />
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Total Members</p>
+                <p className="text-2xl font-bold" data-testid="text-loyalty-members">156</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Active (30d)</p>
+                <p className="text-2xl font-bold text-emerald-600" data-testid="text-loyalty-active">89</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Avg. Lifetime Value</p>
+                <p className="text-2xl font-bold" data-testid="text-loyalty-ltv">$342</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Rewards Redeemed</p>
+                <p className="text-2xl font-bold" data-testid="text-rewards-redeemed">$2,840</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 flex-wrap">
+                <Users className="h-5 w-5" />
+                Member Segments
+              </CardTitle>
+              <CardDescription>AI-segmented customer groups for targeted engagement</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { segment: "VIP Regulars", count: 23, avgSpend: "$58/visit", frequency: "3.2x/week", trend: "Stable", color: "default" as const },
+                  { segment: "Weekly Visitors", count: 45, avgSpend: "$32/visit", frequency: "1.4x/week", trend: "Growing", color: "default" as const },
+                  { segment: "Monthly Shoppers", count: 38, avgSpend: "$24/visit", frequency: "2.1x/month", trend: "Stable", color: "secondary" as const },
+                  { segment: "At Risk", count: 12, avgSpend: "$18/visit", frequency: "0.3x/month", trend: "Declining", color: "destructive" as const },
+                  { segment: "New Members", count: 18, avgSpend: "$28/visit", frequency: "1.8x/month", trend: "Growing", color: "secondary" as const },
+                  { segment: "Dormant", count: 20, avgSpend: "$0/visit", frequency: "0x/month", trend: "Inactive", color: "outline" as const },
+                ].map((seg) => (
+                  <div key={seg.segment} className="flex items-center gap-4 p-4 border rounded-lg flex-wrap" data-testid={`segment-${seg.segment.toLowerCase().replace(/\s/g, "-")}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-medium text-sm">{seg.segment}</span>
+                        <Badge variant={seg.color}>{seg.count} members</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        <span>Avg: {seg.avgSpend}</span>
+                        <span>Freq: {seg.frequency}</span>
+                        <span>Trend: {seg.trend}</span>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" data-testid={`btn-target-${seg.segment.toLowerCase().replace(/\s/g, "-")}`}>
+                      <Target className="h-4 w-4 mr-1.5" />
+                      Target
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 flex-wrap">
+                <Activity className="h-5 w-5" />
+                Loyalty Program Performance
+              </CardTitle>
+              <CardDescription>Key metrics for your rewards and referral programs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Reward Redemption Rate</p>
+                  <p className="text-xl font-bold" data-testid="text-redemption-rate">68%</p>
+                  <Progress value={68} className="mt-2" />
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Referral Conversion</p>
+                  <p className="text-xl font-bold" data-testid="text-referral-rate">34%</p>
+                  <Progress value={34} className="mt-2" />
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Member Retention (90d)</p>
+                  <p className="text-xl font-bold" data-testid="text-retention-rate">78%</p>
+                  <Progress value={78} className="mt-2" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

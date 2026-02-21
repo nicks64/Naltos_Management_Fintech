@@ -601,6 +601,10 @@ export default function VendorPortal() {
               <Badge variant="destructive" className="ml-1.5 text-xs px-1.5 py-0">{unreadCount}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="bids" data-testid="tab-bids">
+            <ClipboardList className="h-4 w-4 mr-1.5" />
+            Bids & Proposals
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
@@ -1490,6 +1494,130 @@ export default function VendorPortal() {
                   <Send className="h-4 w-4 mr-2" />
                   Compose Message
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="bids" className="space-y-6">
+          <AINudgeCard
+            title="Bid Intelligence"
+            insight="Agent analyzed 12 recent RFQs in your service area. Your win rate is 42% (industry avg: 35%). Bids priced 5-8% below market have 78% win probability. RFQ-2089 (HVAC Replacement) matches your specialty \u2014 agent recommends aggressive pricing."
+            severity="opportunity"
+            confidence={0.88}
+            actionLabel="View Recommendation"
+            onAction={() => {}}
+            metric="42%"
+            metricLabel="Win Rate"
+            agentSource="Vendor Agent"
+            compact
+          />
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Open RFQs</p>
+                <p className="text-2xl font-bold" data-testid="text-open-rfqs">5</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Bids Submitted</p>
+                <p className="text-2xl font-bold" data-testid="text-bids-submitted">8</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Won</p>
+                <p className="text-2xl font-bold text-emerald-600" data-testid="text-bids-won">3</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Pending Decision</p>
+                <p className="text-2xl font-bold" data-testid="text-bids-pending">2</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 flex-wrap">
+                <ClipboardList className="h-5 w-5" />
+                Request for Quotes (RFQs)
+              </CardTitle>
+              <CardDescription>Open bid opportunities from property managers in your service area</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { id: "RFQ-2089", title: "HVAC System Replacement \u2014 Building A", property: "Sunset Gardens", category: "HVAC", deadline: "Mar 15, 2025", budget: "$45,000 \u2013 $65,000", status: "Open", aiMatch: 94, priority: "high" },
+                  { id: "RFQ-2087", title: "Parking Lot Resurfacing", property: "Harbor View Apts", category: "Paving", deadline: "Mar 20, 2025", budget: "$22,000 \u2013 $30,000", status: "Open", aiMatch: 67, priority: "medium" },
+                  { id: "RFQ-2085", title: "Emergency Lighting Upgrade \u2014 Floors 1-5", property: "Oakwood Terrace", category: "Electrical", deadline: "Mar 10, 2025", budget: "$8,000 \u2013 $12,000", status: "Open", aiMatch: 82, priority: "medium" },
+                  { id: "RFQ-2083", title: "Pool Equipment Maintenance Contract", property: "Lakeside Commons", category: "Pool/Spa", deadline: "Mar 25, 2025", budget: "$6,000/year", status: "Open", aiMatch: 45, priority: "low" },
+                  { id: "RFQ-2080", title: "Fire Alarm System Inspection & Testing", property: "Sunset Gardens", category: "Fire Safety", deadline: "Mar 8, 2025", budget: "$3,500 \u2013 $5,000", status: "Open", aiMatch: 88, priority: "high" },
+                ].map((rfq) => (
+                  <div key={rfq.id} className="flex items-center gap-4 p-4 border rounded-lg hover-elevate cursor-pointer flex-wrap" data-testid={`rfq-${rfq.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-medium text-sm">{rfq.title}</span>
+                        {rfq.aiMatch >= 80 && (
+                          <Badge variant="default" className="text-xs">
+                            <Star className="h-3 w-3 mr-1" />
+                            {rfq.aiMatch}% Match
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1"><Building className="h-3 w-3" />{rfq.property}</span>
+                        <span>{rfq.category}</span>
+                        <span>Budget: {rfq.budget}</span>
+                        <span>Deadline: {rfq.deadline}</span>
+                      </div>
+                    </div>
+                    <Button size="sm" data-testid={`btn-bid-${rfq.id}`}>Submit Bid</Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 flex-wrap">
+                <Briefcase className="h-5 w-5" />
+                Your Submitted Bids
+              </CardTitle>
+              <CardDescription>Track the status of your proposals</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { id: "BID-401", rfq: "RFQ-2078", title: "Elevator Modernization \u2014 Building C", amount: "$78,500", submitted: "Feb 10, 2025", status: "Won", statusColor: "default" as const },
+                  { id: "BID-399", rfq: "RFQ-2075", title: "Roof Repair \u2014 North Wing", amount: "$34,200", submitted: "Feb 5, 2025", status: "Under Review", statusColor: "secondary" as const },
+                  { id: "BID-397", rfq: "RFQ-2072", title: "Landscaping Contract 2025", amount: "$18,000/year", submitted: "Jan 28, 2025", status: "Won", statusColor: "default" as const },
+                  { id: "BID-395", rfq: "RFQ-2070", title: "Plumbing Overhaul \u2014 Units 1-10", amount: "$42,800", submitted: "Jan 22, 2025", status: "Lost", statusColor: "destructive" as const },
+                  { id: "BID-393", rfq: "RFQ-2068", title: "Security Camera Installation", amount: "$15,600", submitted: "Jan 15, 2025", status: "Under Review", statusColor: "secondary" as const },
+                  { id: "BID-391", rfq: "RFQ-2065", title: "Painting \u2014 Common Areas", amount: "$9,200", submitted: "Jan 10, 2025", status: "Won", statusColor: "default" as const },
+                ].map((bid) => (
+                  <div key={bid.id} className="flex items-center gap-4 p-4 border rounded-lg flex-wrap" data-testid={`bid-${bid.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-medium text-sm">{bid.title}</span>
+                        <Badge variant={bid.statusColor}>{bid.status}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        <span>{bid.id}</span>
+                        <span>Amount: {bid.amount}</span>
+                        <span>Submitted: {bid.submitted}</span>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" data-testid={`btn-view-bid-${bid.id}`}>
+                      <Eye className="h-4 w-4 mr-1.5" />
+                      View
+                    </Button>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
