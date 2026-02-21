@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   FileText,
   Clock,
@@ -33,51 +34,6 @@ const agentInsights = [
   { text: "3 active lease violations require follow-up", severity: "warning" as const, confidence: 0.92 },
 ];
 
-const kpiCards = [
-  { title: "Active Leases", value: "342", change: "+6 this month", icon: FileText },
-  { title: "Expiring (30d)", value: "18", change: "5 high-risk", icon: Clock },
-  { title: "Pending Renewals", value: "12", change: "8 offers sent", icon: RefreshCw },
-  { title: "Avg Lease Term", value: "13.2 mo", change: "+0.4 mo", icon: CalendarDays },
-];
-
-const activeLeases = [
-  { tenant: "Sarah Mitchell", unit: "3A", start: "Mar 1, 2025", end: "Feb 28, 2026", rent: 2150, status: "Active" },
-  { tenant: "James Park", unit: "7B", start: "Jun 1, 2025", end: "May 31, 2026", rent: 1875, status: "Active" },
-  { tenant: "Lisa Chen", unit: "2D", start: "Sep 1, 2024", end: "Aug 31, 2025", rent: 1950, status: "Month-to-Month" },
-  { tenant: "Marcus Johnson", unit: "4A", start: "Jan 15, 2025", end: "Jan 14, 2026", rent: 2300, status: "Active" },
-  { tenant: "Priya Patel", unit: "5C", start: "Apr 1, 2025", end: "Mar 31, 2026", rent: 1700, status: "Notice Given" },
-  { tenant: "David Kim", unit: "8A", start: "Jul 1, 2024", end: "Jun 30, 2025", rent: 2050, status: "Expired" },
-  { tenant: "Rachel Torres", unit: "1B", start: "Nov 1, 2025", end: "Oct 31, 2026", rent: 1825, status: "Active" },
-  { tenant: "Kevin Williams", unit: "6C", start: "Aug 1, 2025", end: "Jul 31, 2026", rent: 2200, status: "Active" },
-];
-
-const renewals = [
-  { tenant: "Lisa Chen", unit: "2D", currentEnd: "Aug 31, 2025", renewalProb: 0.87, offerStatus: "Sent", adjustment: 75, newRent: 2025, aiScore: "High" },
-  { tenant: "David Kim", unit: "8A", currentEnd: "Jun 30, 2025", renewalProb: 0.62, offerStatus: "Pending", adjustment: 100, newRent: 2150, aiScore: "Medium" },
-  { tenant: "Amanda Foster", unit: "9A", currentEnd: "Jul 15, 2025", renewalProb: 0.34, offerStatus: "Not Sent", adjustment: 0, newRent: 1900, aiScore: "Low" },
-  { tenant: "Robert Chang", unit: "3D", currentEnd: "Sep 30, 2025", renewalProb: 0.91, offerStatus: "Accepted", adjustment: 50, newRent: 1800, aiScore: "High" },
-  { tenant: "Jennifer Lopez", unit: "10B", currentEnd: "Aug 15, 2025", renewalProb: 0.78, offerStatus: "Sent", adjustment: 125, newRent: 2375, aiScore: "High" },
-  { tenant: "Michael Brown", unit: "4D", currentEnd: "Oct 1, 2025", renewalProb: 0.55, offerStatus: "Declined", adjustment: 150, newRent: 2100, aiScore: "Medium" },
-];
-
-const rentIncreases = [
-  { tenant: "Sarah Mitchell", unit: "3A", effectiveDate: "Mar 1, 2026", currentRent: 2150, newRent: 2250, increase: 4.7, notified: "Sent", status: "Acknowledged" },
-  { tenant: "James Park", unit: "7B", effectiveDate: "Jun 1, 2026", currentRent: 1875, newRent: 1975, increase: 5.3, notified: "Sent", status: "Pending" },
-  { tenant: "Marcus Johnson", unit: "4A", effectiveDate: "Jan 15, 2026", currentRent: 2300, newRent: 2400, increase: 4.3, notified: "Sent", status: "Accepted" },
-  { tenant: "Rachel Torres", unit: "1B", effectiveDate: "Nov 1, 2026", currentRent: 1825, newRent: 1900, increase: 4.1, notified: "Not Sent", status: "Scheduled" },
-  { tenant: "Kevin Williams", unit: "6C", effectiveDate: "Aug 1, 2026", currentRent: 2200, newRent: 2310, increase: 5.0, notified: "Not Sent", status: "Scheduled" },
-  { tenant: "Robert Chang", unit: "3D", effectiveDate: "Oct 1, 2025", currentRent: 1750, newRent: 1800, increase: 2.9, notified: "Sent", status: "Accepted" },
-];
-
-const violations = [
-  { id: "VIO-301", tenant: "James Park", unit: "7B", type: "Noise", severity: "High", status: "Open", reported: "Feb 18, 2026", description: "Repeated noise complaints after 11pm" },
-  { id: "VIO-300", tenant: "David Kim", unit: "8A", type: "Unauthorized Occupant", severity: "Critical", status: "Investigating", reported: "Feb 15, 2026", description: "Unregistered resident observed over 14 days" },
-  { id: "VIO-299", tenant: "Lisa Chen", unit: "2D", type: "Pet Violation", severity: "Medium", status: "Warning Issued", reported: "Feb 12, 2026", description: "Unregistered pet found during inspection" },
-  { id: "VIO-298", tenant: "Amanda Foster", unit: "9A", type: "Late Payment", severity: "Low", status: "Resolved", reported: "Feb 10, 2026", description: "Rent payment 8 days past due" },
-  { id: "VIO-297", tenant: "Kevin Williams", unit: "6C", type: "Noise", severity: "Medium", status: "Open", reported: "Feb 8, 2026", description: "Party noise on weeknight past quiet hours" },
-  { id: "VIO-296", tenant: "Michael Brown", unit: "4D", type: "Pet Violation", severity: "High", status: "Escalated", reported: "Feb 5, 2026", description: "Aggressive dog incident in common area" },
-];
-
 const depositDispositions = [
   { tenant: "Tom Harris", unit: "2B", moveOut: "Feb 10, 2026", deposit: 2400, deductions: 350, refund: 2050, status: "Processing", reason: "Carpet cleaning, wall repair" },
   { tenant: "Nina Gonzalez", unit: "5A", moveOut: "Feb 5, 2026", deposit: 1800, deductions: 0, refund: 1800, status: "Refunded", reason: "No deductions" },
@@ -89,24 +45,37 @@ const depositDispositions = [
 
 const leaseStatusVariant: Record<string, "destructive" | "outline" | "secondary" | "default"> = {
   Active: "default",
+  active: "default",
   "Month-to-Month": "outline",
+  "month-to-month": "outline",
   "Notice Given": "destructive",
+  "notice given": "destructive",
   Expired: "secondary",
+  expired: "secondary",
 };
 
 const violationSeverityVariant: Record<string, "destructive" | "outline" | "secondary"> = {
   Critical: "destructive",
+  critical: "destructive",
   High: "destructive",
+  high: "destructive",
   Medium: "outline",
+  medium: "outline",
   Low: "secondary",
+  low: "secondary",
 };
 
 const violationStatusVariant: Record<string, "destructive" | "outline" | "secondary" | "default"> = {
   Open: "outline",
+  open: "outline",
   Investigating: "default",
+  investigating: "default",
   "Warning Issued": "secondary",
+  "warning issued": "secondary",
   Escalated: "destructive",
+  escalated: "destructive",
   Resolved: "secondary",
+  resolved: "secondary",
 };
 
 const depositStatusVariant: Record<string, "destructive" | "outline" | "secondary" | "default"> = {
@@ -117,20 +86,99 @@ const depositStatusVariant: Record<string, "destructive" | "outline" | "secondar
 
 const renewalOfferVariant: Record<string, "destructive" | "outline" | "secondary" | "default"> = {
   "Not Sent": "outline",
+  "not sent": "outline",
   Sent: "default",
+  sent: "default",
   Accepted: "secondary",
+  accepted: "secondary",
   Pending: "outline",
+  pending: "outline",
   Declined: "destructive",
+  declined: "destructive",
 };
 
 const increaseStatusVariant: Record<string, "destructive" | "outline" | "secondary" | "default"> = {
   Scheduled: "outline",
+  scheduled: "outline",
   Pending: "outline",
+  pending: "outline",
   Acknowledged: "default",
+  acknowledged: "default",
   Accepted: "secondary",
+  accepted: "secondary",
 };
 
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "--";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function capitalize(str: string | null | undefined): string {
+  if (!str) return "--";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function getAiScore(prob: number | null | undefined): string {
+  if (prob == null) return "Low";
+  if (prob >= 0.7) return "High";
+  if (prob >= 0.5) return "Medium";
+  return "Low";
+}
+
+function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="p-3 space-y-3" data-testid="skeleton-table">
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex gap-4">
+          {Array.from({ length: cols }).map((_, c) => (
+            <Skeleton key={c} className="h-4 flex-1" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function LeaseManagement() {
+  const { data: leases = [], isLoading: leasesLoading, error: leasesError } = useQuery<any[]>({
+    queryKey: ['/api/leases'],
+  });
+
+  const { data: violationsData = [], isLoading: violationsLoading, error: violationsError } = useQuery<any[]>({
+    queryKey: ['/api/lease-violations'],
+  });
+
+  const renewals = leases.filter((l: any) => l.renewalOfferStatus != null);
+  const rentIncreases = leases.filter((l: any) => l.rentIncreaseStatus != null);
+
+  const activeCount = leases.length;
+  const expiringCount = leases.filter((l: any) => {
+    if (!l.endDate) return false;
+    const end = new Date(l.endDate);
+    const now = new Date();
+    const diffDays = (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= 30;
+  }).length;
+  const pendingRenewals = renewals.length;
+  const avgTermMonths = leases.length > 0
+    ? (leases.reduce((sum: number, l: any) => {
+        if (!l.startDate || !l.endDate) return sum;
+        const start = new Date(l.startDate);
+        const end = new Date(l.endDate);
+        const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+        return sum + months;
+      }, 0) / leases.length).toFixed(1)
+    : "0";
+
+  const kpiCards = [
+    { title: "Active Leases", value: String(activeCount), change: leasesLoading ? "Loading..." : `${activeCount} total`, icon: FileText },
+    { title: "Expiring (30d)", value: String(expiringCount), change: leasesLoading ? "Loading..." : `${expiringCount} upcoming`, icon: Clock },
+    { title: "Pending Renewals", value: String(pendingRenewals), change: leasesLoading ? "Loading..." : `${renewals.filter((r: any) => r.renewalOfferStatus?.toLowerCase() === 'sent').length} offers sent`, icon: RefreshCw },
+    { title: "Avg Lease Term", value: `${avgTermMonths} mo`, change: leasesLoading ? "Loading..." : "computed", icon: CalendarDays },
+  ];
+
   return (
     <div className="space-y-6" data-testid="page-lease-management">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -174,7 +222,11 @@ export default function LeaseManagement() {
               <card.icon className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="px-3 pb-3">
-              <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
+              {leasesLoading ? (
+                <Skeleton className="h-6 w-16 mb-1" />
+              ) : (
+                <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
+              )}
               <div className="flex items-center gap-1 text-xs mt-0.5 text-muted-foreground">
                 {card.change}
               </div>
@@ -198,46 +250,59 @@ export default function LeaseManagement() {
               <div className="flex items-center gap-2 flex-wrap">
                 <FileText className="w-5 h-5 text-primary" />
                 <CardTitle>Active Lease Portfolio</CardTitle>
-                <Badge variant="secondary" className="text-xs">{activeLeases.length} leases</Badge>
+                <Badge variant="secondary" className="text-xs">{leases.length} leases</Badge>
               </div>
               <CardDescription>Current lease inventory with status tracking</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Tenant</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Start Date</th>
-                      <th className="p-3 font-medium text-muted-foreground">End Date</th>
-                      <th className="p-3 font-medium text-muted-foreground">Rent</th>
-                      <th className="p-3 font-medium text-muted-foreground">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeLeases.map((lease, idx) => (
-                      <tr key={idx} className="border-b last:border-0 hover-elevate" data-testid={`row-lease-${idx}`}>
-                        <td className="p-3 font-medium">{lease.tenant}</td>
-                        <td className="p-3 text-muted-foreground">{lease.unit}</td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            {lease.start}
-                          </div>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{lease.end}</td>
-                        <td className="p-3 font-mono tabular-nums">${lease.rent.toLocaleString()}</td>
-                        <td className="p-3">
-                          <Badge variant={leaseStatusVariant[lease.status]} className="text-xs" data-testid={`badge-lease-status-${idx}`}>
-                            {lease.status}
-                          </Badge>
-                        </td>
+              {leasesLoading ? (
+                <TableSkeleton rows={5} cols={6} />
+              ) : leasesError ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="error-leases">
+                  <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-destructive" />
+                  <p>Failed to load leases. Please try again later.</p>
+                </div>
+              ) : leases.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="empty-leases">
+                  <p>No active leases found.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Tenant</th>
+                        <th className="p-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="p-3 font-medium text-muted-foreground">Start Date</th>
+                        <th className="p-3 font-medium text-muted-foreground">End Date</th>
+                        <th className="p-3 font-medium text-muted-foreground">Rent</th>
+                        <th className="p-3 font-medium text-muted-foreground">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {leases.map((lease: any, idx: number) => (
+                        <tr key={lease.id || idx} className="border-b last:border-0 hover-elevate" data-testid={`row-lease-${idx}`}>
+                          <td className="p-3 font-medium">{lease.tenantName || "--"}</td>
+                          <td className="p-3 text-muted-foreground">{lease.unitNumber || "--"}</td>
+                          <td className="p-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <CalendarDays className="w-3.5 h-3.5" />
+                              {formatDate(lease.startDate)}
+                            </div>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{formatDate(lease.endDate)}</td>
+                          <td className="p-3 font-mono tabular-nums">${(lease.monthlyRent ?? 0).toLocaleString()}</td>
+                          <td className="p-3">
+                            <Badge variant={leaseStatusVariant[lease.status] || leaseStatusVariant[capitalize(lease.status)] || "outline"} className="text-xs" data-testid={`badge-lease-status-${idx}`}>
+                              {capitalize(lease.status)}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -253,58 +318,77 @@ export default function LeaseManagement() {
               <CardDescription>AI-powered renewal probability scoring and offer tracking</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Tenant</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Lease End</th>
-                      <th className="p-3 font-medium text-muted-foreground">Renewal Prob.</th>
-                      <th className="p-3 font-medium text-muted-foreground">Offer Status</th>
-                      <th className="p-3 font-medium text-muted-foreground">Adjustment</th>
-                      <th className="p-3 font-medium text-muted-foreground">New Rent</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {renewals.map((r, idx) => (
-                      <tr key={idx} className="border-b last:border-0 hover-elevate" data-testid={`row-renewal-${idx}`}>
-                        <td className="p-3 font-medium">{r.tenant}</td>
-                        <td className="p-3 text-muted-foreground">{r.unit}</td>
-                        <td className="p-3 text-muted-foreground">{r.currentEnd}</td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <Progress value={r.renewalProb * 100} className="h-2 w-16" data-testid={`progress-renewal-${idx}`} />
-                            <span className={`text-xs font-medium ${r.renewalProb >= 0.7 ? "text-emerald-600 dark:text-emerald-400" : r.renewalProb >= 0.5 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
-                              {Math.round(r.renewalProb * 100)}%
-                            </span>
-                            <Badge variant="outline" className="text-[9px] px-1 py-0" data-testid={`badge-ai-score-${idx}`}>
-                              <Brain className="w-2.5 h-2.5 mr-0.5 text-primary" />
-                              {r.aiScore}
-                            </Badge>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={renewalOfferVariant[r.offerStatus]} className="text-xs" data-testid={`badge-offer-${idx}`}>
-                            {r.offerStatus}
-                          </Badge>
-                        </td>
-                        <td className="p-3">
-                          {r.adjustment > 0 ? (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                              <ArrowUpRight className="w-3 h-3" />
-                              +${r.adjustment}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">--</span>
-                          )}
-                        </td>
-                        <td className="p-3 font-mono tabular-nums">${r.newRent.toLocaleString()}</td>
+              {leasesLoading ? (
+                <TableSkeleton rows={4} cols={7} />
+              ) : leasesError ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="error-renewals">
+                  <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-destructive" />
+                  <p>Failed to load renewals. Please try again later.</p>
+                </div>
+              ) : renewals.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="empty-renewals">
+                  <p>No pending renewals found.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Tenant</th>
+                        <th className="p-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="p-3 font-medium text-muted-foreground">Lease End</th>
+                        <th className="p-3 font-medium text-muted-foreground">Renewal Prob.</th>
+                        <th className="p-3 font-medium text-muted-foreground">Offer Status</th>
+                        <th className="p-3 font-medium text-muted-foreground">Adjustment</th>
+                        <th className="p-3 font-medium text-muted-foreground">New Rent</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {renewals.map((r: any, idx: number) => {
+                        const prob = r.renewalProbability ?? 0;
+                        const adjustment = r.renewalAdjustment ?? 0;
+                        const newRent = r.proposedRent ?? ((r.monthlyRent ?? 0) + adjustment);
+                        const aiScore = getAiScore(r.renewalProbability);
+                        return (
+                          <tr key={r.id || idx} className="border-b last:border-0 hover-elevate" data-testid={`row-renewal-${idx}`}>
+                            <td className="p-3 font-medium">{r.tenantName || "--"}</td>
+                            <td className="p-3 text-muted-foreground">{r.unitNumber || "--"}</td>
+                            <td className="p-3 text-muted-foreground">{formatDate(r.endDate)}</td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Progress value={prob * 100} className="h-2 w-16" data-testid={`progress-renewal-${idx}`} />
+                                <span className={`text-xs font-medium ${prob >= 0.7 ? "text-emerald-600 dark:text-emerald-400" : prob >= 0.5 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
+                                  {Math.round(prob * 100)}%
+                                </span>
+                                <Badge variant="outline" className="text-[9px] px-1 py-0" data-testid={`badge-ai-score-${idx}`}>
+                                  <Brain className="w-2.5 h-2.5 mr-0.5 text-primary" />
+                                  {aiScore}
+                                </Badge>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <Badge variant={renewalOfferVariant[r.renewalOfferStatus] || renewalOfferVariant[capitalize(r.renewalOfferStatus)] || "outline"} className="text-xs" data-testid={`badge-offer-${idx}`}>
+                                {capitalize(r.renewalOfferStatus)}
+                              </Badge>
+                            </td>
+                            <td className="p-3">
+                              {adjustment > 0 ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                  <ArrowUpRight className="w-3 h-3" />
+                                  +${adjustment}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">--</span>
+                              )}
+                            </td>
+                            <td className="p-3 font-mono tabular-nums">${newRent.toLocaleString()}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -320,56 +404,76 @@ export default function LeaseManagement() {
               <CardDescription>Upcoming rent adjustments with tenant notification tracking</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Tenant</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Effective Date</th>
-                      <th className="p-3 font-medium text-muted-foreground">Current Rent</th>
-                      <th className="p-3 font-medium text-muted-foreground">New Rent</th>
-                      <th className="p-3 font-medium text-muted-foreground">Increase</th>
-                      <th className="p-3 font-medium text-muted-foreground">Notice</th>
-                      <th className="p-3 font-medium text-muted-foreground">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rentIncreases.map((ri, idx) => (
-                      <tr key={idx} className="border-b last:border-0 hover-elevate" data-testid={`row-increase-${idx}`}>
-                        <td className="p-3 font-medium">{ri.tenant}</td>
-                        <td className="p-3 text-muted-foreground">{ri.unit}</td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            {ri.effectiveDate}
-                          </div>
-                        </td>
-                        <td className="p-3 font-mono tabular-nums text-muted-foreground">${ri.currentRent.toLocaleString()}</td>
-                        <td className="p-3 font-mono tabular-nums font-medium">${ri.newRent.toLocaleString()}</td>
-                        <td className="p-3">
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{ri.increase}%</span>
-                        </td>
-                        <td className="p-3">
-                          {ri.notified === "Sent" ? (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Send className="w-3 h-3" />
-                              Sent
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Not Sent</span>
-                          )}
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={increaseStatusVariant[ri.status]} className="text-xs" data-testid={`badge-increase-status-${idx}`}>
-                            {ri.status}
-                          </Badge>
-                        </td>
+              {leasesLoading ? (
+                <TableSkeleton rows={4} cols={8} />
+              ) : leasesError ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="error-rent-increases">
+                  <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-destructive" />
+                  <p>Failed to load rent increases. Please try again later.</p>
+                </div>
+              ) : rentIncreases.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="empty-rent-increases">
+                  <p>No scheduled rent increases found.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Tenant</th>
+                        <th className="p-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="p-3 font-medium text-muted-foreground">Effective Date</th>
+                        <th className="p-3 font-medium text-muted-foreground">Current Rent</th>
+                        <th className="p-3 font-medium text-muted-foreground">New Rent</th>
+                        <th className="p-3 font-medium text-muted-foreground">Increase</th>
+                        <th className="p-3 font-medium text-muted-foreground">Notice</th>
+                        <th className="p-3 font-medium text-muted-foreground">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {rentIncreases.map((ri: any, idx: number) => {
+                        const currentRent = ri.monthlyRent ?? 0;
+                        const increaseAmt = ri.rentIncreaseAmount ?? 0;
+                        const newRent = currentRent + increaseAmt;
+                        const increasePercent = currentRent > 0 ? ((increaseAmt / currentRent) * 100).toFixed(1) : "0.0";
+                        const noticeSent = ri.noticeDate != null;
+                        return (
+                          <tr key={ri.id || idx} className="border-b last:border-0 hover-elevate" data-testid={`row-increase-${idx}`}>
+                            <td className="p-3 font-medium">{ri.tenantName || "--"}</td>
+                            <td className="p-3 text-muted-foreground">{ri.unitNumber || "--"}</td>
+                            <td className="p-3 text-muted-foreground">
+                              <div className="flex items-center gap-1.5">
+                                <CalendarDays className="w-3.5 h-3.5" />
+                                {formatDate(ri.rentIncreaseDate)}
+                              </div>
+                            </td>
+                            <td className="p-3 font-mono tabular-nums text-muted-foreground">${currentRent.toLocaleString()}</td>
+                            <td className="p-3 font-mono tabular-nums font-medium">${newRent.toLocaleString()}</td>
+                            <td className="p-3">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">+{increasePercent}%</span>
+                            </td>
+                            <td className="p-3">
+                              {noticeSent ? (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Send className="w-3 h-3" />
+                                  Sent
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Not Sent</span>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <Badge variant={increaseStatusVariant[ri.rentIncreaseStatus] || increaseStatusVariant[capitalize(ri.rentIncreaseStatus)] || "outline"} className="text-xs" data-testid={`badge-increase-status-${idx}`}>
+                                {capitalize(ri.rentIncreaseStatus)}
+                              </Badge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -385,44 +489,57 @@ export default function LeaseManagement() {
               <CardDescription>Active lease violation tracking and enforcement status</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">ID</th>
-                      <th className="p-3 font-medium text-muted-foreground">Tenant</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Type</th>
-                      <th className="p-3 font-medium text-muted-foreground">Severity</th>
-                      <th className="p-3 font-medium text-muted-foreground">Status</th>
-                      <th className="p-3 font-medium text-muted-foreground">Reported</th>
-                      <th className="p-3 font-medium text-muted-foreground">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {violations.map((v, idx) => (
-                      <tr key={v.id} className="border-b last:border-0 hover-elevate" data-testid={`row-violation-${idx}`}>
-                        <td className="p-3 font-mono text-xs">{v.id}</td>
-                        <td className="p-3 font-medium">{v.tenant}</td>
-                        <td className="p-3 text-muted-foreground">{v.unit}</td>
-                        <td className="p-3 text-muted-foreground">{v.type}</td>
-                        <td className="p-3">
-                          <Badge variant={violationSeverityVariant[v.severity]} className="text-xs" data-testid={`badge-violation-severity-${idx}`}>
-                            {v.severity}
-                          </Badge>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={violationStatusVariant[v.status]} className="text-xs" data-testid={`badge-violation-status-${idx}`}>
-                            {v.status}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{v.reported}</td>
-                        <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">{v.description}</td>
+              {violationsLoading ? (
+                <TableSkeleton rows={4} cols={8} />
+              ) : violationsError ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="error-violations">
+                  <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-destructive" />
+                  <p>Failed to load violations. Please try again later.</p>
+                </div>
+              ) : violationsData.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="empty-violations">
+                  <p>No lease violations found.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">ID</th>
+                        <th className="p-3 font-medium text-muted-foreground">Tenant</th>
+                        <th className="p-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="p-3 font-medium text-muted-foreground">Type</th>
+                        <th className="p-3 font-medium text-muted-foreground">Severity</th>
+                        <th className="p-3 font-medium text-muted-foreground">Status</th>
+                        <th className="p-3 font-medium text-muted-foreground">Reported</th>
+                        <th className="p-3 font-medium text-muted-foreground">Description</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {violationsData.map((v: any, idx: number) => (
+                        <tr key={v.id || idx} className="border-b last:border-0 hover-elevate" data-testid={`row-violation-${idx}`}>
+                          <td className="p-3 font-mono text-xs">VIO-{v.id}</td>
+                          <td className="p-3 font-medium">{v.tenantName || "--"}</td>
+                          <td className="p-3 text-muted-foreground">{v.unitNumber || "--"}</td>
+                          <td className="p-3 text-muted-foreground">{v.type || "--"}</td>
+                          <td className="p-3">
+                            <Badge variant={violationSeverityVariant[v.severity] || violationSeverityVariant[capitalize(v.severity)] || "outline"} className="text-xs" data-testid={`badge-violation-severity-${idx}`}>
+                              {capitalize(v.severity)}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant={violationStatusVariant[v.status] || violationStatusVariant[capitalize(v.status)] || "outline"} className="text-xs" data-testid={`badge-violation-status-${idx}`}>
+                              {capitalize(v.status)}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{formatDate(v.createdAt)}</td>
+                          <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">{v.description || "--"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

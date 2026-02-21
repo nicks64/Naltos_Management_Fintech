@@ -1,9 +1,12 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2,
   Home,
@@ -33,77 +36,6 @@ const agentInsights = [
   { text: "15 units below market rent by >5%", severity: "critical" as const, confidence: 0.91 },
 ];
 
-const kpiCards = [
-  { title: "Total Units", value: "380", change: "Across 4 buildings", trend: "up", icon: Building2, color: "text-blue-600" },
-  { title: "Occupied", value: "342", change: "90.0% occupancy", trend: "up", icon: Users, color: "text-emerald-600" },
-  { title: "Vacant-Ready", value: "15", change: "Available now", trend: "up", icon: Home, color: "text-violet-600" },
-  { title: "Make-Ready", value: "8", change: "Avg 12 days", trend: "down", icon: Hammer, color: "text-amber-600" },
-  { title: "Down/Offline", value: "3", change: "2 renovations", trend: "down", icon: AlertTriangle, color: "text-red-600" },
-  { title: "Occupancy Rate", value: "90.0%", change: "+1.2% vs prior", trend: "up", icon: BarChart3, color: "text-indigo-600" },
-];
-
-const unitDirectory = [
-  { id: 1, unit: "101", building: "A", floor: 1, type: "Studio", sqft: 450, tenant: "Maria Gonzalez", status: "Occupied", marketRent: 1250 },
-  { id: 2, unit: "102", building: "A", floor: 1, type: "1BR", sqft: 650, tenant: "James Carter", status: "Occupied", marketRent: 1550 },
-  { id: 3, unit: "103", building: "A", floor: 1, type: "2BR", sqft: 900, tenant: null, status: "Vacant-Ready", marketRent: 1950 },
-  { id: 4, unit: "201", building: "A", floor: 2, type: "1BR", sqft: 680, tenant: "Linda Park", status: "Occupied", marketRent: 1600 },
-  { id: 5, unit: "202", building: "A", floor: 2, type: "3BR", sqft: 1200, tenant: "Robert Chen", status: "Occupied", marketRent: 2450 },
-  { id: 6, unit: "203", building: "A", floor: 2, type: "2BR", sqft: 920, tenant: null, status: "Make-Ready", marketRent: 2000 },
-  { id: 7, unit: "301", building: "B", floor: 3, type: "Studio", sqft: 480, tenant: "Angela Davis", status: "Occupied", marketRent: 1300 },
-  { id: 8, unit: "302", building: "B", floor: 3, type: "1BR", sqft: 700, tenant: null, status: "Down", marketRent: 1650 },
-  { id: 9, unit: "303", building: "B", floor: 3, type: "2BR", sqft: 950, tenant: "David Kim", status: "Occupied", marketRent: 2050 },
-  { id: 10, unit: "401", building: "B", floor: 4, type: "3BR", sqft: 1250, tenant: "Sarah Mitchell", status: "Notice", marketRent: 2500 },
-];
-
-const makeReadyBoard = [
-  { id: 1, unit: "103", stage: "Final Inspection", daysInProcess: 14, targetDate: "Feb 26, 2026", progress: 85 },
-  { id: 2, unit: "203", stage: "Repairs", daysInProcess: 8, targetDate: "Mar 1, 2026", progress: 40 },
-  { id: 3, unit: "504", stage: "Cleaning", daysInProcess: 3, targetDate: "Mar 5, 2026", progress: 20 },
-  { id: 4, unit: "107", stage: "Paint", daysInProcess: 10, targetDate: "Feb 28, 2026", progress: 60 },
-  { id: 5, unit: "308", stage: "Inspection", daysInProcess: 1, targetDate: "Mar 10, 2026", progress: 10 },
-  { id: 6, unit: "215", stage: "Ready", daysInProcess: 18, targetDate: "Feb 22, 2026", progress: 100 },
-  { id: 7, unit: "410", stage: "Cleaning", daysInProcess: 5, targetDate: "Mar 3, 2026", progress: 25 },
-  { id: 8, unit: "112", stage: "Repairs", daysInProcess: 11, targetDate: "Mar 2, 2026", progress: 45 },
-];
-
-const rentRoll = [
-  { id: 1, unit: "101", tenant: "Maria Gonzalez", leaseStart: "Jun 1, 2025", leaseEnd: "May 31, 2026", monthlyRent: 1200, marketRent: 1250, variance: -50, lastIncrease: "Jun 1, 2025" },
-  { id: 2, unit: "102", tenant: "James Carter", leaseStart: "Aug 15, 2025", leaseEnd: "Aug 14, 2026", monthlyRent: 1500, marketRent: 1550, variance: -50, lastIncrease: "Aug 15, 2025" },
-  { id: 3, unit: "201", tenant: "Linda Park", leaseStart: "Mar 1, 2025", leaseEnd: "Feb 28, 2026", monthlyRent: 1480, marketRent: 1600, variance: -120, lastIncrease: "Mar 1, 2025" },
-  { id: 4, unit: "202", tenant: "Robert Chen", leaseStart: "Jan 1, 2025", leaseEnd: "Dec 31, 2025", monthlyRent: 2300, marketRent: 2450, variance: -150, lastIncrease: "Jan 1, 2025" },
-  { id: 5, unit: "301", tenant: "Angela Davis", leaseStart: "Sep 1, 2025", leaseEnd: "Aug 31, 2026", monthlyRent: 1280, marketRent: 1300, variance: -20, lastIncrease: "Sep 1, 2025" },
-  { id: 6, unit: "303", tenant: "David Kim", leaseStart: "Apr 1, 2025", leaseEnd: "Mar 31, 2026", monthlyRent: 1900, marketRent: 2050, variance: -150, lastIncrease: "Apr 1, 2025" },
-  { id: 7, unit: "401", tenant: "Sarah Mitchell", leaseStart: "Jul 1, 2025", leaseEnd: "Jun 30, 2026", monthlyRent: 2400, marketRent: 2500, variance: -100, lastIncrease: "Jul 1, 2025" },
-  { id: 8, unit: "105", tenant: "Tom Williams", leaseStart: "Nov 1, 2025", leaseEnd: "Oct 31, 2026", monthlyRent: 1700, marketRent: 1750, variance: -50, lastIncrease: "Nov 1, 2025" },
-  { id: 9, unit: "204", tenant: "Karen Phillips", leaseStart: "Feb 1, 2025", leaseEnd: "Jan 31, 2026", monthlyRent: 1850, marketRent: 2000, variance: -150, lastIncrease: "Feb 1, 2025" },
-  { id: 10, unit: "305", tenant: "Daniel Harris", leaseStart: "May 15, 2025", leaseEnd: "May 14, 2026", monthlyRent: 1650, marketRent: 1700, variance: -50, lastIncrease: "May 15, 2025" },
-];
-
-const unitFeatures = [
-  { unit: "101", washerDryer: true, dishwasher: false, patio: false, renovated: false, hardwood: false, granite: true },
-  { unit: "102", washerDryer: true, dishwasher: true, patio: true, renovated: true, hardwood: true, granite: true },
-  { unit: "103", washerDryer: false, dishwasher: true, patio: false, renovated: false, hardwood: false, granite: false },
-  { unit: "201", washerDryer: true, dishwasher: true, patio: true, renovated: false, hardwood: true, granite: false },
-  { unit: "202", washerDryer: true, dishwasher: true, patio: true, renovated: true, hardwood: true, granite: true },
-  { unit: "301", washerDryer: false, dishwasher: false, patio: false, renovated: false, hardwood: false, granite: false },
-  { unit: "303", washerDryer: true, dishwasher: true, patio: false, renovated: true, hardwood: true, granite: true },
-  { unit: "401", washerDryer: true, dishwasher: true, patio: true, renovated: true, hardwood: true, granite: true },
-];
-
-const occupancyMatrix = [
-  { building: "A", floors: [
-    { floor: 1, units: [{ unit: "101", status: "Occupied" }, { unit: "102", status: "Occupied" }, { unit: "103", status: "Vacant-Ready" }, { unit: "104", status: "Occupied" }, { unit: "105", status: "Occupied" }] },
-    { floor: 2, units: [{ unit: "201", status: "Occupied" }, { unit: "202", status: "Occupied" }, { unit: "203", status: "Make-Ready" }, { unit: "204", status: "Occupied" }, { unit: "205", status: "Occupied" }] },
-    { floor: 3, units: [{ unit: "301", status: "Occupied" }, { unit: "302", status: "Vacant-Ready" }, { unit: "303", status: "Occupied" }, { unit: "304", status: "Occupied" }, { unit: "305", status: "Notice" }] },
-  ]},
-  { building: "B", floors: [
-    { floor: 1, units: [{ unit: "101", status: "Occupied" }, { unit: "102", status: "Occupied" }, { unit: "103", status: "Occupied" }, { unit: "104", status: "Vacant-Ready" }, { unit: "105", status: "Occupied" }] },
-    { floor: 2, units: [{ unit: "201", status: "Occupied" }, { unit: "202", status: "Occupied" }, { unit: "203", status: "Occupied" }, { unit: "204", status: "Occupied" }, { unit: "205", status: "Make-Ready" }] },
-    { floor: 3, units: [{ unit: "301", status: "Occupied" }, { unit: "302", status: "Down" }, { unit: "303", status: "Occupied" }, { unit: "304", status: "Occupied" }, { unit: "305", status: "Occupied" }] },
-    { floor: 4, units: [{ unit: "401", status: "Notice" }, { unit: "402", status: "Occupied" }, { unit: "403", status: "Occupied" }, { unit: "404", status: "Vacant-Ready" }, { unit: "405", status: "Occupied" }] },
-  ]},
-];
-
 const statusBadgeVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   "Occupied": "secondary",
   "Vacant-Ready": "default",
@@ -113,6 +45,12 @@ const statusBadgeVariant: Record<string, "default" | "secondary" | "destructive"
 };
 
 const stageColors: Record<string, string> = {
+  "inspection": "text-blue-600 dark:text-blue-400",
+  "cleaning": "text-cyan-600 dark:text-cyan-400",
+  "repairs": "text-amber-600 dark:text-amber-400",
+  "paint": "text-violet-600 dark:text-violet-400",
+  "final_inspection": "text-orange-600 dark:text-orange-400",
+  "ready": "text-emerald-600 dark:text-emerald-400",
   "Inspection": "text-blue-600 dark:text-blue-400",
   "Cleaning": "text-cyan-600 dark:text-cyan-400",
   "Repairs": "text-amber-600 dark:text-amber-400",
@@ -129,7 +67,199 @@ const matrixStatusColors: Record<string, string> = {
   "Notice": "bg-violet-100 dark:bg-violet-900/40 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-400",
 };
 
+function formatStatus(status: string): string {
+  switch (status) {
+    case "occupied": return "Occupied";
+    case "vacant": return "Vacant-Ready";
+    case "make_ready": return "Make-Ready";
+    case "down": return "Down";
+    case "notice": return "Notice";
+    default: return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+}
+
+function formatStage(stage: string): string {
+  switch (stage) {
+    case "inspection": return "Inspection";
+    case "cleaning": return "Cleaning";
+    case "repairs": return "Repairs";
+    case "paint": return "Paint";
+    case "final_inspection": return "Final Inspection";
+    case "ready": return "Ready";
+    default: return stage.charAt(0).toUpperCase() + stage.slice(1).replace(/_/g, " ");
+  }
+}
+
+function formatDate(dateVal: string | Date | null | undefined): string {
+  if (!dateVal) return "--";
+  const d = new Date(dateVal);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatCurrency(val: string | number | null | undefined): string {
+  if (val == null) return "--";
+  const num = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(num)) return "--";
+  return `$${num.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6" data-testid="loading-skeleton">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-1 pt-3 px-3">
+              <Skeleton className="h-3 w-20" />
+            </CardHeader>
+            <CardContent className="px-3 pb-3">
+              <Skeleton className="h-6 w-12 mb-1" />
+              <Skeleton className="h-3 w-24" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function Units() {
+  const { data: unitsData, isLoading: unitsLoading, error: unitsError } = useQuery<any[]>({
+    queryKey: ['/api/units'],
+  });
+
+  const { data: unitTurnsData, isLoading: turnsLoading, error: turnsError } = useQuery<any[]>({
+    queryKey: ['/api/unit-turns'],
+  });
+
+  const { data: leasesData, isLoading: leasesLoading, error: leasesError } = useQuery<any[]>({
+    queryKey: ['/api/leases'],
+  });
+
+  const isLoading = unitsLoading || turnsLoading || leasesLoading;
+  const hasError = unitsError || turnsError || leasesError;
+
+  const units = unitsData || [];
+  const unitTurns = unitTurnsData || [];
+  const leases = leasesData || [];
+
+  const activeLeaseTenantMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const lease of leases) {
+      if (lease.active && lease.tenantName && lease.unitId) {
+        map[lease.unitId] = lease.tenantName;
+      }
+    }
+    return map;
+  }, [leases]);
+
+  const kpiCards = useMemo(() => {
+    const total = units.length;
+    const occupied = units.filter((u: any) => u.status === "occupied").length;
+    const vacant = units.filter((u: any) => u.status === "vacant").length;
+    const makeReady = units.filter((u: any) => u.status === "make_ready").length;
+    const down = units.filter((u: any) => u.status === "down").length;
+    const occupancyRate = total > 0 ? ((occupied / total) * 100).toFixed(1) : "0.0";
+
+    return [
+      { title: "Total Units", value: total.toString(), change: `Across ${new Set(units.map((u: any) => u.building).filter(Boolean)).size} buildings`, trend: "up" as const, icon: Building2, color: "text-blue-600" },
+      { title: "Occupied", value: occupied.toString(), change: `${occupancyRate}% occupancy`, trend: "up" as const, icon: Users, color: "text-emerald-600" },
+      { title: "Vacant-Ready", value: vacant.toString(), change: "Available now", trend: "up" as const, icon: Home, color: "text-violet-600" },
+      { title: "Make-Ready", value: makeReady.toString(), change: unitTurns.length > 0 ? `Avg ${Math.round(unitTurns.reduce((s: number, t: any) => s + (t.daysInProcess || 0), 0) / unitTurns.length)} days` : "No turns", trend: "down" as const, icon: Hammer, color: "text-amber-600" },
+      { title: "Down/Offline", value: down.toString(), change: `${down} offline`, trend: "down" as const, icon: AlertTriangle, color: "text-red-600" },
+      { title: "Occupancy Rate", value: `${occupancyRate}%`, change: "Current rate", trend: "up" as const, icon: BarChart3, color: "text-indigo-600" },
+    ];
+  }, [units, unitTurns]);
+
+  const occupancyMatrix = useMemo(() => {
+    const buildingMap: Record<string, Record<number, { unit: string; status: string }[]>> = {};
+    for (const u of units) {
+      const bldg = u.building || "A";
+      const flr = u.floor || 1;
+      if (!buildingMap[bldg]) buildingMap[bldg] = {};
+      if (!buildingMap[bldg][flr]) buildingMap[bldg][flr] = [];
+      buildingMap[bldg][flr].push({ unit: u.unitNumber, status: formatStatus(u.status) });
+    }
+    return Object.entries(buildingMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([building, floors]) => ({
+        building,
+        floors: Object.entries(floors)
+          .sort(([a], [b]) => Number(a) - Number(b))
+          .map(([floor, floorUnits]) => ({ floor: Number(floor), units: floorUnits })),
+      }));
+  }, [units]);
+
+  const rentRoll = useMemo(() => {
+    const unitMarketRentMap: Record<string, string | null> = {};
+    for (const u of units) {
+      unitMarketRentMap[u.id] = u.marketRent;
+    }
+    return leases
+      .filter((l: any) => l.active)
+      .map((l: any) => {
+        const monthlyRent = parseFloat(l.monthlyRent) || 0;
+        const marketRent = parseFloat(unitMarketRentMap[l.unitId] || l.monthlyRent) || 0;
+        const variance = monthlyRent - marketRent;
+        return {
+          id: l.id,
+          unit: l.unitNumber || "--",
+          tenant: l.tenantName || "--",
+          leaseStart: l.startDate,
+          leaseEnd: l.endDate,
+          monthlyRent,
+          marketRent,
+          variance,
+          lastIncrease: l.rentIncreaseDate,
+        };
+      });
+  }, [leases, units]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6" data-testid="page-units">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight" data-testid="text-page-title">Unit Inventory & Status</h1>
+            <p className="text-muted-foreground">AI-powered unit tracking, rent roll, and occupancy management</p>
+          </div>
+        </div>
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="space-y-6" data-testid="page-units">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight" data-testid="text-page-title">Unit Inventory & Status</h1>
+            <p className="text-muted-foreground">AI-powered unit tracking, rent roll, and occupancy management</p>
+          </div>
+        </div>
+        <Card data-testid="error-card">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="font-medium">Failed to load unit data. Please try refreshing the page.</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" data-testid="page-units">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -192,7 +322,6 @@ export default function Units() {
           <TabsTrigger value="directory" data-testid="tab-directory">Unit Directory</TabsTrigger>
           <TabsTrigger value="make-ready" data-testid="tab-make-ready">Make-Ready Board</TabsTrigger>
           <TabsTrigger value="rent-roll" data-testid="tab-rent-roll">Rent Roll</TabsTrigger>
-          <TabsTrigger value="features" data-testid="tab-features">Unit Features</TabsTrigger>
           <TabsTrigger value="occupancy" data-testid="tab-occupancy">Occupancy Matrix</TabsTrigger>
         </TabsList>
 
@@ -202,7 +331,7 @@ export default function Units() {
               <div className="flex items-center gap-2 flex-wrap">
                 <Building2 className="w-5 h-5 text-primary" />
                 <CardTitle>All Units</CardTitle>
-                <Badge variant="secondary" className="text-xs">{unitDirectory.length} units shown</Badge>
+                <Badge variant="secondary" className="text-xs">{units.length} units shown</Badge>
               </div>
               <CardDescription>Complete unit directory with status, type, and current tenant information</CardDescription>
             </CardHeader>
@@ -222,28 +351,38 @@ export default function Units() {
                     </tr>
                   </thead>
                   <tbody>
-                    {unitDirectory.map((item, idx) => (
-                      <tr key={item.id} className="border-b last:border-0 hover-elevate" data-testid={`row-unit-${idx}`}>
-                        <td className="p-3 font-semibold font-mono">{item.unit}</td>
-                        <td className="p-3 text-muted-foreground">{item.building}</td>
-                        <td className="p-3 text-muted-foreground">{item.floor}</td>
-                        <td className="p-3">
-                          <Badge variant="outline" className="text-xs" data-testid={`badge-type-${idx}`}>{item.type}</Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground font-mono text-xs">{item.sqft.toLocaleString()}</td>
-                        <td className="p-3" data-testid={`text-tenant-${idx}`}>
-                          {item.tenant || <span className="text-muted-foreground/50">--</span>}
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={statusBadgeVariant[item.status]} className="text-xs" data-testid={`badge-status-${idx}`}>
-                            {item.status}
-                          </Badge>
-                        </td>
-                        <td className="p-3 font-mono text-xs" data-testid={`text-market-rent-${idx}`}>
-                          ${item.marketRent.toLocaleString()}
-                        </td>
+                    {units.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-6 text-center text-muted-foreground">No units found</td>
                       </tr>
-                    ))}
+                    ) : (
+                      units.map((item: any, idx: number) => {
+                        const displayStatus = formatStatus(item.status);
+                        const tenant = activeLeaseTenantMap[item.id] || null;
+                        return (
+                          <tr key={item.id} className="border-b last:border-0 hover-elevate" data-testid={`row-unit-${idx}`}>
+                            <td className="p-3 font-semibold font-mono">{item.unitNumber}</td>
+                            <td className="p-3 text-muted-foreground">{item.building || "--"}</td>
+                            <td className="p-3 text-muted-foreground">{item.floor || "--"}</td>
+                            <td className="p-3">
+                              <Badge variant="outline" className="text-xs" data-testid={`badge-type-${idx}`}>{item.unitType || "--"}</Badge>
+                            </td>
+                            <td className="p-3 text-muted-foreground font-mono text-xs">{item.sqft ? item.sqft.toLocaleString() : "--"}</td>
+                            <td className="p-3" data-testid={`text-tenant-${idx}`}>
+                              {tenant || <span className="text-muted-foreground/50">--</span>}
+                            </td>
+                            <td className="p-3">
+                              <Badge variant={statusBadgeVariant[displayStatus] || "outline"} className="text-xs" data-testid={`badge-status-${idx}`}>
+                                {displayStatus}
+                              </Badge>
+                            </td>
+                            <td className="p-3 font-mono text-xs" data-testid={`text-market-rent-${idx}`}>
+                              {formatCurrency(item.marketRent)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -257,58 +396,66 @@ export default function Units() {
               <div className="flex items-center gap-2 flex-wrap">
                 <Hammer className="w-5 h-5 text-primary" />
                 <CardTitle>Make-Ready Pipeline</CardTitle>
-                <Badge variant="secondary" className="text-xs">{makeReadyBoard.length} units</Badge>
+                <Badge variant="secondary" className="text-xs">{unitTurns.length} units</Badge>
               </div>
               <CardDescription>Units in turn process with status pipeline tracking</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {makeReadyBoard.map((item, idx) => (
-                <div key={item.id} className="p-4 border rounded-lg space-y-3" data-testid={`card-make-ready-${idx}`}>
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="font-semibold">Unit {item.unit}</span>
-                      <span className={`text-sm font-medium ${stageColors[item.stage]}`} data-testid={`text-stage-${idx}`}>
-                        {item.stage}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                      <span>{item.daysInProcess} days in process</span>
-                      <span className="text-muted-foreground/50">|</span>
-                      <span>Target: {item.targetDate}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="font-medium">{item.progress}%</span>
-                    </div>
-                    <Progress value={item.progress} className="h-2" data-testid={`progress-make-ready-${idx}`} />
-                  </div>
-                  <div className="flex gap-1">
-                    {["Inspection", "Cleaning", "Repairs", "Paint", "Final Inspection", "Ready"].map((step) => {
-                      const stageOrder = ["Inspection", "Cleaning", "Repairs", "Paint", "Final Inspection", "Ready"];
-                      const currentIndex = stageOrder.indexOf(item.stage);
-                      const stepIndex = stageOrder.indexOf(step);
-                      const isComplete = stepIndex < currentIndex;
-                      const isCurrent = stepIndex === currentIndex;
-                      return (
-                        <div
-                          key={step}
-                          className={`flex-1 text-center text-[10px] py-1 rounded-md border ${
-                            isComplete
-                              ? "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
-                              : isCurrent
-                                ? "bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 font-medium"
-                                : "bg-muted/30 border-muted text-muted-foreground"
-                          }`}
-                        >
-                          {step}
+              {unitTurns.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="empty-make-ready">No unit turns in progress</div>
+              ) : (
+                unitTurns.map((item: any, idx: number) => {
+                  const displayStage = formatStage(item.stage);
+                  return (
+                    <div key={item.id} className="p-4 border rounded-lg space-y-3" data-testid={`card-make-ready-${idx}`}>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="font-semibold">Unit {item.unitNumber}</span>
+                          <span className={`text-sm font-medium ${stageColors[item.stage] || stageColors[displayStage] || "text-foreground"}`} data-testid={`text-stage-${idx}`}>
+                            {displayStage}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                          <span>{item.daysInProcess || 0} days in process</span>
+                          <span className="text-muted-foreground/50">|</span>
+                          <span>Target: {formatDate(item.targetDate)}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium">{item.progress || 0}%</span>
+                        </div>
+                        <Progress value={item.progress || 0} className="h-2" data-testid={`progress-make-ready-${idx}`} />
+                      </div>
+                      <div className="flex gap-1">
+                        {["Inspection", "Cleaning", "Repairs", "Paint", "Final Inspection", "Ready"].map((step) => {
+                          const stageOrder = ["inspection", "cleaning", "repairs", "paint", "final_inspection", "ready"];
+                          const displayOrder = ["Inspection", "Cleaning", "Repairs", "Paint", "Final Inspection", "Ready"];
+                          const currentIndex = stageOrder.indexOf(item.stage?.toLowerCase?.() || "");
+                          const stepIndex = displayOrder.indexOf(step);
+                          const isComplete = currentIndex >= 0 && stepIndex < currentIndex;
+                          const isCurrent = currentIndex >= 0 && stepIndex === currentIndex;
+                          return (
+                            <div
+                              key={step}
+                              className={`flex-1 text-center text-[10px] py-1 rounded-md border ${
+                                isComplete
+                                  ? "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
+                                  : isCurrent
+                                    ? "bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 font-medium"
+                                    : "bg-muted/30 border-muted text-muted-foreground"
+                              }`}
+                            >
+                              {step}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -339,68 +486,28 @@ export default function Units() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rentRoll.map((item, idx) => (
-                      <tr key={item.id} className="border-b last:border-0 hover-elevate" data-testid={`row-rent-${idx}`}>
-                        <td className="p-3 font-semibold font-mono">{item.unit}</td>
-                        <td className="p-3" data-testid={`text-rent-tenant-${idx}`}>{item.tenant}</td>
-                        <td className="p-3 text-muted-foreground text-xs">{item.leaseStart}</td>
-                        <td className="p-3 text-muted-foreground text-xs">{item.leaseEnd}</td>
-                        <td className="p-3 font-mono text-xs" data-testid={`text-monthly-rent-${idx}`}>${item.monthlyRent.toLocaleString()}</td>
-                        <td className="p-3 font-mono text-xs text-muted-foreground">${item.marketRent.toLocaleString()}</td>
-                        <td className="p-3">
-                          <span className={`font-mono text-xs font-medium ${Math.abs(item.variance) > 100 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`} data-testid={`text-variance-${idx}`}>
-                            ${item.variance}
-                          </span>
-                        </td>
-                        <td className="p-3 text-muted-foreground text-xs">{item.lastIncrease}</td>
+                    {rentRoll.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-6 text-center text-muted-foreground">No active leases found</td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="features" className="space-y-4">
-          <Card data-testid="card-unit-features">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Layers className="w-5 h-5 text-primary" />
-                <CardTitle>Unit Amenities & Features</CardTitle>
-                <Badge variant="secondary" className="text-xs">{unitFeatures.length} units tracked</Badge>
-              </div>
-              <CardDescription>Track unit-level amenities, upgrades, and features for each unit</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">W/D</th>
-                      <th className="p-3 font-medium text-muted-foreground">Dishwasher</th>
-                      <th className="p-3 font-medium text-muted-foreground">Patio</th>
-                      <th className="p-3 font-medium text-muted-foreground">Renovated</th>
-                      <th className="p-3 font-medium text-muted-foreground">Hardwood</th>
-                      <th className="p-3 font-medium text-muted-foreground">Granite</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {unitFeatures.map((item, idx) => (
-                      <tr key={item.unit} className="border-b last:border-0" data-testid={`row-feature-${idx}`}>
-                        <td className="p-3 font-semibold font-mono">{item.unit}</td>
-                        {[item.washerDryer, item.dishwasher, item.patio, item.renovated, item.hardwood, item.granite].map((has, fIdx) => (
-                          <td key={fIdx} className="p-3">
-                            {has ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" data-testid={`icon-feature-${idx}-${fIdx}`} />
-                            ) : (
-                              <span className="text-muted-foreground/30">--</span>
-                            )}
+                    ) : (
+                      rentRoll.map((item: any, idx: number) => (
+                        <tr key={item.id} className="border-b last:border-0 hover-elevate" data-testid={`row-rent-${idx}`}>
+                          <td className="p-3 font-semibold font-mono">{item.unit}</td>
+                          <td className="p-3" data-testid={`text-rent-tenant-${idx}`}>{item.tenant}</td>
+                          <td className="p-3 text-muted-foreground text-xs">{formatDate(item.leaseStart)}</td>
+                          <td className="p-3 text-muted-foreground text-xs">{formatDate(item.leaseEnd)}</td>
+                          <td className="p-3 font-mono text-xs" data-testid={`text-monthly-rent-${idx}`}>{formatCurrency(item.monthlyRent)}</td>
+                          <td className="p-3 font-mono text-xs text-muted-foreground">{formatCurrency(item.marketRent)}</td>
+                          <td className="p-3">
+                            <span className={`font-mono text-xs font-medium ${Math.abs(item.variance) > 100 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`} data-testid={`text-variance-${idx}`}>
+                              {item.variance >= 0 ? "+" : ""}{formatCurrency(item.variance)}
+                            </span>
                           </td>
-                        ))}
-                      </tr>
-                    ))}
+                          <td className="p-3 text-muted-foreground text-xs">{formatDate(item.lastIncrease)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -426,27 +533,31 @@ export default function Units() {
                   </div>
                 ))}
               </div>
-              {occupancyMatrix.map((bldg) => (
-                <div key={bldg.building} className="space-y-2" data-testid={`matrix-building-${bldg.building}`}>
-                  <h4 className="text-sm font-semibold">Building {bldg.building}</h4>
-                  {bldg.floors.map((flr) => (
-                    <div key={flr.floor} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-12 flex-shrink-0">Floor {flr.floor}</span>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {flr.units.map((u) => (
-                          <div
-                            key={u.unit}
-                            className={`w-14 h-10 rounded-md border flex items-center justify-center text-[10px] font-medium ${matrixStatusColors[u.status]}`}
-                            data-testid={`matrix-unit-${bldg.building}-${u.unit}`}
-                          >
-                            {u.unit}
-                          </div>
-                        ))}
+              {occupancyMatrix.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground" data-testid="empty-occupancy">No unit data available for matrix view</div>
+              ) : (
+                occupancyMatrix.map((bldg) => (
+                  <div key={bldg.building} className="space-y-2" data-testid={`matrix-building-${bldg.building}`}>
+                    <h4 className="text-sm font-semibold">Building {bldg.building}</h4>
+                    {bldg.floors.map((flr) => (
+                      <div key={flr.floor} className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-12 flex-shrink-0">Floor {flr.floor}</span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {flr.units.map((u) => (
+                            <div
+                              key={u.unit}
+                              className={`w-14 h-10 rounded-md border flex items-center justify-center text-[10px] font-medium ${matrixStatusColors[u.status] || matrixStatusColors["Occupied"]}`}
+                              data-testid={`matrix-unit-${bldg.building}-${u.unit}`}
+                            >
+                              {u.unit}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
+                    ))}
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>

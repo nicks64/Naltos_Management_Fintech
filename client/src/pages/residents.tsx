@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   Home,
@@ -31,71 +33,13 @@ const agentInsights = [
   { text: "98.4% on-time payment rate across all residents", severity: "positive" as const },
 ];
 
-const kpiCards = [
-  { title: "Total Residents", value: "428", change: "+8 this month", icon: Users },
-  { title: "Active Households", value: "342", change: "2.1 avg occupants", icon: Home },
-  { title: "Pet Registrations", value: "89", change: "26% of units", icon: PawPrint },
-  { title: "Vehicle Permits", value: "267", change: "12 expiring soon", icon: Car },
-];
-
-const residents = [
-  { name: "Sarah Mitchell", unit: "3A", leaseStatus: "Active", moveIn: "Mar 1, 2025", email: "s.mitchell@email.com", phone: "(555) 234-5678", paymentHistory: "Excellent" },
-  { name: "James Park", unit: "7B", leaseStatus: "Active", moveIn: "Jun 1, 2025", email: "j.park@email.com", phone: "(555) 345-6789", paymentHistory: "Good" },
-  { name: "Lisa Chen", unit: "2D", leaseStatus: "Month-to-Month", moveIn: "Sep 1, 2024", email: "l.chen@email.com", phone: "(555) 456-7890", paymentHistory: "Excellent" },
-  { name: "Marcus Johnson", unit: "4A", leaseStatus: "Active", moveIn: "Jan 15, 2025", email: "m.johnson@email.com", phone: "(555) 567-8901", paymentHistory: "Good" },
-  { name: "Priya Patel", unit: "5C", leaseStatus: "Notice Given", moveIn: "Apr 1, 2025", email: "p.patel@email.com", phone: "(555) 678-9012", paymentHistory: "Fair" },
-  { name: "David Kim", unit: "8A", leaseStatus: "Active", moveIn: "Jul 1, 2024", email: "d.kim@email.com", phone: "(555) 789-0123", paymentHistory: "Excellent" },
-  { name: "Rachel Torres", unit: "1B", leaseStatus: "Active", moveIn: "Nov 1, 2025", email: "r.torres@email.com", phone: "(555) 890-1234", paymentHistory: "Good" },
-  { name: "Kevin Williams", unit: "6C", leaseStatus: "Active", moveIn: "Aug 1, 2025", email: "k.williams@email.com", phone: "(555) 901-2345", paymentHistory: "Fair" },
-];
-
-const households = [
-  { primary: "Sarah Mitchell", unit: "3A", occupants: [{ name: "Tom Mitchell", relationship: "Spouse" }], totalOccupants: 2 },
-  { primary: "James Park", unit: "7B", occupants: [{ name: "Min Park", relationship: "Spouse" }, { name: "Soo Park", relationship: "Child" }], totalOccupants: 3 },
-  { primary: "Lisa Chen", unit: "2D", occupants: [], totalOccupants: 1 },
-  { primary: "Marcus Johnson", unit: "4A", occupants: [{ name: "Keisha Johnson", relationship: "Spouse" }, { name: "Elijah Johnson", relationship: "Child" }, { name: "Maya Johnson", relationship: "Child" }], totalOccupants: 4 },
-  { primary: "Priya Patel", unit: "5C", occupants: [{ name: "Raj Patel", relationship: "Spouse" }], totalOccupants: 2 },
-  { primary: "David Kim", unit: "8A", occupants: [{ name: "Grace Kim", relationship: "Roommate" }], totalOccupants: 2 },
-  { primary: "Rachel Torres", unit: "1B", occupants: [], totalOccupants: 1 },
-  { primary: "Kevin Williams", unit: "6C", occupants: [{ name: "Andre Williams", relationship: "Sibling" }], totalOccupants: 2 },
-];
-
-const pets = [
-  { owner: "Sarah Mitchell", unit: "3A", type: "Dog", breed: "Golden Retriever", name: "Buddy", weight: "72 lbs", vaccination: "Current", deposit: 500 },
-  { owner: "James Park", unit: "7B", type: "Cat", breed: "Persian", name: "Mochi", weight: "10 lbs", vaccination: "Current", deposit: 300 },
-  { owner: "Marcus Johnson", unit: "4A", type: "Dog", breed: "French Bulldog", name: "Rex", weight: "28 lbs", vaccination: "Current", deposit: 500 },
-  { owner: "David Kim", unit: "8A", type: "Cat", breed: "Siamese", name: "Luna", weight: "9 lbs", vaccination: "Expired", deposit: 300 },
-  { owner: "Kevin Williams", unit: "6C", type: "Dog", breed: "Labrador", name: "Max", weight: "68 lbs", vaccination: "Current", deposit: 500 },
-  { owner: "Rachel Torres", unit: "1B", type: "Cat", breed: "Maine Coon", name: "Whiskers", weight: "15 lbs", vaccination: "Current", deposit: 300 },
-  { owner: "Lisa Chen", unit: "2D", type: "Dog", breed: "Corgi", name: "Coco", weight: "25 lbs", vaccination: "Current", deposit: 500 },
-];
-
-const vehicles = [
-  { resident: "Sarah Mitchell", unit: "3A", make: "Toyota", model: "Camry", year: 2023, color: "Silver", plate: "ABC-1234", spot: "P-12", permitExpiry: "Mar 1, 2026" },
-  { resident: "James Park", unit: "7B", make: "Honda", model: "CR-V", year: 2024, color: "White", plate: "DEF-5678", spot: "P-34", permitExpiry: "Jun 1, 2026" },
-  { resident: "Lisa Chen", unit: "2D", make: "Tesla", model: "Model 3", year: 2024, color: "Black", plate: "GHI-9012", spot: "P-07", permitExpiry: "Feb 28, 2026" },
-  { resident: "Marcus Johnson", unit: "4A", make: "Ford", model: "Explorer", year: 2022, color: "Blue", plate: "JKL-3456", spot: "P-21", permitExpiry: "Jan 15, 2026" },
-  { resident: "Marcus Johnson", unit: "4A", make: "Hyundai", model: "Tucson", year: 2023, color: "Gray", plate: "MNO-7890", spot: "P-22", permitExpiry: "Jan 15, 2026" },
-  { resident: "David Kim", unit: "8A", make: "BMW", model: "X3", year: 2023, color: "White", plate: "PQR-1234", spot: "P-45", permitExpiry: "Jul 1, 2026" },
-  { resident: "Kevin Williams", unit: "6C", make: "Chevrolet", model: "Equinox", year: 2021, color: "Red", plate: "STU-5678", spot: "P-38", permitExpiry: "Aug 1, 2026" },
-];
-
-const emergencyContacts = [
-  { resident: "Sarah Mitchell", unit: "3A", contactName: "Robert Mitchell", relationship: "Father", phone: "(555) 111-2222" },
-  { resident: "James Park", unit: "7B", contactName: "Yuna Park", relationship: "Mother", phone: "(555) 222-3333" },
-  { resident: "Lisa Chen", unit: "2D", contactName: "Wei Chen", relationship: "Brother", phone: "(555) 333-4444" },
-  { resident: "Marcus Johnson", unit: "4A", contactName: "Patricia Johnson", relationship: "Mother", phone: "(555) 444-5555" },
-  { resident: "Priya Patel", unit: "5C", contactName: "Amit Patel", relationship: "Father", phone: "(555) 555-6666" },
-  { resident: "David Kim", unit: "8A", contactName: "Soyeon Kim", relationship: "Sister", phone: "(555) 666-7777" },
-  { resident: "Rachel Torres", unit: "1B", contactName: "Maria Torres", relationship: "Mother", phone: "(555) 777-8888" },
-  { resident: "Kevin Williams", unit: "6C", contactName: "Diane Williams", relationship: "Mother", phone: "(555) 888-9999" },
-];
-
 const leaseStatusVariant: Record<string, "destructive" | "outline" | "secondary" | "default"> = {
   Active: "default",
   "Month-to-Month": "outline",
   "Notice Given": "destructive",
   Expired: "secondary",
+  active: "default",
+  expired: "secondary",
 };
 
 const paymentVariant: Record<string, "destructive" | "outline" | "secondary" | "default"> = {
@@ -110,14 +54,117 @@ const vaccinationVariant: Record<string, "destructive" | "outline" | "secondary"
   Expired: "destructive",
 };
 
+function derivePaymentHistory(paymentProbability: number | undefined | null): string {
+  if (paymentProbability == null) return "Fair";
+  if (paymentProbability > 0.9) return "Excellent";
+  if (paymentProbability > 0.7) return "Good";
+  return "Fair";
+}
+
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return "N/A";
+  try {
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return dateStr;
+  }
+}
+
+function KpiSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {[0, 1, 2, 3].map((i) => (
+        <Card key={i}>
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-4 w-4 rounded" />
+          </CardHeader>
+          <CardContent className="px-3 pb-3">
+            <Skeleton className="h-6 w-16 mb-1" />
+            <Skeleton className="h-3 w-20" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="p-3 space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex gap-4">
+          {Array.from({ length: cols }).map((_, j) => (
+            <Skeleton key={j} className="h-4 flex-1" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Residents() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredResidents = residents.filter((r) => {
+  const { data: residentsData, isLoading: residentsLoading, error: residentsError } = useQuery<any[]>({
+    queryKey: ['/api/residents'],
+  });
+
+  const { data: householdsData, isLoading: householdsLoading, error: householdsError } = useQuery<any[]>({
+    queryKey: ['/api/residents/households'],
+  });
+
+  const { data: petsData, isLoading: petsLoading, error: petsError } = useQuery<any[]>({
+    queryKey: ['/api/residents/pets'],
+  });
+
+  const { data: vehiclesData, isLoading: vehiclesLoading, error: vehiclesError } = useQuery<any[]>({
+    queryKey: ['/api/residents/vehicles'],
+  });
+
+  const { data: leasesData, isLoading: leasesLoading } = useQuery<any[]>({
+    queryKey: ['/api/leases'],
+  });
+
+  const residents = residentsData ?? [];
+  const households = householdsData ?? [];
+  const pets = petsData ?? [];
+  const vehicles = vehiclesData ?? [];
+  const leases = leasesData ?? [];
+
+  const isMainLoading = residentsLoading || leasesLoading;
+
+  const leaseByTenantId = new Map<string, any>();
+  leases.forEach((l: any) => {
+    if (l.tenantId) leaseByTenantId.set(l.tenantId, l);
+  });
+
+  const mappedResidents = residents.map((r: any) => {
+    const lease = leaseByTenantId.get(r.id);
+    return {
+      id: r.id,
+      name: r.name ?? "Unknown",
+      unit: lease?.unitNumber ?? "N/A",
+      leaseStatus: lease?.status ? (lease.status.charAt(0).toUpperCase() + lease.status.slice(1)) : "N/A",
+      moveIn: formatDate(lease?.startDate),
+      email: r.email ?? "",
+      phone: r.phone ?? "",
+      paymentHistory: derivePaymentHistory(r.paymentProbability),
+    };
+  });
+
+  const filteredResidents = mappedResidents.filter((r) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return r.name.toLowerCase().includes(q) || r.unit.toLowerCase().includes(q);
   });
+
+  const kpiCards = [
+    { title: "Total Residents", value: String(residents.length), change: `${residents.length} registered`, icon: Users },
+    { title: "Active Households", value: String(households.length), change: `${households.length > 0 ? (households.reduce((sum: number, h: any) => sum + (h.totalOccupants || 0), 0) / households.length).toFixed(1) : "0"} avg occupants`, icon: Home },
+    { title: "Pet Registrations", value: String(pets.length), change: `${residents.length > 0 ? Math.round((pets.length / residents.length) * 100) : 0}% of residents`, icon: PawPrint },
+    { title: "Vehicle Permits", value: String(vehicles.length), change: `${vehicles.length} registered`, icon: Car },
+  ];
 
   return (
     <div className="space-y-6" data-testid="page-residents">
@@ -154,22 +201,26 @@ export default function Residents() {
         metricLabel="Est. Impact"
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {kpiCards.map((card, index) => (
-          <Card key={card.title} className="hover-elevate" data-testid={`card-kpi-${index}`}>
-            <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground">{card.title}</CardTitle>
-              <card.icon className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="px-3 pb-3">
-              <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
-              <div className="flex items-center gap-1 text-xs mt-0.5 text-muted-foreground">
-                {card.change}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {isMainLoading ? (
+        <KpiSkeleton />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {kpiCards.map((card, index) => (
+            <Card key={card.title} className="hover-elevate" data-testid={`card-kpi-${index}`}>
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{card.title}</CardTitle>
+                <card.icon className="w-4 h-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="px-3 pb-3">
+                <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
+                <div className="flex items-center gap-1 text-xs mt-0.5 text-muted-foreground">
+                  {card.change}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
@@ -198,7 +249,6 @@ export default function Residents() {
           <TabsTrigger value="households" data-testid="tab-households">Households</TabsTrigger>
           <TabsTrigger value="pet-registry" data-testid="tab-pet-registry">Pet Registry</TabsTrigger>
           <TabsTrigger value="vehicle-registry" data-testid="tab-vehicle-registry">Vehicle Registry</TabsTrigger>
-          <TabsTrigger value="emergency-contacts" data-testid="tab-emergency-contacts">Emergency Contacts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all-residents" className="space-y-4">
@@ -212,56 +262,72 @@ export default function Residents() {
               <CardDescription>Complete resident listing with lease and payment status</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Name</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Lease Status</th>
-                      <th className="p-3 font-medium text-muted-foreground">Move-In</th>
-                      <th className="p-3 font-medium text-muted-foreground">Contact</th>
-                      <th className="p-3 font-medium text-muted-foreground">Payment History</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredResidents.map((r, idx) => (
-                      <tr key={idx} className="border-b last:border-0 hover-elevate" data-testid={`row-resident-${idx}`}>
-                        <td className="p-3 font-medium">{r.name}</td>
-                        <td className="p-3 text-muted-foreground">{r.unit}</td>
-                        <td className="p-3">
-                          <Badge variant={leaseStatusVariant[r.leaseStatus]} className="text-xs" data-testid={`badge-lease-status-${idx}`}>
-                            {r.leaseStatus}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            {r.moveIn}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Mail className="w-3 h-3" />
-                              {r.email}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Phone className="w-3 h-3" />
-                              {r.phone}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={paymentVariant[r.paymentHistory]} className="text-xs" data-testid={`badge-payment-${idx}`}>
-                            {r.paymentHistory}
-                          </Badge>
-                        </td>
+              {residentsError ? (
+                <div className="p-6 text-center text-destructive" data-testid="error-residents">
+                  <AlertTriangle className="w-5 h-5 mx-auto mb-2" />
+                  <p className="text-sm">Failed to load residents. Please try again.</p>
+                </div>
+              ) : residentsLoading || leasesLoading ? (
+                <TableSkeleton rows={6} cols={6} />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Name</th>
+                        <th className="p-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="p-3 font-medium text-muted-foreground">Lease Status</th>
+                        <th className="p-3 font-medium text-muted-foreground">Move-In</th>
+                        <th className="p-3 font-medium text-muted-foreground">Contact</th>
+                        <th className="p-3 font-medium text-muted-foreground">Payment History</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filteredResidents.map((r, idx) => (
+                        <tr key={r.id || idx} className="border-b last:border-0 hover-elevate" data-testid={`row-resident-${idx}`}>
+                          <td className="p-3 font-medium">{r.name}</td>
+                          <td className="p-3 text-muted-foreground">{r.unit}</td>
+                          <td className="p-3">
+                            <Badge variant={leaseStatusVariant[r.leaseStatus] ?? "outline"} className="text-xs" data-testid={`badge-lease-status-${idx}`}>
+                              {r.leaseStatus}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <CalendarDays className="w-3.5 h-3.5" />
+                              {r.moveIn}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Mail className="w-3 h-3" />
+                                {r.email}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Phone className="w-3 h-3" />
+                                {r.phone}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant={paymentVariant[r.paymentHistory] ?? "outline"} className="text-xs" data-testid={`badge-payment-${idx}`}>
+                              {r.paymentHistory}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredResidents.length === 0 && !residentsLoading && (
+                        <tr>
+                          <td colSpan={6} className="p-6 text-center text-muted-foreground">
+                            No residents found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -277,31 +343,42 @@ export default function Residents() {
               <CardDescription>Household groupings with all registered occupants</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {households.map((h, idx) => (
-                <div key={idx} className="p-4 border rounded-lg space-y-2" data-testid={`card-household-${idx}`}>
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold">{h.primary}</span>
-                      <Badge variant="outline" className="text-xs">Unit {h.unit}</Badge>
-                      <Badge variant="secondary" className="text-xs" data-testid={`badge-occupants-${idx}`}>
-                        <Users className="w-3 h-3 mr-1" />
-                        {h.totalOccupants} occupant{h.totalOccupants !== 1 ? "s" : ""}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Primary Leaseholder</span>
-                  </div>
-                  {h.occupants.length > 0 && (
-                    <div className="pl-4 space-y-1">
-                      {h.occupants.map((occ, oidx) => (
-                        <div key={oidx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{occ.name}</span>
-                          <Badge variant="outline" className="text-[10px]">{occ.relationship}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              {householdsError ? (
+                <div className="p-6 text-center text-destructive" data-testid="error-households">
+                  <AlertTriangle className="w-5 h-5 mx-auto mb-2" />
+                  <p className="text-sm">Failed to load households. Please try again.</p>
                 </div>
-              ))}
+              ) : householdsLoading ? (
+                <TableSkeleton rows={4} cols={3} />
+              ) : households.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">No households found</div>
+              ) : (
+                households.map((h: any, idx: number) => (
+                  <div key={h.tenantId || idx} className="p-4 border rounded-lg space-y-2" data-testid={`card-household-${idx}`}>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold">{h.primary}</span>
+                        <Badge variant="secondary" className="text-xs" data-testid={`badge-occupants-${idx}`}>
+                          <Users className="w-3 h-3 mr-1" />
+                          {h.totalOccupants} occupant{h.totalOccupants !== 1 ? "s" : ""}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">Primary Leaseholder</span>
+                    </div>
+                    {h.members && h.members.length > 0 && (
+                      <div className="pl-4 space-y-1">
+                        {h.members.map((occ: any, oidx: number) => (
+                          <div key={oidx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>{occ.name}</span>
+                            <Badge variant="outline" className="text-[10px]">{occ.relationship}</Badge>
+                            {occ.isMinor && <Badge variant="outline" className="text-[10px]">Minor</Badge>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -317,42 +394,57 @@ export default function Residents() {
               <CardDescription>Registered pets with vaccination status and deposit tracking</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Owner</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Type</th>
-                      <th className="p-3 font-medium text-muted-foreground">Breed</th>
-                      <th className="p-3 font-medium text-muted-foreground">Name</th>
-                      <th className="p-3 font-medium text-muted-foreground">Weight</th>
-                      <th className="p-3 font-medium text-muted-foreground">Vaccination</th>
-                      <th className="p-3 font-medium text-muted-foreground">Pet Deposit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pets.map((pet, idx) => (
-                      <tr key={idx} className="border-b last:border-0 hover-elevate" data-testid={`row-pet-${idx}`}>
-                        <td className="p-3 font-medium">{pet.owner}</td>
-                        <td className="p-3 text-muted-foreground">{pet.unit}</td>
-                        <td className="p-3 text-muted-foreground">{pet.type}</td>
-                        <td className="p-3 text-muted-foreground">{pet.breed}</td>
-                        <td className="p-3 font-medium">{pet.name}</td>
-                        <td className="p-3 text-muted-foreground">{pet.weight}</td>
-                        <td className="p-3">
-                          <Badge variant={vaccinationVariant[pet.vaccination]} className="text-xs" data-testid={`badge-vaccination-${idx}`}>
-                            {pet.vaccination === "Current" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                            {pet.vaccination === "Expired" && <AlertTriangle className="w-3 h-3 mr-1" />}
-                            {pet.vaccination}
-                          </Badge>
-                        </td>
-                        <td className="p-3 font-mono tabular-nums">${pet.deposit}</td>
+              {petsError ? (
+                <div className="p-6 text-center text-destructive" data-testid="error-pets">
+                  <AlertTriangle className="w-5 h-5 mx-auto mb-2" />
+                  <p className="text-sm">Failed to load pet registrations. Please try again.</p>
+                </div>
+              ) : petsLoading ? (
+                <TableSkeleton rows={5} cols={8} />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Owner</th>
+                        <th className="p-3 font-medium text-muted-foreground">Type</th>
+                        <th className="p-3 font-medium text-muted-foreground">Breed</th>
+                        <th className="p-3 font-medium text-muted-foreground">Name</th>
+                        <th className="p-3 font-medium text-muted-foreground">Weight</th>
+                        <th className="p-3 font-medium text-muted-foreground">Vaccination</th>
+                        <th className="p-3 font-medium text-muted-foreground">Deposit</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {pets.map((pet: any, idx: number) => {
+                        const vaccStatus = pet.vaccinated ? "Current" : "Expired";
+                        return (
+                          <tr key={pet.id || idx} className="border-b last:border-0 hover-elevate" data-testid={`row-pet-${idx}`}>
+                            <td className="p-3 font-medium">{pet.ownerName ?? "Unknown"}</td>
+                            <td className="p-3 text-muted-foreground">{pet.species ?? "N/A"}</td>
+                            <td className="p-3 text-muted-foreground">{pet.breed ?? "N/A"}</td>
+                            <td className="p-3 font-medium">{pet.name}</td>
+                            <td className="p-3 text-muted-foreground">{pet.weight ? `${pet.weight} lbs` : "N/A"}</td>
+                            <td className="p-3">
+                              <Badge variant={vaccinationVariant[vaccStatus]} className="text-xs" data-testid={`badge-vaccination-${idx}`}>
+                                {vaccStatus === "Current" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                                {vaccStatus === "Expired" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                                {vaccStatus}
+                              </Badge>
+                            </td>
+                            <td className="p-3 font-mono tabular-nums">{pet.depositPaid ? "Paid" : "Unpaid"}</td>
+                          </tr>
+                        );
+                      })}
+                      {pets.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="p-6 text-center text-muted-foreground">No pets registered</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -368,87 +460,59 @@ export default function Residents() {
               <CardDescription>Registered vehicles with parking assignments and permit status</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Resident</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Vehicle</th>
-                      <th className="p-3 font-medium text-muted-foreground">Color</th>
-                      <th className="p-3 font-medium text-muted-foreground">License Plate</th>
-                      <th className="p-3 font-medium text-muted-foreground">Parking Spot</th>
-                      <th className="p-3 font-medium text-muted-foreground">Permit Expiry</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vehicles.map((v, idx) => (
-                      <tr key={idx} className="border-b last:border-0 hover-elevate" data-testid={`row-vehicle-${idx}`}>
-                        <td className="p-3 font-medium">{v.resident}</td>
-                        <td className="p-3 text-muted-foreground">{v.unit}</td>
-                        <td className="p-3 text-muted-foreground">{v.year} {v.make} {v.model}</td>
-                        <td className="p-3 text-muted-foreground">{v.color}</td>
-                        <td className="p-3 font-mono text-xs">{v.plate}</td>
-                        <td className="p-3">
-                          <Badge variant="outline" className="text-xs">{v.spot}</Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            {v.permitExpiry}
-                          </div>
-                        </td>
+              {vehiclesError ? (
+                <div className="p-6 text-center text-destructive" data-testid="error-vehicles">
+                  <AlertTriangle className="w-5 h-5 mx-auto mb-2" />
+                  <p className="text-sm">Failed to load vehicle permits. Please try again.</p>
+                </div>
+              ) : vehiclesLoading ? (
+                <TableSkeleton rows={5} cols={7} />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Resident</th>
+                        <th className="p-3 font-medium text-muted-foreground">Vehicle</th>
+                        <th className="p-3 font-medium text-muted-foreground">Color</th>
+                        <th className="p-3 font-medium text-muted-foreground">License Plate</th>
+                        <th className="p-3 font-medium text-muted-foreground">Parking Spot</th>
+                        <th className="p-3 font-medium text-muted-foreground">Permit Status</th>
+                        <th className="p-3 font-medium text-muted-foreground">Permit Expiry</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="emergency-contacts" className="space-y-4">
-          <Card data-testid="card-emergency-contacts">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Phone className="w-5 h-5 text-primary" />
-                <CardTitle>Emergency Contacts</CardTitle>
-                <Badge variant="secondary" className="text-xs">{emergencyContacts.length} contacts</Badge>
-              </div>
-              <CardDescription>Emergency contact information for all registered residents</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Resident</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Contact Name</th>
-                      <th className="p-3 font-medium text-muted-foreground">Relationship</th>
-                      <th className="p-3 font-medium text-muted-foreground">Phone</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {emergencyContacts.map((ec, idx) => (
-                      <tr key={idx} className="border-b last:border-0 hover-elevate" data-testid={`row-emergency-${idx}`}>
-                        <td className="p-3 font-medium">{ec.resident}</td>
-                        <td className="p-3 text-muted-foreground">{ec.unit}</td>
-                        <td className="p-3 font-medium">{ec.contactName}</td>
-                        <td className="p-3">
-                          <Badge variant="outline" className="text-xs">{ec.relationship}</Badge>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Phone className="w-3 h-3" />
-                            {ec.phone}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {vehicles.map((v: any, idx: number) => (
+                        <tr key={v.id || idx} className="border-b last:border-0 hover-elevate" data-testid={`row-vehicle-${idx}`}>
+                          <td className="p-3 font-medium">{v.ownerName ?? "Unknown"}</td>
+                          <td className="p-3 text-muted-foreground">{v.year} {v.make} {v.model}</td>
+                          <td className="p-3 text-muted-foreground">{v.color}</td>
+                          <td className="p-3 font-mono text-xs">{v.licensePlate}</td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="text-xs">{v.parkingSpace ?? "N/A"}</Badge>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant={v.permitStatus === "active" ? "default" : "outline"} className="text-xs" data-testid={`badge-permit-status-${idx}`}>
+                              {v.permitStatus ? (v.permitStatus.charAt(0).toUpperCase() + v.permitStatus.slice(1)) : "N/A"}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <CalendarDays className="w-3.5 h-3.5" />
+                              {formatDate(v.permitExpiry)}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {vehicles.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="p-6 text-center text-muted-foreground">No vehicles registered</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

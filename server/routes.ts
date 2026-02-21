@@ -4069,6 +4069,170 @@ Guidelines:
     }
   });
 
+  // ====== PHASE 2: LEASE MANAGEMENT API ======
+
+  app.get("/api/leases", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const result = await storage.getLeasesByOrg(orgId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/leases/:id", requireAuth, async (req, res) => {
+    try {
+      const updated = await storage.updateLease(req.params.id, req.body);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/lease-violations", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const violations = await storage.getLeaseViolationsByOrg(orgId);
+      res.json(violations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 2: UNITS API ======
+
+  app.get("/api/units", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const result = await storage.getUnitsByOrg(orgId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/units/:id", requireAuth, async (req, res) => {
+    try {
+      const updated = await storage.updateUnit(req.params.id, req.body);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/unit-turns", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const turns = await storage.getUnitTurnsByOrg(orgId);
+      res.json(turns);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 2: MAINTENANCE API ======
+
+  app.get("/api/maintenance/work-orders", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const { status, category, priority } = req.query;
+      const filters: any = {};
+      if (status) filters.status = status;
+      if (category) filters.category = category;
+      if (priority) filters.priority = priority;
+      const orders = await storage.getWorkOrdersByOrg(orgId, filters);
+      res.json(orders);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/maintenance/work-orders/:id", requireAuth, async (req, res) => {
+    try {
+      const updated = await storage.updateWorkOrder(req.params.id, req.body);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/maintenance/preventive", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const tasks = await storage.getPreventiveTasksByOrg(orgId);
+      res.json(tasks);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 2: RESIDENTS API ======
+
+  app.get("/api/residents", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const residents = await storage.getResidentsByOrg(orgId);
+      res.json(residents);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/residents/households", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const tenantsList = await storage.getTenantsByOrg(orgId);
+      const households = await Promise.all(tenantsList.map(async (t) => {
+        const members = await storage.getHouseholdMembersByTenant(t.id);
+        return { tenantId: t.id, primary: t.name, members, totalOccupants: members.length + 1 };
+      }));
+      res.json(households);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/residents/pets", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const pets = await storage.getPetsByOrg(orgId);
+      res.json(pets);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/residents/vehicles", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      const orgId = user?.organizationId;
+      if (!orgId) return res.json([]);
+      const vehicles = await storage.getVehiclesByOrg(orgId);
+      res.json(vehicles);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

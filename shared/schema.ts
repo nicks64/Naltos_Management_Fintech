@@ -77,6 +77,14 @@ export const units = pgTable("units", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   propertyId: varchar("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
   unitNumber: text("unit_number").notNull(),
+  building: text("building"),
+  floor: integer("floor"),
+  unitType: text("unit_type"),
+  sqft: integer("sqft"),
+  bedrooms: integer("bedrooms"),
+  bathrooms: integer("bathrooms"),
+  marketRent: decimal("market_rent", { precision: 10, scale: 2 }),
+  status: text("status").default("occupied"),
 });
 
 // Tenants
@@ -100,6 +108,15 @@ export const leases = pgTable("leases", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date"),
   active: boolean("active").default(true).notNull(),
+  status: text("status").default("active"),
+  renewalProbability: decimal("renewal_probability", { precision: 3, scale: 2 }),
+  renewalOfferStatus: text("renewal_offer_status"),
+  renewalAdjustment: decimal("renewal_adjustment", { precision: 10, scale: 2 }),
+  proposedRent: decimal("proposed_rent", { precision: 10, scale: 2 }),
+  rentIncreaseDate: timestamp("rent_increase_date"),
+  rentIncreaseAmount: decimal("rent_increase_amount", { precision: 10, scale: 2 }),
+  rentIncreaseStatus: text("rent_increase_status"),
+  noticeDate: timestamp("notice_date"),
 });
 
 // Invoices
@@ -1624,3 +1641,136 @@ export type DisputePriority = "critical" | "high" | "medium" | "low";
 export type ConsentAction = "granted" | "revoked" | "updated";
 export type ConsentStatus = "active" | "revoked" | "expired";
 export type ActivityEventType = "dispute_filed" | "dispute_updated" | "dispute_resolved" | "dispute_escalated" | "lead_assigned" | "lead_converted" | "lead_declined" | "consent_granted" | "consent_revoked" | "partner_data_accessed" | "compliance_renewed" | "compliance_expiring" | "payment_received" | "payment_overdue" | "general";
+
+// ====== PHASE 2: PROPERTY CRM — MAINTENANCE, UNITS, LEASES, RESIDENTS ======
+
+export const maintenanceWorkOrders = pgTable("maintenance_work_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "set null" }),
+  vendorId: varchar("vendor_id").references(() => vendors.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  priority: text("priority").notNull().default("medium"),
+  status: text("status").notNull().default("open"),
+  assignedTo: text("assigned_to"),
+  tenantName: text("tenant_name"),
+  unitNumber: text("unit_number"),
+  vendorName: text("vendor_name"),
+  slaDueAt: timestamp("sla_due_at"),
+  completedAt: timestamp("completed_at"),
+  aiFlag: text("ai_flag"),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const maintenancePreventiveTasks = pgTable("maintenance_preventive_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "set null" }),
+  task: text("task").notNull(),
+  category: text("category").notNull(),
+  frequency: text("frequency").notNull(),
+  nextDueDate: timestamp("next_due_date"),
+  lastCompletedDate: timestamp("last_completed_date"),
+  complianceRate: integer("compliance_rate").default(100),
+  vendorName: text("vendor_name"),
+  status: text("status").default("on_schedule"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const unitTurns = pgTable("unit_turns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  unitNumber: text("unit_number").notNull(),
+  moveOutDate: timestamp("move_out_date"),
+  stage: text("stage").notNull().default("inspection"),
+  status: text("status").notNull().default("in_progress"),
+  daysInProcess: integer("days_in_process").default(0),
+  targetDays: integer("target_days").default(14),
+  progress: integer("progress").default(0),
+  targetDate: timestamp("target_date"),
+  assignedVendor: text("assigned_vendor"),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const leaseViolations = pgTable("lease_violations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leaseId: varchar("lease_id").notNull().references(() => leases.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  tenantName: text("tenant_name").notNull(),
+  unitNumber: text("unit_number").notNull(),
+  type: text("type").notNull(),
+  description: text("description"),
+  severity: text("severity").notNull().default("minor"),
+  status: text("status").notNull().default("open"),
+  noticeSent: boolean("notice_sent").default(false),
+  noticeDate: timestamp("notice_date"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tenantHouseholdMembers = pgTable("tenant_household_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  relationship: text("relationship").notNull(),
+  isMinor: boolean("is_minor").default(false),
+});
+
+export const tenantPets = pgTable("tenant_pets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  species: text("species").notNull(),
+  breed: text("breed"),
+  weight: integer("weight"),
+  vaccinated: boolean("vaccinated").default(false),
+  depositPaid: decimal("deposit_paid", { precision: 10, scale: 2 }),
+  registeredAt: timestamp("registered_at").defaultNow(),
+});
+
+export const tenantVehicles = pgTable("tenant_vehicles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  make: text("make").notNull(),
+  model: text("model").notNull(),
+  year: integer("year"),
+  color: text("color"),
+  licensePlate: text("license_plate").notNull(),
+  parkingSpace: text("parking_space"),
+  permitStatus: text("permit_status").default("active"),
+  permitExpiry: timestamp("permit_expiry"),
+});
+
+// Phase 2 Insert Schemas
+export const insertMaintenanceWorkOrderSchema = createInsertSchema(maintenanceWorkOrders).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertMaintenancePreventiveTaskSchema = createInsertSchema(maintenancePreventiveTasks).omit({ id: true, createdAt: true });
+export const insertUnitTurnSchema = createInsertSchema(unitTurns).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertLeaseViolationSchema = createInsertSchema(leaseViolations).omit({ id: true, createdAt: true });
+export const insertTenantHouseholdMemberSchema = createInsertSchema(tenantHouseholdMembers).omit({ id: true });
+export const insertTenantPetSchema = createInsertSchema(tenantPets).omit({ id: true, registeredAt: true });
+export const insertTenantVehicleSchema = createInsertSchema(tenantVehicles).omit({ id: true });
+
+// Phase 2 Types
+export type MaintenanceWorkOrder = typeof maintenanceWorkOrders.$inferSelect;
+export type InsertMaintenanceWorkOrder = z.infer<typeof insertMaintenanceWorkOrderSchema>;
+export type MaintenancePreventiveTask = typeof maintenancePreventiveTasks.$inferSelect;
+export type InsertMaintenancePreventiveTask = z.infer<typeof insertMaintenancePreventiveTaskSchema>;
+export type UnitTurn = typeof unitTurns.$inferSelect;
+export type InsertUnitTurn = z.infer<typeof insertUnitTurnSchema>;
+export type LeaseViolation = typeof leaseViolations.$inferSelect;
+export type InsertLeaseViolation = z.infer<typeof insertLeaseViolationSchema>;
+export type TenantHouseholdMember = typeof tenantHouseholdMembers.$inferSelect;
+export type InsertTenantHouseholdMember = z.infer<typeof insertTenantHouseholdMemberSchema>;
+export type TenantPet = typeof tenantPets.$inferSelect;
+export type InsertTenantPet = z.infer<typeof insertTenantPetSchema>;
+export type TenantVehicle = typeof tenantVehicles.$inferSelect;
+export type InsertTenantVehicle = z.infer<typeof insertTenantVehicleSchema>;

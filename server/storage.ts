@@ -103,6 +103,27 @@ import {
   type InsertPartnerAccessLog,
   type ActivityEvent,
   type InsertActivityEvent,
+  maintenanceWorkOrders,
+  maintenancePreventiveTasks,
+  unitTurns,
+  leaseViolations,
+  tenantHouseholdMembers,
+  tenantPets,
+  tenantVehicles,
+  type MaintenanceWorkOrder,
+  type InsertMaintenanceWorkOrder,
+  type MaintenancePreventiveTask,
+  type InsertMaintenancePreventiveTask,
+  type UnitTurn,
+  type InsertUnitTurn,
+  type LeaseViolation,
+  type InsertLeaseViolation,
+  type TenantHouseholdMember,
+  type InsertTenantHouseholdMember,
+  type TenantPet,
+  type InsertTenantPet,
+  type TenantVehicle,
+  type InsertTenantVehicle,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lt, gte, sql, sum, inArray, isNotNull } from "drizzle-orm";
@@ -315,6 +336,43 @@ export interface IStorage {
   // Activity Event methods
   getActivityEvents(organizationId: string, filters?: { eventType?: string; limit?: number }): Promise<ActivityEvent[]>;
   createActivityEvent(data: InsertActivityEvent): Promise<ActivityEvent>;
+
+  // Phase 2: Maintenance Work Orders
+  getWorkOrdersByOrg(organizationId: string, filters?: { status?: string; category?: string; priority?: string }): Promise<MaintenanceWorkOrder[]>;
+  createWorkOrder(data: InsertMaintenanceWorkOrder): Promise<MaintenanceWorkOrder>;
+  updateWorkOrder(id: string, updates: Partial<MaintenanceWorkOrder>): Promise<MaintenanceWorkOrder>;
+
+  // Phase 2: Preventive Maintenance
+  getPreventiveTasksByOrg(organizationId: string): Promise<MaintenancePreventiveTask[]>;
+  createPreventiveTask(data: InsertMaintenancePreventiveTask): Promise<MaintenancePreventiveTask>;
+
+  // Phase 2: Unit Turns
+  getUnitTurnsByOrg(organizationId: string): Promise<UnitTurn[]>;
+  createUnitTurn(data: InsertUnitTurn): Promise<UnitTurn>;
+  updateUnitTurn(id: string, updates: Partial<UnitTurn>): Promise<UnitTurn>;
+
+  // Phase 2: Lease Violations
+  getLeaseViolationsByOrg(organizationId: string): Promise<LeaseViolation[]>;
+  createLeaseViolation(data: InsertLeaseViolation): Promise<LeaseViolation>;
+
+  // Phase 2: Leases (extended)
+  getLeasesByOrg(organizationId: string): Promise<any[]>;
+  updateLease(id: string, updates: Partial<Lease>): Promise<Lease>;
+
+  // Phase 2: Units (extended)
+  getUnitsByOrg(organizationId: string): Promise<any[]>;
+  updateUnit(id: string, updates: Partial<Unit>): Promise<Unit>;
+
+  // Phase 2: Residents (with household, pets, vehicles)
+  getResidentsByOrg(organizationId: string): Promise<any[]>;
+  getHouseholdMembersByTenant(tenantId: string): Promise<TenantHouseholdMember[]>;
+  createHouseholdMember(data: InsertTenantHouseholdMember): Promise<TenantHouseholdMember>;
+  getPetsByTenant(tenantId: string): Promise<TenantPet[]>;
+  getPetsByOrg(organizationId: string): Promise<TenantPet[]>;
+  createPet(data: InsertTenantPet): Promise<TenantPet>;
+  getVehiclesByTenant(tenantId: string): Promise<TenantVehicle[]>;
+  getVehiclesByOrg(organizationId: string): Promise<TenantVehicle[]>;
+  createVehicle(data: InsertTenantVehicle): Promise<TenantVehicle>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2376,6 +2434,221 @@ export class DatabaseStorage implements IStorage {
   async createActivityEvent(data: InsertActivityEvent): Promise<ActivityEvent> {
     const [event] = await db.insert(activityEvents).values(data).returning();
     return event;
+  }
+
+  // ====== PHASE 2: MAINTENANCE WORK ORDERS ======
+
+  async getWorkOrdersByOrg(organizationId: string, filters?: { status?: string; category?: string; priority?: string }): Promise<MaintenanceWorkOrder[]> {
+    let conditions = [eq(maintenanceWorkOrders.organizationId, organizationId)];
+    if (filters?.status) conditions.push(eq(maintenanceWorkOrders.status, filters.status));
+    if (filters?.category) conditions.push(eq(maintenanceWorkOrders.category, filters.category));
+    if (filters?.priority) conditions.push(eq(maintenanceWorkOrders.priority, filters.priority));
+    return db.select().from(maintenanceWorkOrders).where(and(...conditions)).orderBy(desc(maintenanceWorkOrders.createdAt));
+  }
+
+  async createWorkOrder(data: InsertMaintenanceWorkOrder): Promise<MaintenanceWorkOrder> {
+    const [wo] = await db.insert(maintenanceWorkOrders).values(data).returning();
+    return wo;
+  }
+
+  async updateWorkOrder(id: string, updates: Partial<MaintenanceWorkOrder>): Promise<MaintenanceWorkOrder> {
+    const [updated] = await db.update(maintenanceWorkOrders).set({ ...updates, updatedAt: new Date() }).where(eq(maintenanceWorkOrders.id, id)).returning();
+    return updated;
+  }
+
+  // ====== PHASE 2: PREVENTIVE MAINTENANCE ======
+
+  async getPreventiveTasksByOrg(organizationId: string): Promise<MaintenancePreventiveTask[]> {
+    return db.select().from(maintenancePreventiveTasks).where(eq(maintenancePreventiveTasks.organizationId, organizationId)).orderBy(maintenancePreventiveTasks.nextDueDate);
+  }
+
+  async createPreventiveTask(data: InsertMaintenancePreventiveTask): Promise<MaintenancePreventiveTask> {
+    const [task] = await db.insert(maintenancePreventiveTasks).values(data).returning();
+    return task;
+  }
+
+  // ====== PHASE 2: UNIT TURNS ======
+
+  async getUnitTurnsByOrg(organizationId: string): Promise<UnitTurn[]> {
+    return db.select().from(unitTurns).where(eq(unitTurns.organizationId, organizationId)).orderBy(desc(unitTurns.createdAt));
+  }
+
+  async createUnitTurn(data: InsertUnitTurn): Promise<UnitTurn> {
+    const [turn] = await db.insert(unitTurns).values(data).returning();
+    return turn;
+  }
+
+  async updateUnitTurn(id: string, updates: Partial<UnitTurn>): Promise<UnitTurn> {
+    const [updated] = await db.update(unitTurns).set({ ...updates, updatedAt: new Date() }).where(eq(unitTurns.id, id)).returning();
+    return updated;
+  }
+
+  // ====== PHASE 2: LEASE VIOLATIONS ======
+
+  async getLeaseViolationsByOrg(organizationId: string): Promise<LeaseViolation[]> {
+    return db.select().from(leaseViolations).where(eq(leaseViolations.organizationId, organizationId)).orderBy(desc(leaseViolations.createdAt));
+  }
+
+  async createLeaseViolation(data: InsertLeaseViolation): Promise<LeaseViolation> {
+    const [violation] = await db.insert(leaseViolations).values(data).returning();
+    return violation;
+  }
+
+  // ====== PHASE 2: LEASES (EXTENDED) ======
+
+  async getLeasesByOrg(organizationId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        id: leases.id,
+        unitId: leases.unitId,
+        tenantId: leases.tenantId,
+        monthlyRent: leases.monthlyRent,
+        startDate: leases.startDate,
+        endDate: leases.endDate,
+        active: leases.active,
+        status: leases.status,
+        renewalProbability: leases.renewalProbability,
+        renewalOfferStatus: leases.renewalOfferStatus,
+        renewalAdjustment: leases.renewalAdjustment,
+        proposedRent: leases.proposedRent,
+        rentIncreaseDate: leases.rentIncreaseDate,
+        rentIncreaseAmount: leases.rentIncreaseAmount,
+        rentIncreaseStatus: leases.rentIncreaseStatus,
+        noticeDate: leases.noticeDate,
+        tenantName: tenants.name,
+        tenantEmail: tenants.email,
+        unitNumber: units.unitNumber,
+        building: units.building,
+        propertyId: units.propertyId,
+      })
+      .from(leases)
+      .leftJoin(tenants, eq(leases.tenantId, tenants.id))
+      .leftJoin(units, eq(leases.unitId, units.id))
+      .innerJoin(properties, eq(units.propertyId, properties.id))
+      .where(eq(properties.organizationId, organizationId))
+      .orderBy(desc(leases.startDate));
+    return result;
+  }
+
+  async updateLease(id: string, updates: Partial<Lease>): Promise<Lease> {
+    const [updated] = await db.update(leases).set(updates).where(eq(leases.id, id)).returning();
+    return updated;
+  }
+
+  // ====== PHASE 2: UNITS (EXTENDED) ======
+
+  async getUnitsByOrg(organizationId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        id: units.id,
+        propertyId: units.propertyId,
+        unitNumber: units.unitNumber,
+        building: units.building,
+        floor: units.floor,
+        unitType: units.unitType,
+        sqft: units.sqft,
+        bedrooms: units.bedrooms,
+        bathrooms: units.bathrooms,
+        marketRent: units.marketRent,
+        status: units.status,
+        propertyName: properties.name,
+      })
+      .from(units)
+      .innerJoin(properties, eq(units.propertyId, properties.id))
+      .where(eq(properties.organizationId, organizationId))
+      .orderBy(units.building, units.unitNumber);
+    return result;
+  }
+
+  async updateUnit(id: string, updates: Partial<Unit>): Promise<Unit> {
+    const [updated] = await db.update(units).set(updates).where(eq(units.id, id)).returning();
+    return updated;
+  }
+
+  // ====== PHASE 2: RESIDENTS ======
+
+  async getResidentsByOrg(organizationId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        email: tenants.email,
+        phone: tenants.phone,
+        riskScore: tenants.riskScore,
+        paymentProbability: tenants.paymentProbability,
+      })
+      .from(tenants)
+      .where(eq(tenants.organizationId, organizationId))
+      .orderBy(tenants.name);
+    return result;
+  }
+
+  async getHouseholdMembersByTenant(tenantId: string): Promise<TenantHouseholdMember[]> {
+    return db.select().from(tenantHouseholdMembers).where(eq(tenantHouseholdMembers.tenantId, tenantId));
+  }
+
+  async createHouseholdMember(data: InsertTenantHouseholdMember): Promise<TenantHouseholdMember> {
+    const [member] = await db.insert(tenantHouseholdMembers).values(data).returning();
+    return member;
+  }
+
+  async getPetsByTenant(tenantId: string): Promise<TenantPet[]> {
+    return db.select().from(tenantPets).where(eq(tenantPets.tenantId, tenantId));
+  }
+
+  async getPetsByOrg(organizationId: string): Promise<TenantPet[]> {
+    const result = await db
+      .select({
+        id: tenantPets.id,
+        tenantId: tenantPets.tenantId,
+        name: tenantPets.name,
+        species: tenantPets.species,
+        breed: tenantPets.breed,
+        weight: tenantPets.weight,
+        vaccinated: tenantPets.vaccinated,
+        depositPaid: tenantPets.depositPaid,
+        registeredAt: tenantPets.registeredAt,
+        ownerName: tenants.name,
+      })
+      .from(tenantPets)
+      .innerJoin(tenants, eq(tenantPets.tenantId, tenants.id))
+      .where(eq(tenants.organizationId, organizationId));
+    return result as any;
+  }
+
+  async createPet(data: InsertTenantPet): Promise<TenantPet> {
+    const [pet] = await db.insert(tenantPets).values(data).returning();
+    return pet;
+  }
+
+  async getVehiclesByTenant(tenantId: string): Promise<TenantVehicle[]> {
+    return db.select().from(tenantVehicles).where(eq(tenantVehicles.tenantId, tenantId));
+  }
+
+  async getVehiclesByOrg(organizationId: string): Promise<TenantVehicle[]> {
+    const result = await db
+      .select({
+        id: tenantVehicles.id,
+        tenantId: tenantVehicles.tenantId,
+        make: tenantVehicles.make,
+        model: tenantVehicles.model,
+        year: tenantVehicles.year,
+        color: tenantVehicles.color,
+        licensePlate: tenantVehicles.licensePlate,
+        parkingSpace: tenantVehicles.parkingSpace,
+        permitStatus: tenantVehicles.permitStatus,
+        permitExpiry: tenantVehicles.permitExpiry,
+        ownerName: tenants.name,
+      })
+      .from(tenantVehicles)
+      .innerJoin(tenants, eq(tenantVehicles.tenantId, tenants.id))
+      .where(eq(tenants.organizationId, organizationId));
+    return result as any;
+  }
+
+  async createVehicle(data: InsertTenantVehicle): Promise<TenantVehicle> {
+    const [vehicle] = await db.insert(tenantVehicles).values(data).returning();
+    return vehicle;
   }
 }
 
