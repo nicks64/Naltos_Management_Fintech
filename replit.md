@@ -141,6 +141,15 @@ HVAC, plumbing, electrical, general contractors, landscaping/grounds, pest contr
 - **Payment Rails**: ACH, cards, existing PMS integrations (stablecoin rails as future backend infrastructure)
 
 ## Recent Changes
+- **Feb 2026**: Phase 2 — Database-backed Property CRM pages
+  - 4 core pages rewired from mock data to real database: Lease Management, Units, Maintenance Hub, Residents
+  - 7 new database tables: maintenance_work_orders, maintenance_preventive_tasks, unit_turns, lease_violations, tenant_household_members, tenant_pets, tenant_vehicles
+  - Extended units table (building, floor, unitType, sqft, bedrooms, bathrooms, marketRent) and leases table (renewalProbability, renewalOfferStatus, rentIncreaseAmount, etc.)
+  - 21 new storage methods with JOIN queries for cross-entity lookups
+  - API routes: /api/leases, /api/units, /api/maintenance/work-orders, /api/maintenance/preventive, /api/unit-turns, /api/lease-violations, /api/residents, /api/residents/households, /api/residents/pets, /api/residents/vehicles
+  - Seed data: 290 enriched units, 120 enriched leases, 17 work orders, 10 preventive tasks, 8 unit turns, 6 violations, 12 household members, 10 pets, 12 vehicles
+  - Frontend pages use TanStack Query with loading skeletons, error states, and dynamic KPI computation
+- **Feb 2026**: Phase 1 — Database-backed Partner Portal, Dispute Center, Tenant Privacy (10 tables, API routes, seed data)
 - **Feb 2026**: Phase 0 Blueprint Implementation — Platform architecture aligned with production-grade blueprint
   - Partner Portal: New standalone portal for insurance, mortgage, and investment partners with 6 tabs (Dashboard, Leads, Compliance, Data Access, Analytics, Settings)
   - Partner Login: Magic-link authentication flow for partner users at /partner-login
