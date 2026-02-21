@@ -67,6 +67,7 @@ The business console sidebar is organized into these groups:
 
 ### Compliance & Legal (tag: LEGAL)
 - Compliance & Legal (`/compliance`) — Fair housing, evictions, legal notices, regulatory inspections, ADA compliance
+- Dispute Center (`/disputes`) — Rent disputes, vendor invoice disputes, merchant transaction disputes, resolution workflows
 
 ### Asset Performance (tag: OPS)
 - Portfolio Overview (`/portfolio`) — Multi-property dashboard, NOI benchmarking, property comparison, watchlist
@@ -85,7 +86,8 @@ The business console sidebar is organized into these groups:
 ### Standalone Portals
 - **Vendor Portal** (`/vendor-portal`) — Tabs: Dashboard, Work Orders, Documents, Financials, Yield, Messages, Bids & Proposals
 - **Merchant Portal** (`/merchant-portal`) — Tabs: Dashboard, Sales, Promotions, Events, Loyalty, Financials, Yield, Settings
-- **Tenant Portal** (`/tenant/*`) — Home, wallet, payment calendar, merchants, credit builder, P2P transfers, rental insurance, lease review, financial hub, reports, settings
+- **Partner Portal** (`/partner-portal`) — Tabs: Dashboard, Leads & Referrals, Compliance & Licensing, Data Access, Analytics & Reporting, Settings
+- **Tenant Portal** (`/tenant/*`) — Home, wallet, payment calendar, merchants, credit builder, P2P transfers, rental insurance, lease review, financial hub, reports, privacy & consent, settings
 
 ## Technical Architecture
 
@@ -103,7 +105,7 @@ The business console sidebar is organized into these groups:
 ### Core Patterns
 - **Agentic-first UI**: AgentCommandCenter, AINudgeCard, AgentInsightStrip embedded across all portals
 - **Dual-sided interface**: Business Console (grouped sidebar) and standalone portals (Tenant, Vendor, Merchant)
-- **Role-based routing**: Admin, PropertyManager, CFO, Analyst, Tenant, Vendor, Merchant
+- **Role-based routing**: Admin, PropertyManager, CFO, Analyst, Tenant, Vendor, Merchant, Partner
 - **Multi-tenancy**: Organization-based isolation with per-org settings
 - **RBAC**: Comprehensive role-based access control per page (defined in `client/src/lib/rbac.tsx`)
 - **NUSD**: Internal accounting unit (1 NUSD = $1 treasury value), never exposed to users
@@ -122,9 +124,11 @@ The business console sidebar is organized into these groups:
 ### All Page Files
 - **Property CRM**: lease-management.tsx, residents.tsx, move-in-out.tsx, units.tsx, maintenance.tsx, communications.tsx, applications.tsx, marketing.tsx, community.tsx
 - **Property Operations**: inspections.tsx, amenities.tsx, parking.tsx, packages.tsx, access-control.tsx, safety.tsx, pest-control.tsx, utilities.tsx
-- **Compliance**: compliance.tsx
+- **Compliance & Legal**: compliance.tsx, disputes.tsx
 - **Financial**: budgeting.tsx, accounts.tsx, procurement.tsx
 - **Asset Performance**: portfolio.tsx, capital-projects.tsx
+- **Partner Portal**: partner-portal.tsx, partner-login.tsx
+- **Tenant Privacy**: tenant/privacy.tsx
 
 ## Supported Vendor Types
 HVAC, plumbing, electrical, general contractors, landscaping/grounds, pest control, elevator maintenance, fire/life safety, roofing, painting, flooring, cleaning/janitorial, security companies, pool/spa, appliance repair, locksmith, snow removal, trash/waste, IT/technology (smart locks, WiFi), legal services, towing, EV charger maintenance, solar/energy, telecom
@@ -137,6 +141,14 @@ HVAC, plumbing, electrical, general contractors, landscaping/grounds, pest contr
 - **Payment Rails**: ACH, cards, existing PMS integrations (stablecoin rails as future backend infrastructure)
 
 ## Recent Changes
+- **Feb 2026**: Phase 0 Blueprint Implementation — Platform architecture aligned with production-grade blueprint
+  - Partner Portal: New standalone portal for insurance, mortgage, and investment partners with 6 tabs (Dashboard, Leads, Compliance, Data Access, Analytics, Settings)
+  - Partner Login: Magic-link authentication flow for partner users at /partner-login
+  - Dispute Center: Comprehensive dispute management page covering rent disputes, vendor invoice disputes, and merchant transaction disputes with resolution workflows
+  - Tenant Privacy & Consent: New tenant portal page for managing data sharing preferences, consent history, privacy controls, and partner access oversight
+  - Login page updated with Partner user type selector (5 user types: Business, Tenant, Vendor, Merchant, Partner)
+  - RBAC expanded with dispute and privacy routes
+  - Sidebar expanded with Dispute Center in Compliance & Legal group
 - **Feb 2026**: Complete multifamily workflow coverage — 16 new operational modules added
   - Tier 1 (Core Daily Ops): Lease Management, Resident Management, Move-In/Move-Out, Unit Inventory & Status
   - Tier 2 (Financial & Compliance): Budgeting & Forecasting, Accounts Payable/Receivable, Compliance & Legal, Utility Management

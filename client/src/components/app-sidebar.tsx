@@ -52,6 +52,8 @@ import {
   Building,
   HardHat,
   ShoppingCart,
+  Gavel,
+  Handshake,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -154,6 +156,7 @@ const menuGroups: MenuGroup[] = [
     layerTag: "LEGAL",
     items: [
       { title: "Compliance & Legal", url: "/compliance", icon: Scale, roles: ["Admin", "PropertyManager", "CFO"] },
+      { title: "Dispute Center", url: "/disputes", icon: Gavel, roles: ["Admin", "PropertyManager", "CFO"], badge: "3" },
     ],
   },
   {

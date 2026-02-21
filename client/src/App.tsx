@@ -85,6 +85,7 @@ import P2PTransfers from "@/pages/tenant/p2p-transfers";
 import RentalInsurance from "@/pages/tenant/rental-insurance";
 import TenantLeaseReview from "@/pages/tenant/lease-review";
 import TenantWelcome from "@/pages/tenant/welcome";
+import TenantPrivacy from "@/pages/tenant/privacy";
 import { TenantSidebar } from "@/components/tenant-sidebar";
 
 // Vendor pages
@@ -94,6 +95,13 @@ import VendorPortal from "@/pages/vendor-portal";
 // Merchant pages
 import MerchantLogin from "@/pages/merchant-login";
 import MerchantPortal from "@/pages/merchant-portal";
+
+// Partner pages
+import PartnerLogin from "@/pages/partner-login";
+import PartnerPortal from "@/pages/partner-portal";
+
+// Dispute Center
+import DisputeCenter from "@/pages/disputes";
 
 function ProtectedRoute({ component: Component, path }: { component: React.ComponentType; path: string }): React.ReactElement {
   const { user } = useAuth();
@@ -171,9 +179,22 @@ function AppContent() {
     return <MerchantLogin />;
   }
 
+  // Show partner login page for /partner-login route
+  if (location === "/partner-login") {
+    return <PartnerLogin />;
+  }
+
   // Show login page if not authenticated
   if (!user) {
+    if (location === "/partner-portal") {
+      return <Redirect to="/partner-login" />;
+    }
     return <Login />;
+  }
+
+  // Show partner portal (standalone page with its own layout, requires auth)
+  if (location === "/partner-portal") {
+    return <PartnerPortal />;
   }
 
   // Vendor users have different UI - no sidebar, with embedded agent
@@ -468,6 +489,9 @@ function AppContent() {
                 <Route path="/procurement">
                   {ProtectedRouteRenderer(Procurement, "/procurement")}
                 </Route>
+                <Route path="/disputes">
+                  {ProtectedRouteRenderer(DisputeCenter, "/disputes")}
+                </Route>
                 <Route path="/settings">
                   {ProtectedRouteRenderer(Settings, "/settings")}
                 </Route>
@@ -511,6 +535,9 @@ function AppContent() {
                 </Route>
                 <Route path="/tenant/settings">
                   {ProtectedRouteRenderer(TenantSettings, "/tenant/settings")}
+                </Route>
+                <Route path="/tenant/privacy">
+                  {ProtectedRouteRenderer(TenantPrivacy, "/tenant/privacy")}
                 </Route>
                 
                 <Route component={NotFound} />

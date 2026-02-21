@@ -15,7 +15,7 @@ export default function Login() {
   const { setAuth } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [userType, setUserType] = useState<"business" | "tenant" | "vendor" | "merchant">("business");
+  const [userType, setUserType] = useState<"business" | "tenant" | "vendor" | "merchant" | "partner">("business");
 
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
@@ -45,6 +45,11 @@ export default function Login() {
         code = "222222";
         endpoint = "/api/merchant-auth/login";
         redirectPath = "/merchant-portal";
+      } else if (userType === "partner") {
+        email = "partner@demo.com";
+        code = "333333";
+        endpoint = "/api/partner-auth/login";
+        redirectPath = "/partner-portal";
       } else if (userType === "tenant") {
         email = "tenant@demo.com";
         code = "000000";
@@ -57,10 +62,17 @@ export default function Login() {
         redirectPath = "/dashboard";
       }
 
+      if (userType === "partner" || userType === "vendor" || userType === "merchant") {
+        const sendCodeEndpoint = userType === "vendor" ? "/api/vendor-auth/send-code"
+                               : userType === "merchant" ? "/api/merchant-auth/send-code"
+                               : "/api/partner-auth/send-code";
+        await apiRequest("POST", sendCodeEndpoint, { email });
+      }
+
       const response = await apiRequest("POST", endpoint, { email, code });
       
-      // Vendor and merchant auth don't return organization
-      if (userType === "vendor" || userType === "merchant") {
+      // Vendor, merchant, and partner auth don't return organization
+      if (userType === "vendor" || userType === "merchant" || userType === "partner") {
         setAuth(response.user, null);
       } else {
         setAuth(response.user, response.organization);
@@ -96,9 +108,11 @@ export default function Login() {
     try {
       const endpoint = userType === "vendor" ? "/api/vendor-auth/send-code" 
                      : userType === "merchant" ? "/api/merchant-auth/send-code"
+                     : userType === "partner" ? "/api/partner-auth/send-code"
                      : "/api/auth/send-code";
       const demoCode = userType === "vendor" ? "111111" 
                      : userType === "merchant" ? "222222"
+                     : userType === "partner" ? "333333"
                      : "000000";
       
       await apiRequest("POST", endpoint, { email: loginEmail });
@@ -132,14 +146,15 @@ export default function Login() {
     try {
       const endpoint = userType === "vendor" ? "/api/vendor-auth/login"
                      : userType === "merchant" ? "/api/merchant-auth/login"
+                     : userType === "partner" ? "/api/partner-auth/login"
                      : "/api/auth/login";
       const response = await apiRequest("POST", endpoint, {
         email: loginEmail,
         code: loginCode,
       });
       
-      // Vendor and merchant auth don't return organization
-      if (response.user.role === "Vendor" || response.user.role === "Merchant") {
+      // Vendor, merchant, and partner auth don't return organization
+      if (response.user.role === "Vendor" || response.user.role === "Merchant" || response.user.role === "Partner") {
         setAuth(response.user, null);
       } else {
         setAuth(response.user, response.organization);
@@ -147,6 +162,7 @@ export default function Login() {
       
       const redirectPath = response.user.role === "Vendor" ? "/vendor-portal" :
                           response.user.role === "Merchant" ? "/merchant-portal" :
+                          response.user.role === "Partner" ? "/partner-portal" :
                           response.user.role === "Tenant" ? "/tenant/home" : 
                           "/dashboard";
       toast({
@@ -215,6 +231,8 @@ export default function Login() {
               ? "Instant Payments — Redeem on Your Schedule"
               : userType === "merchant"
               ? "Accept Payments — Earn Yield on Settlement Float"
+              : userType === "partner"
+              ? "Insurance, Mortgage & Investment Partner Network"
               : "Earn Cashback on Rent & Purchases"}
           </p>
         </div>
@@ -222,7 +240,7 @@ export default function Login() {
         {/* User Type Selector */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button
                 variant={userType === "business" ? "default" : "outline"}
                 onClick={() => {
@@ -271,6 +289,18 @@ export default function Login() {
               >
                 Merchant
               </Button>
+              <Button
+                variant={userType === "partner" ? "default" : "outline"}
+                onClick={() => {
+                  setUserType("partner");
+                  setCodeSent(false);
+                  setLoginEmail("");
+                  setLoginCode("");
+                }}
+                data-testid="button-select-partner"
+              >
+                Partner
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -278,7 +308,7 @@ export default function Login() {
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
-            <TabsTrigger value="signup" data-testid="tab-signup" disabled={userType === "tenant" || userType === "vendor" || userType === "merchant"}>
+            <TabsTrigger value="signup" data-testid="tab-signup" disabled={userType === "tenant" || userType === "vendor" || userType === "merchant" || userType === "partner"}>
               Sign Up
             </TabsTrigger>
           </TabsList>
@@ -328,7 +358,7 @@ export default function Login() {
                         data-testid="input-magic-code"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Demo code: {userType === "vendor" ? "111111" : userType === "merchant" ? "222222" : "000000"}
+                        Demo code: {userType === "vendor" ? "111111" : userType === "merchant" ? "222222" : userType === "partner" ? "333333" : "000000"}
                       </p>
                     </div>
                     <Button 

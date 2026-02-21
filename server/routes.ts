@@ -1049,6 +1049,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ Partner Auth Routes ============
+  app.post("/api/partner-auth/send-code", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      await storage.deleteOldMagicCodes(email);
+
+      const code = "333333";
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+      await storage.createMagicCode({
+        email,
+        code,
+        expiresAt,
+        used: false,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Partner send code error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/partner-auth/login", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+
+      const magicCode = await storage.getMagicCode(email, code);
+      if (!magicCode) {
+        return res.status(401).json({ 
+          error: "Invalid magic code",
+          message: "Invalid magic code"
+        });
+      }
+
+      if (new Date() > magicCode.expiresAt) {
+        return res.status(401).json({ 
+          error: "Magic code expired",
+          message: "Magic code expired"
+        });
+      }
+
+      if (email !== "partner@demo.com") {
+        await storage.markMagicCodeUsed(magicCode.id);
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      req.session.userId = 0;
+      req.session.userRole = "Partner" as any;
+      req.session.organizationId = null as any;
+
+      res.json({ 
+        user: {
+          id: 0,
+          email,
+          role: "Partner",
+          firstName: "Acme",
+          lastName: "Insurance",
+        },
+        organization: null,
+      });
+    } catch (error: any) {
+      console.error("Partner login error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============ Vendor Portal Routes ============
   app.get("/api/vendor/balances", requireVendor(storage), async (req, res) => {
     try {

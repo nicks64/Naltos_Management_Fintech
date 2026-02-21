@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Home, Wallet, Store, Bot, FileText, Settings, Building2, CalendarDays,
-  DollarSign, TrendingUp, ArrowLeftRight, Shield, MapPin,
+  DollarSign, TrendingUp, ArrowLeftRight, Shield, ShieldCheck, MapPin,
 } from "lucide-react";
 
 interface CurrentUnit {
@@ -36,6 +36,7 @@ const tenantNavItems = [
   { title: "Reports", url: "/tenant/reports", icon: FileText },
   { title: "P2P Transfers", url: "/tenant/p2p", icon: ArrowLeftRight },
   { title: "Rental Insurance", url: "/tenant/rental-insurance", icon: Shield },
+  { title: "Privacy", url: "/tenant/privacy", icon: ShieldCheck },
   { title: "Settings", url: "/tenant/settings", icon: Settings },
 ];
 
