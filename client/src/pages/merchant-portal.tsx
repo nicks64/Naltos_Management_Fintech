@@ -13,6 +13,7 @@ import {
   AlertCircle, Edit, Zap, Coffee, UtensilsCrossed, Tag, Eye, Sparkles, Briefcase, Building
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 import { Label } from "@/components/ui/label";
@@ -588,6 +589,25 @@ export default function MerchantPortal() {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
+          <AgentInsightStrip insights={[
+            { text: "Sales up 12% vs last week", severity: "positive" as const },
+            { text: "3 reward redemptions pending review", severity: "warning" as const },
+            { text: "Tenant foot traffic peak: 5-7 PM", severity: "info" as const, confidence: 0.88 },
+          ]} />
+
+          <AINudgeCard
+            title="Revenue Opportunity Detected"
+            insight="Agent analysis shows 78% of tenants in Building A haven't used your rewards program. A targeted 15% cashback promotion could drive an estimated $2,400 in additional monthly sales."
+            severity="opportunity"
+            confidence={0.79}
+            actionLabel="Create Promotion"
+            onAction={() => {}}
+            metric="+$2.4K"
+            metricLabel="Est. Monthly Impact"
+            agentSource="Merchant Agent"
+            compact
+          />
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {kpis.map((kpi) => (
               <Card key={kpi.label}>
@@ -781,6 +801,17 @@ export default function MerchantPortal() {
         </TabsContent>
 
         <TabsContent value="sales" className="space-y-6">
+          <AINudgeCard
+            title="Peak Sales Pattern Detected"
+            insight="Agent identified that your highest-margin items sell 3x more during 5-7 PM tenant rush. Consider a flash promotion during this window to capitalize on foot traffic."
+            severity="info"
+            confidence={0.87}
+            actionLabel="Schedule Promo"
+            onAction={() => {}}
+            agentSource="Merchant Agent"
+            compact
+          />
+
           <div className="flex items-center gap-3 flex-wrap">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <Select value={dateRange} onValueChange={setDateRange}>

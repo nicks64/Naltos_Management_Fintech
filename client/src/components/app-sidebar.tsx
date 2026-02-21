@@ -28,6 +28,9 @@ import {
   Gift,
   Wallet,
   CreditCard,
+  MessageSquare,
+  Radio,
+  Cpu,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -41,6 +44,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useRBAC } from "@/lib/rbac";
@@ -51,6 +55,7 @@ interface MenuItem {
   url: string;
   icon: LucideIcon;
   roles: UserRole[];
+  badge?: string;
 }
 
 interface MenuGroup {
@@ -61,36 +66,42 @@ interface MenuGroup {
 
 const menuGroups: MenuGroup[] = [
   {
-    label: "Core Financial Ledger",
-    layerTag: "L1",
+    label: "AI Command Center",
+    layerTag: "AI",
+    items: [
+      { title: "Intelligence Hub", url: "/intelligence", icon: Brain, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
+      { title: "AI Analytics Agent", url: "/ai-analytics", icon: MessageSquare, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
+    ],
+  },
+  {
+    label: "AI Workflows",
+    layerTag: "WF",
+    items: [
+      { title: "Collections AI", url: "/collections", icon: Users, roles: ["Admin", "PropertyManager", "CFO"], badge: "3" },
+      { title: "Collection Incentives", url: "/collection-incentives", icon: Award, roles: ["Admin", "PropertyManager", "CFO"] },
+      { title: "Fraud Detection", url: "/fraud-detection", icon: ShieldAlert, roles: ["Admin", "CFO"] },
+      { title: "Renewal Prediction", url: "/renewal-prediction", icon: Target, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
+      { title: "Lease Orchestrator", url: "/lease-agreements", icon: FileText, roles: ["Admin", "PropertyManager"] },
+    ],
+  },
+  {
+    label: "Financial Ledger",
+    layerTag: "FIN",
     items: [
       { title: "Transaction Ledger", url: "/transaction-ledger", icon: BookOpen, roles: ["Admin", "CFO"] },
       { title: "Reconciliation", url: "/reconciliation", icon: RefreshCw, roles: ["Admin", "PropertyManager", "CFO"] },
       { title: "Treasury", url: "/treasury", icon: Landmark, roles: ["Admin", "CFO"] },
+      { title: "Cash Flow Forecast", url: "/cash-flow-forecast", icon: Activity, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
       { title: "Audit Trail", url: "/audit-trail", icon: FileSearch, roles: ["Admin", "CFO"] },
     ],
   },
   {
-    label: "AI Intelligence Engines",
-    layerTag: "L2",
+    label: "Operations",
+    layerTag: "OPS",
     items: [
-      { title: "Intelligence Hub", url: "/intelligence", icon: Brain, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
-      { title: "Collections AI", url: "/collections", icon: Users, roles: ["Admin", "PropertyManager", "CFO"] },
-      { title: "Collection Incentives", url: "/collection-incentives", icon: Award, roles: ["Admin", "PropertyManager", "CFO"] },
-      { title: "Fraud Detection AI", url: "/fraud-detection", icon: ShieldAlert, roles: ["Admin", "CFO"] },
-      { title: "Renewal Prediction", url: "/renewal-prediction", icon: Target, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
-      { title: "AI Analytics Agent", url: "/ai-analytics", icon: Sparkles, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
-    ],
-  },
-  {
-    label: "Operator Module",
-    layerTag: "L3",
-    items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
       { title: "Rent Stability", url: "/rent-stability", icon: ShieldCheck, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
-      { title: "Cash Flow Forecast", url: "/cash-flow-forecast", icon: Activity, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
       { title: "Rent Pricing", url: "/rent-pricing", icon: TrendingUp, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
-      { title: "Lease Agreements", url: "/lease-agreements", icon: FileText, roles: ["Admin", "PropertyManager"] },
       { title: "Investor Reporting", url: "/investor-reporting", icon: PieChart, roles: ["Admin", "CFO"] },
       { title: "Refi Readiness", url: "/refi-readiness", icon: Briefcase, roles: ["Admin", "CFO"] },
       { title: "Capital Access", url: "/capital-access", icon: Landmark, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
@@ -99,8 +110,8 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    label: "Vendor Module",
-    layerTag: "L4",
+    label: "Vendor Network",
+    layerTag: "VN",
     items: [
       { title: "Vendor Payments", url: "/vendor-payments", icon: Zap, roles: ["Admin", "CFO"] },
       { title: "Vendor Onboarding", url: "/vendor-onboarding", icon: UserPlus, roles: ["Admin", "PropertyManager"] },
@@ -109,16 +120,16 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    label: "Merchant Module",
-    layerTag: "L5",
+    label: "Merchant Network",
+    layerTag: "MN",
     items: [
       { title: "Merchant Onboarding", url: "/merchant-onboarding", icon: Store, roles: ["Admin", "PropertyManager"] },
       { title: "Merchant Rewards", url: "/merchant-rewards", icon: Gift, roles: ["Admin", "PropertyManager", "CFO"] },
     ],
   },
   {
-    label: "Tenant Financial Layer",
-    layerTag: "L6",
+    label: "Tenant Layer",
+    layerTag: "TN",
     items: [
       { title: "Deposit Alternatives", url: "/deposit-alternatives", icon: Shield, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
     ],
@@ -136,7 +147,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-6 border-b">
+      <SidebarHeader className="p-4 border-b">
         <div className="flex items-center gap-3" data-testid="sidebar-org-info">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
             <Building2 className="w-6 h-6 text-primary-foreground" />
@@ -145,7 +156,10 @@ export function AppSidebar() {
             <h2 className="text-sm font-semibold truncate">
               {organization?.name || "Naltos"}
             </h2>
-            <p className="text-xs text-muted-foreground">Financial Operating Network</p>
+            <div className="flex items-center gap-1">
+              <Radio className="w-3 h-3 text-emerald-500" />
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Agentic Network Active</p>
+            </div>
           </div>
         </div>
       </SidebarHeader>
@@ -153,11 +167,13 @@ export function AppSidebar() {
         {menuGroups.map((group) => {
           const visibleItems = group.items.filter((item) => hasRole(...item.roles));
           if (visibleItems.length === 0) return null;
+          const isAIGroup = group.layerTag === "AI" || group.layerTag === "WF";
           return (
             <SidebarGroup key={group.label}>
               <SidebarGroupLabel className="text-xs uppercase tracking-wide px-3 flex items-center gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground/60">{group.layerTag}</span>
-                {group.label}
+                {isAIGroup && <Sparkles className="w-3 h-3 text-primary" />}
+                <span className={`text-[10px] font-bold ${isAIGroup ? "text-primary/70" : "text-muted-foreground/60"}`}>{group.layerTag}</span>
+                <span className={isAIGroup ? "text-primary/90 font-semibold" : ""}>{group.label}</span>
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -172,7 +188,12 @@ export function AppSidebar() {
                         >
                           <Link href={item.url}>
                             <item.icon className="w-4 h-4" />
-                            <span>{item.title}</span>
+                            <span className="flex-1">{item.title}</span>
+                            {item.badge && (
+                              <Badge variant="destructive" className="text-[10px] ml-auto">
+                                {item.badge}
+                              </Badge>
+                            )}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

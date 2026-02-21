@@ -35,8 +35,13 @@ import {
   Eye,
   Wrench,
   ClipboardList,
+  Sparkles,
+  Shield,
+  MessageSquare,
+  ChevronRight,
 } from "lucide-react";
 import { LineChart, Line, AreaChart, Area, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 
 interface KPIData {
   onTimePercent: number;
@@ -51,24 +56,64 @@ interface KPIData {
   sparklineData: Array<{ value: number }>;
 }
 
-const activityFeed = [
-  { type: "payment", title: "Rent payment received", desc: "Marcus Johnson — Unit 4A, Sunset Heights", amount: "$2,450.00", time: "12 min ago", icon: DollarSign, color: "text-emerald-600 dark:text-emerald-400" },
-  { type: "vendor", title: "Vendor onboarding approved", desc: "GreenScape Landscaping — compliance docs verified by AI", amount: null, time: "28 min ago", icon: CheckCircle2, color: "text-blue-600 dark:text-blue-400" },
-  { type: "alert", title: "Late payment flagged", desc: "Rachel Chen — Unit 2D, The Metropolitan — 3 days overdue", amount: "$3,200.00", time: "1h ago", icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400" },
-  { type: "lease", title: "Lease renewal auto-generated", desc: "Priya Patel — Unit 3B, Willow Creek — 95% renewal probability", amount: null, time: "2h ago", icon: FileText, color: "text-indigo-600 dark:text-indigo-400" },
-  { type: "merchant", title: "New merchant application", desc: "QuickFit Gym — The Metropolitan B1 — pending review", amount: null, time: "3h ago", icon: Store, color: "text-violet-600 dark:text-violet-400" },
-  { type: "maintenance", title: "Work order completed", desc: "Apex Maintenance — HVAC repair, Unit 8C Cedar Ridge", amount: "$1,850.00", time: "4h ago", icon: Wrench, color: "text-muted-foreground" },
-  { type: "nudge", title: "AI collection nudge sent", desc: "James Foster — Unit 6A — behavioral incentive offered", amount: null, time: "5h ago", icon: Send, color: "text-primary" },
-  { type: "payment", title: "Vendor instant payment processed", desc: "CleanPro Services — Net60 float locked at 5.5% APY", amount: "$4,200.00", time: "6h ago", icon: Zap, color: "text-emerald-600 dark:text-emerald-400" },
+const agentDigest = [
+  {
+    title: "Delinquency Risk Detected",
+    insight: "Kevin M. (Riverdale #102) shows 91% delinquency probability. 3 consecutive late payments detected. Neural model recommends immediate behavioral nudge with $50 incentive offer.",
+    severity: "critical" as const,
+    confidence: 0.91,
+    actionLabel: "Send AI Nudge",
+    metric: "$3,200 at risk",
+    metricLabel: "Exposure",
+    icon: AlertTriangle,
+  },
+  {
+    title: "Vendor Float Optimization",
+    insight: "3 vendor invoices totaling $85K mature on the same date (Mar 15). Shifting $45K to the enhanced treasury product before maturity could capture an additional $420/yr in yield.",
+    severity: "opportunity" as const,
+    confidence: 0.87,
+    actionLabel: "Optimize Float",
+    metric: "+$420/yr",
+    metricLabel: "Projected Yield",
+    icon: Sparkles,
+  },
+  {
+    title: "Lease Renewal — High Churn Risk",
+    insight: "David Kim's lease expires in 28 days with a 45% churn risk. Renewal prediction model suggests offering a flat renewal with 2% cashback incentive to reduce churn to 12%.",
+    severity: "warning" as const,
+    confidence: 0.88,
+    actionLabel: "Generate Offer",
+    metric: "45% churn risk",
+    metricLabel: "Current Risk",
+    icon: Target,
+  },
 ];
 
-const upcomingTasks = [
-  { title: "Review GreenScape insurance renewal", type: "vendor", dueDate: "Today", priority: "high" as const, assignee: "Sarah M.", aiSuggestion: "Auto-approve — 96% compliance score" },
-  { title: "Send Net60 payout — Summit Electric", type: "payment", dueDate: "Today", priority: "medium" as const, assignee: "Lisa P.", aiSuggestion: "Lock float at current 5.5% yield" },
-  { title: "Lease renewal meeting — David Kim", type: "lease", dueDate: "Tomorrow", priority: "high" as const, assignee: "David C.", aiSuggestion: "Offer flat renewal — 45% churn risk" },
-  { title: "Merchant onboarding review — PetCare Plus", type: "merchant", dueDate: "Feb 22", priority: "medium" as const, assignee: "Sarah M.", aiSuggestion: "Strong tenant overlap — 78% fit score" },
-  { title: "Q1 investor report generation", type: "report", dueDate: "Feb 28", priority: "low" as const, assignee: "Lisa P.", aiSuggestion: "All data sources ready — auto-generate" },
-  { title: "Staff rebalance review — maintenance", type: "staff", dueDate: "Mar 1", priority: "medium" as const, assignee: "Michael T.", aiSuggestion: "James R. at 95% utilization — redistribute 4 tasks" },
+const agentTopInsights = [
+  { text: "2 delinquency risks flagged", severity: "critical" as const, confidence: 0.91 },
+  { text: "Collection rate +2.5% MTD", severity: "positive" as const },
+  { text: "$85K vendor float maturing", severity: "warning" as const, confidence: 0.87 },
+  { text: "3 leases auto-renewable", severity: "positive" as const },
+];
+
+const activityFeed = [
+  { type: "ai_action", title: "Agent sent behavioral nudge", desc: "Rachel Chen — Unit 2D — $50 early-pay incentive triggered by neural model", amount: null, time: "5 min ago", icon: Brain, color: "text-primary" },
+  { type: "payment", title: "Rent payment received", desc: "Marcus Johnson — Unit 4A, Sunset Heights", amount: "$2,450.00", time: "12 min ago", icon: DollarSign, color: "text-emerald-600 dark:text-emerald-400" },
+  { type: "ai_action", title: "Agent auto-reconciled 14 transactions", desc: "February batch — 98.5% match confidence — 2 flagged for manual review", amount: null, time: "25 min ago", icon: Sparkles, color: "text-primary" },
+  { type: "vendor", title: "Vendor onboarding approved", desc: "GreenScape Landscaping — compliance docs verified by AI agent", amount: null, time: "28 min ago", icon: CheckCircle2, color: "text-blue-600 dark:text-blue-400" },
+  { type: "alert", title: "Late payment flagged", desc: "Rachel Chen — Unit 2D, The Metropolitan — 3 days overdue", amount: "$3,200.00", time: "1h ago", icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400" },
+  { type: "ai_action", title: "Agent generated investor report draft", desc: "Q1 report auto-compiled — NOI trending +4.2% — pending review", amount: null, time: "1.5h ago", icon: Brain, color: "text-primary" },
+  { type: "lease", title: "Lease renewal auto-generated", desc: "Priya Patel — Unit 3B, Willow Creek — 95% renewal probability", amount: null, time: "2h ago", icon: FileText, color: "text-indigo-600 dark:text-indigo-400" },
+  { type: "merchant", title: "New merchant application", desc: "QuickFit Gym — The Metropolitan B1 — agent scored 78% fit", amount: null, time: "3h ago", icon: Store, color: "text-violet-600 dark:text-violet-400" },
+];
+
+const aiTasks = [
+  { title: "Review delinquency intervention — Kevin M.", type: "collections", dueDate: "Now", priority: "high" as const, assignee: "Agent", aiSuggestion: "Behavioral nudge ready — approve to send", agentConfidence: 0.91, agentAction: true },
+  { title: "Approve vendor float reallocation", type: "treasury", dueDate: "Today", priority: "high" as const, assignee: "Agent", aiSuggestion: "Shift $45K before Mar 15 maturity", agentConfidence: 0.87, agentAction: true },
+  { title: "Review GreenScape insurance renewal", type: "vendor", dueDate: "Today", priority: "high" as const, assignee: "Sarah M.", aiSuggestion: "Auto-approve — 96% compliance score", agentConfidence: 0.96, agentAction: false },
+  { title: "Send Net60 payout — Summit Electric", type: "payment", dueDate: "Today", priority: "medium" as const, assignee: "Lisa P.", aiSuggestion: "Lock float at current 5.5% yield", agentConfidence: 0.82, agentAction: false },
+  { title: "Lease renewal outreach — David Kim", type: "lease", dueDate: "Tomorrow", priority: "high" as const, assignee: "David C.", aiSuggestion: "Offer flat renewal — 45% churn risk", agentConfidence: 0.88, agentAction: true },
+  { title: "Merchant onboarding review — PetCare Plus", type: "merchant", dueDate: "Feb 22", priority: "medium" as const, assignee: "Sarah M.", aiSuggestion: "Strong tenant overlap — 78% fit score", agentConfidence: 0.78, agentAction: false },
 ];
 
 const pipelineSummary = {
@@ -77,13 +122,6 @@ const pipelineSummary = {
   renewals: { autoRenew: 3, needsOutreach: 1, atRisk: 2 },
   collections: { current: 42, late: 5, overdue: 3, critical: 1 },
 };
-
-const quickActions = [
-  { label: "Send Collection Nudge", icon: Mail, desc: "5 tenants overdue", path: "/collections" },
-  { label: "Review Vendor Docs", icon: ClipboardList, desc: "2 pending", path: "/vendor-onboarding" },
-  { label: "Generate Investor Report", icon: FileText, desc: "Q1 ready", path: "/investor-reporting" },
-  { label: "Invite New Vendor", icon: UserPlus, desc: "Open intake form", path: "/vendor-onboarding" },
-];
 
 const anomalyData = [
   { month: "Sep", expected: 92, actual: 87 },
@@ -118,18 +156,24 @@ export default function Dashboard() {
     <div className="space-y-6" data-testid="page-dashboard">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight" data-testid="text-page-title">Operator Dashboard</h1>
+          <h1 className="text-3xl font-semibold tracking-tight" data-testid="text-page-title">Command Center</h1>
           <p className="text-muted-foreground">
-            AI-powered CRM &amp; financial intelligence — real-time portfolio management
+            Agentic financial intelligence — your AI agent manages, alerts, and acts across your portfolio
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="text-xs" data-testid="badge-agent-status">
+            <Brain className="w-3 h-3 mr-1 text-primary" />
+            Agent Active
+          </Badge>
           <Badge variant="secondary" className="text-xs" data-testid="badge-neural-status">
             <Radio className="w-3 h-3 mr-1 text-green-500 animate-pulse" />
-            Neural Engine Active
+            Neural Engine
           </Badge>
         </div>
       </div>
+
+      <AgentInsightStrip insights={agentTopInsights} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpiCards.map((card, index) => (
@@ -155,33 +199,49 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {quickActions.map((action, i) => (
-          <Link key={i} href={action.path} data-testid={`link-quick-action-${i}`}>
-            <Card className="hover-elevate cursor-pointer">
-              <CardContent className="p-3 flex items-center gap-3 flex-wrap">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <action.icon className="w-4 h-4 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate" data-testid={`text-quick-action-label-${i}`}>{action.label}</p>
-                  <p className="text-xs text-muted-foreground" data-testid={`text-quick-action-desc-${i}`}>{action.desc}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          <Card data-testid="card-agent-digest">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Brain className="w-5 h-5 text-primary" />
+                  <CardTitle>Agent Digest</CardTitle>
+                  <Badge variant="outline" className="text-xs">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    {agentDigest.length} actions recommended
+                  </Badge>
+                </div>
+              </div>
+              <CardDescription>Your AI agent analyzed overnight activity and surfaced these priority items</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {agentDigest.map((item, idx) => (
+                <AINudgeCard
+                  key={idx}
+                  title={item.title}
+                  insight={item.insight}
+                  severity={item.severity}
+                  confidence={item.confidence}
+                  actionLabel={item.actionLabel}
+                  onAction={() => {}}
+                  metric={item.metric}
+                  metricLabel={item.metricLabel}
+                  icon={item.icon}
+                  agentSource="Naltos Agent"
+                />
+              ))}
+            </CardContent>
+          </Card>
+
           <Card data-testid="card-pipeline-overview">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <Briefcase className="w-5 h-5 text-primary" />
                 <CardTitle>Pipeline Overview</CardTitle>
+                <Badge variant="secondary" className="text-xs">Agent-Monitored</Badge>
               </div>
-              <CardDescription>Cross-module pipeline health at a glance</CardDescription>
+              <CardDescription>Cross-module pipeline health — agent tracks and alerts on status changes</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -296,27 +356,32 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-6">
-          <Card data-testid="card-ai-actions">
+          <Card data-testid="card-agent-task-queue">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <Brain className="w-5 h-5 text-primary" />
-                <CardTitle className="text-base">AI Action Items</CardTitle>
+                <CardTitle className="text-base">Agent Task Queue</CardTitle>
               </div>
+              <CardDescription className="text-xs">AI-prioritized actions — agent-generated items marked with a signal indicator</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {upcomingTasks.slice(0, 4).map((task, i) => (
+              {aiTasks.slice(0, 5).map((task, i) => (
                 <div key={i} className="p-2.5 border rounded-lg space-y-1.5" data-testid={`ai-task-${i}`}>
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium leading-tight">{task.title}</p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {task.agentAction && <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />}
+                      <p className="text-sm font-medium leading-tight truncate">{task.title}</p>
+                    </div>
                     <Badge variant={priorityConfig[task.priority].variant} className="text-xs shrink-0">
                       {priorityConfig[task.priority].label}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                     <CalendarDays className="w-3 h-3" />
                     <span>{task.dueDate}</span>
                     <span className="text-muted-foreground/50">|</span>
                     <span>{task.assignee}</span>
+                    <Badge variant="outline" className="text-[10px] ml-auto">{Math.round(task.agentConfidence * 100)}%</Badge>
                   </div>
                   <div className="flex items-start gap-1.5 text-xs">
                     <Brain className="w-3 h-3 text-primary mt-0.5 shrink-0" />
@@ -325,9 +390,37 @@ export default function Dashboard() {
                 </div>
               ))}
               <Button variant="ghost" size="sm" className="w-full mt-1" data-testid="button-view-all-tasks">
-                View all {upcomingTasks.length} tasks
+                View all {aiTasks.length} tasks
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-agent-actions-log">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <CardTitle className="text-base">Agent Actions Log</CardTitle>
+              </div>
+              <CardDescription className="text-xs">Actions your AI agent has taken autonomously or is requesting approval</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                { action: "Sent behavioral nudge to Rachel Chen", status: "completed", time: "5m ago", confidence: 0.94 },
+                { action: "Auto-reconciled 14 transactions", status: "completed", time: "25m ago", confidence: 0.98 },
+                { action: "Verified GreenScape compliance docs", status: "completed", time: "28m ago", confidence: 0.96 },
+                { action: "Generated Q1 investor report draft", status: "pending_review", time: "1.5h ago", confidence: 0.89 },
+                { action: "Proposed vendor float reallocation", status: "pending_approval", time: "2h ago", confidence: 0.87 },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 rounded-lg border text-xs" data-testid={`agent-action-${i}`}>
+                  {item.status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />}
+                  {item.status === "pending_review" && <Eye className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                  {item.status === "pending_approval" && <Shield className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                  <span className="flex-1 min-w-0 truncate">{item.action}</span>
+                  <Badge variant="outline" className="text-[10px] flex-shrink-0">{Math.round(item.confidence * 100)}%</Badge>
+                  <span className="text-muted-foreground flex-shrink-0">{item.time}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
 
@@ -340,9 +433,9 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { severity: "warning", title: "Elevated Delinquency — Pine Valley", desc: "5.6% volatility spike. 8 tenants flagged.", time: "2h ago" },
-                { severity: "info", title: "Vendor Float Approaching Net90", desc: "$45K maturing in 5 days.", time: "6h ago" },
-                { severity: "success", title: "Collection Rate Improving", desc: "+2.5% MTD. Incentives driving 68% conversion.", time: "1d ago" },
+                { severity: "warning", title: "Elevated Delinquency — Pine Valley", desc: "5.6% volatility spike. 8 tenants flagged by neural model.", time: "2h ago" },
+                { severity: "info", title: "Vendor Float Approaching Net90", desc: "$45K maturing in 5 days. Agent recommends reallocation.", time: "6h ago" },
+                { severity: "success", title: "Collection Rate Improving", desc: "+2.5% MTD. Agent incentives drove 68% conversion.", time: "1d ago" },
               ].map((alert, i) => (
                 <div key={i} className="flex items-start gap-2.5 p-2.5 border rounded-lg" data-testid={`alert-${i}`}>
                   {alert.severity === "warning" && <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />}
@@ -373,7 +466,7 @@ export default function Dashboard() {
               Filter
             </Button>
           </div>
-          <CardDescription>Real-time CRM activity across all modules — payments, vendors, merchants, leases</CardDescription>
+          <CardDescription>Real-time CRM activity — agent actions, payments, vendors, merchants, leases</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative">
@@ -381,13 +474,16 @@ export default function Dashboard() {
             <div className="space-y-0">
               {activityFeed.map((item, i) => (
                 <div key={i} className="relative flex items-start gap-3 py-3 pl-8" data-testid={`activity-${i}`}>
-                  <div className="absolute left-2.5 top-4 w-3 h-3 rounded-full bg-background border-2 border-border z-10" />
-                  <div className={`w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0 ${item.color}`}>
+                  <div className={`absolute left-2.5 top-4 w-3 h-3 rounded-full bg-background border-2 ${item.type === "ai_action" ? "border-primary" : "border-border"} z-10`} />
+                  <div className={`w-8 h-8 rounded-lg ${item.type === "ai_action" ? "bg-primary/10" : "bg-muted"} flex items-center justify-center shrink-0 ${item.color}`}>
                     <item.icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <p className="text-sm font-medium" data-testid={`activity-title-${i}`}>{item.title}</p>
+                      <div className="flex items-center gap-1.5">
+                        {item.type === "ai_action" && <Badge variant="outline" className="text-[10px]">Agent</Badge>}
+                        <p className="text-sm font-medium" data-testid={`activity-title-${i}`}>{item.title}</p>
+                      </div>
                       {item.amount && <span className="text-sm font-mono font-medium" data-testid={`activity-amount-${i}`}>{item.amount}</span>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5" data-testid={`activity-description-${i}`}>{item.desc}</p>
@@ -401,52 +497,6 @@ export default function Dashboard() {
       </Card>
 
       <NeuralIntelligencePanel />
-
-      <Card data-testid="card-upcoming-tasks">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <ClipboardList className="w-5 h-5 text-primary" />
-              <CardTitle>Task Queue</CardTitle>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className="text-xs">{upcomingTasks.filter(t => t.priority === "high").length} urgent</Badge>
-              <Badge variant="secondary" className="text-xs">{upcomingTasks.length} total</Badge>
-            </div>
-          </div>
-          <CardDescription>AI-prioritized action items across vendor, merchant, lease, and collection workflows</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {upcomingTasks.map((task, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 border rounded-lg flex-wrap" data-testid={`task-${i}`}>
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                  {task.type === "vendor" && <Users className="w-4 h-4 text-muted-foreground" />}
-                  {task.type === "payment" && <DollarSign className="w-4 h-4 text-muted-foreground" />}
-                  {task.type === "lease" && <FileText className="w-4 h-4 text-muted-foreground" />}
-                  {task.type === "merchant" && <Store className="w-4 h-4 text-muted-foreground" />}
-                  {task.type === "report" && <FileText className="w-4 h-4 text-muted-foreground" />}
-                  {task.type === "staff" && <Users className="w-4 h-4 text-muted-foreground" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium" data-testid={`text-task-title-${i}`}>{task.title}</span>
-                    <Badge variant={priorityConfig[task.priority].variant} className="text-xs" data-testid={`badge-task-priority-${i}`}>{priorityConfig[task.priority].label}</Badge>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
-                    <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> {task.dueDate}</span>
-                    <span>{task.assignee}</span>
-                    <span className="flex items-center gap-1"><Brain className="w-3 h-3 text-primary" /> <span data-testid={`text-task-suggestion-${i}`}>{task.aiSuggestion}</span></span>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="shrink-0" data-testid={`button-task-action-${i}`}>
-                  Action
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       {isLoading && (
         <div className="text-center py-12 text-muted-foreground">
@@ -495,7 +545,7 @@ function NeuralIntelligencePanel() {
               Live
             </Badge>
           </div>
-          <CardDescription>Spiking neural network analysis — detecting pre-delinquency patterns across your portfolio</CardDescription>
+          <CardDescription>Spiking neural network analysis — detecting pre-delinquency patterns</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
@@ -517,13 +567,15 @@ function NeuralIntelligencePanel() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Predicted Inflection Points</p>
               {negativeInflections.slice(0, 3).map((ip: any) => (
-                <div key={ip.id} className="flex items-center gap-3 p-2 border rounded-lg border-red-500/20 bg-red-500/5 flex-wrap" data-testid={`warning-${ip.id}`}>
-                  <ArrowDownRight className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                <div key={ip.id} className="flex items-start gap-2 p-2 border rounded-lg" data-testid={`inflection-${ip.id}`}>
+                  <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{ip.tenant || ip.property}</p>
-                    <p className="text-xs text-muted-foreground">{ip.neuralDrivers?.[0]}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs font-medium">{ip.tenant || ip.property}</p>
+                      <Badge variant="destructive" className="text-[10px]">{Math.round(ip.probability * 100)}%</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{ip.neuralDrivers?.[0]}</p>
                   </div>
-                  <Badge variant="outline" className="text-xs flex-shrink-0">{(ip.probability * 100).toFixed(0)}%</Badge>
                 </div>
               ))}
             </div>
@@ -531,38 +583,28 @@ function NeuralIntelligencePanel() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-noi-neural-forecast">
+      <Card data-testid="card-noi-forecast">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2 flex-wrap">
             <TrendingUp className="w-5 h-5 text-primary" />
-            <CardTitle>NOI Neural Forecast</CardTitle>
-            <Badge variant="secondary" className="text-xs">Neuromorphic</Badge>
+            <CardTitle>NOI Forecast</CardTitle>
+            <Badge variant="secondary" className="text-xs">Agent-Projected</Badge>
           </div>
-          <CardDescription>6-month projection with optimistic/pessimistic uncertainty bands</CardDescription>
+          <CardDescription>Neural-optimized NOI projections — agent continuously refines based on signals</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={noiData.forecast}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-              <XAxis dataKey="month" fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}K`} />
-              <Tooltip
-                contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
-                formatter={(value: number) => [`$${(value / 1000).toFixed(0)}K`]}
-              />
-              <Area type="monotone" dataKey="optimistic" name="Optimistic" stroke="none" fill="#22c55e" fillOpacity={0.08} />
-              <Area type="monotone" dataKey="pessimistic" name="Pessimistic" stroke="none" fill="#ef4444" fillOpacity={0.08} />
-              <Line type="monotone" dataKey="neural" name="Neural" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="baseline" name="Baseline" stroke="#94a3b8" strokeWidth={1} strokeDasharray="5 5" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-          <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
-            <span className="text-muted-foreground">
-              Incentive ROI: <strong className="text-green-600 dark:text-green-400" data-testid="text-incentive-roi-value">{noiData.incentiveImpact?.roi}%</strong>
-            </span>
-            <span className="text-muted-foreground">
-              Refinance Window: <strong className="text-primary" data-testid="text-refinance-window-value">{noiData.refinanceTiming?.optimalWindow}</strong>
-            </span>
+        <CardContent>
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={noiData.forecast || []}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
+                <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, ""]} />
+                <Area type="monotone" dataKey="pessimistic" fill="hsl(var(--destructive) / 0.1)" stroke="hsl(var(--destructive) / 0.3)" strokeWidth={1} />
+                <Area type="monotone" dataKey="neural" fill="hsl(var(--primary) / 0.2)" stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Area type="monotone" dataKey="optimistic" fill="hsl(var(--chart-2) / 0.1)" stroke="hsl(var(--chart-2) / 0.3)" strokeWidth={1} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>

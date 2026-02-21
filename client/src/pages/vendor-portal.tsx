@@ -19,6 +19,7 @@ import type { VendorStablecoinAllocation, VendorTreasuryAllocation } from "@shar
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 
 type VendorInvoice = {
   id: string;
@@ -603,6 +604,25 @@ export default function VendorPortal() {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
+          <AgentInsightStrip insights={[
+            { text: "Invoice INV-089 payment in 3 days", severity: "positive" as const },
+            { text: "Auto insurance expiring Jun 30", severity: "warning" as const, confidence: 0.95 },
+            { text: "Performance score trending up", severity: "positive" as const },
+          ]} />
+
+          <AINudgeCard
+            title="Payment Optimization Opportunity"
+            insight="Your Net60 invoices are generating 5.2% yield on float. Switching 2 invoices to Net90 could earn an additional $180/quarter in yield without impacting your cash flow based on your payment history."
+            severity="opportunity"
+            confidence={0.84}
+            actionLabel="View Details"
+            onAction={() => {}}
+            metric="+$180/qtr"
+            metricLabel="Potential Yield"
+            agentSource="Vendor Agent"
+            compact
+          />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -820,6 +840,17 @@ export default function VendorPortal() {
         </TabsContent>
 
         <TabsContent value="work-orders" className="space-y-6">
+          <AINudgeCard
+            title="Schedule Optimization"
+            insight="Agent detected that WO-1244 (Fire Alarm Testing) and WO-1248 (HVAC Filter) are at the same property. Combining into a single site visit could save 2 hours of travel time."
+            severity="opportunity"
+            confidence={0.92}
+            actionLabel="Combine Visits"
+            onAction={() => {}}
+            agentSource="Vendor Agent"
+            compact
+          />
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-4 pb-4">
@@ -954,6 +985,17 @@ export default function VendorPortal() {
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
+          <AINudgeCard
+            title="Compliance Alert"
+            insight="Your general liability insurance (Policy #GL-2024-889) expires in 28 days. Agent can auto-notify your insurance provider and pre-fill the renewal application."
+            severity="warning"
+            confidence={0.97}
+            actionLabel="Start Renewal"
+            onAction={() => {}}
+            agentSource="Vendor Agent"
+            compact
+          />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 flex-wrap">

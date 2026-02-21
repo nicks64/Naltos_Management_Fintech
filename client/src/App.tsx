@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -10,7 +11,8 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { useRBAC } from "@/lib/rbac";
 import { Button } from "@/components/ui/button";
 import { ActivityFeed } from "@/components/activity-feed";
-import { LogOut, ShieldAlert, Building2 } from "lucide-react";
+import { AgentCommandCenter, AgentTriggerButton } from "@/components/agent-command-center";
+import { LogOut, ShieldAlert, Building2, Brain } from "lucide-react";
 
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -105,6 +107,7 @@ const ProtectedRouteRenderer = (Component: React.ComponentType, path: string) =>
 function AppContent() {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const [agentOpen, setAgentOpen] = useState(false);
 
   const isTenant = user?.role === "Tenant";
   const { data: currentUnit, isLoading: unitLoading } = useQuery<any>({
@@ -150,13 +153,22 @@ function AppContent() {
     return <Login />;
   }
 
-  // Vendor users have different UI - no sidebar
+  // Vendor users have different UI - no sidebar, with embedded agent
   if (user.role === "Vendor") {
     return (
       <div className="flex flex-col h-screen">
-        <header className="flex items-center justify-between px-8 py-4 border-b">
-          <div className="text-xl font-semibold">Vendor Portal</div>
-          <div className="flex items-center gap-2">
+        <header className="flex items-center justify-between gap-2 px-6 py-3 border-b">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">Vendor Portal</div>
+              <div className="text-[10px] text-muted-foreground">Agentic Network</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <AgentTriggerButton onClick={() => setAgentOpen(!agentOpen)} isOpen={agentOpen} portalMode="vendor" unreadInsights={2} />
             <ActivityFeed />
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
@@ -164,25 +176,43 @@ function AppContent() {
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto">
-          <Switch>
-            <Route path="/vendor-portal">
-              {ProtectedRouteRenderer(VendorPortal, "/vendor-portal")}
-            </Route>
-            <Route component={NotFound} />
-          </Switch>
-        </main>
+        <div className="flex flex-1 overflow-hidden">
+          <main className="flex-1 overflow-auto">
+            <Switch>
+              <Route path="/vendor-portal">
+                {ProtectedRouteRenderer(VendorPortal, "/vendor-portal")}
+              </Route>
+              <Route component={NotFound} />
+            </Switch>
+          </main>
+          <AgentCommandCenter
+            isOpen={agentOpen}
+            onClose={() => setAgentOpen(false)}
+            portalMode="vendor"
+            role="Vendor"
+            context="Vendor portal - work orders, documents, invoices, compliance, financial data"
+          />
+        </div>
       </div>
     );
   }
 
-  // Merchant users have different UI - no sidebar
+  // Merchant users have different UI - no sidebar, with embedded agent
   if (user.role === "Merchant") {
     return (
       <div className="flex flex-col h-screen">
-        <header className="flex items-center justify-between px-8 py-4 border-b">
-          <div className="text-xl font-semibold">Merchant Portal</div>
-          <div className="flex items-center gap-2">
+        <header className="flex items-center justify-between gap-2 px-6 py-3 border-b">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">Merchant Portal</div>
+              <div className="text-[10px] text-muted-foreground">Agentic Network</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <AgentTriggerButton onClick={() => setAgentOpen(!agentOpen)} isOpen={agentOpen} portalMode="merchant" unreadInsights={1} />
             <ActivityFeed />
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
@@ -190,14 +220,23 @@ function AppContent() {
             </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto">
-          <Switch>
-            <Route path="/merchant-portal">
-              {ProtectedRouteRenderer(MerchantPortal, "/merchant-portal")}
-            </Route>
-            <Route component={NotFound} />
-          </Switch>
-        </main>
+        <div className="flex flex-1 overflow-hidden">
+          <main className="flex-1 overflow-auto">
+            <Switch>
+              <Route path="/merchant-portal">
+                {ProtectedRouteRenderer(MerchantPortal, "/merchant-portal")}
+              </Route>
+              <Route component={NotFound} />
+            </Switch>
+          </main>
+          <AgentCommandCenter
+            isOpen={agentOpen}
+            onClose={() => setAgentOpen(false)}
+            portalMode="merchant"
+            role="Merchant"
+            context="Merchant portal - sales analytics, promotions, settlements, customer insights"
+          />
+        </div>
       </div>
     );
   }
@@ -238,9 +277,12 @@ function AppContent() {
       <div className={`flex h-screen w-full ${isTenant ? "tenant-portal" : ""}`}>
         {isTenant ? <TenantSidebar /> : <AppSidebar />}
         <div className="flex flex-col flex-1 overflow-hidden">
-          <header className="flex items-center justify-between px-8 py-4 border-b">
+          <header className="flex items-center justify-between gap-2 px-4 py-2 border-b">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {!isTenant && (
+                <AgentTriggerButton onClick={() => setAgentOpen(!agentOpen)} isOpen={agentOpen} portalMode="business" unreadInsights={3} />
+              )}
               <ActivityFeed />
               <ThemeToggle />
               <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
@@ -248,8 +290,9 @@ function AppContent() {
               </Button>
             </div>
           </header>
-          <main className="flex-1 overflow-auto">
-            <div className={isTenant ? "px-8 py-6 max-w-[1400px] mx-auto" : "max-w-[1600px] mx-auto px-8 py-6"}>
+          <div className="flex flex-1 overflow-hidden">
+            <main className="flex-1 overflow-auto">
+              <div className={isTenant ? "px-8 py-6 max-w-[1400px] mx-auto" : "max-w-[1600px] mx-auto px-8 py-6"}>
               <Switch>
                 {/* Business routes */}
                 <Route path="/dashboard">
@@ -382,6 +425,16 @@ function AppContent() {
               </Switch>
             </div>
           </main>
+          {!isTenant && (
+            <AgentCommandCenter
+              isOpen={agentOpen}
+              onClose={() => setAgentOpen(false)}
+              portalMode="business"
+              role={user?.role || "Admin"}
+              context={`Business console - viewing ${location} - portfolio management, tenants, vendors, merchants, treasury`}
+            />
+          )}
+        </div>
         </div>
       </div>
     </SidebarProvider>
