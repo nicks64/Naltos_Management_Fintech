@@ -138,6 +138,34 @@ import {
   type InsertTenantPet,
   type TenantVehicle,
   type InsertTenantVehicle,
+  inspectionsScheduled,
+  inspectionResults,
+  inspectionUnitConditions,
+  amenityList,
+  amenityReservations,
+  amenityUsageByDay,
+  parkingSpaceAssignments,
+  parkingPermits,
+  parkingViolations,
+  parkingTowingLog,
+  parkingGarageAccess,
+  packageLog,
+  packageAwaitingPickup,
+  packageLockerStatus,
+  packageCarrierSummary,
+  keyInventory,
+  accessCards,
+  smartLocks,
+  accessLogs,
+  incidentReports,
+  patrolLogs,
+  cameraSystems,
+  fireSafety,
+  pestTreatmentSchedule,
+  pestActiveReports,
+  pestUnitHistory,
+  pestVendors,
+  pestPreventionPrograms,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lt, gte, sql, sum, inArray, isNotNull } from "drizzle-orm";
@@ -411,6 +439,48 @@ export interface IStorage {
   // Phase 3: Community
   getCommunityEventsByOrg(organizationId: string): Promise<any[]>;
   getCommunityProgramsByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 4: Inspections
+  getInspectionsScheduledByOrg(organizationId: string): Promise<any[]>;
+  getInspectionResultsByOrg(organizationId: string): Promise<any[]>;
+  getInspectionUnitConditionsByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 4: Amenities
+  getAmenityListByOrg(organizationId: string): Promise<any[]>;
+  getAmenityReservationsByOrg(organizationId: string): Promise<any[]>;
+  getAmenityUsageByDayByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 4: Parking
+  getParkingSpaceAssignmentsByOrg(organizationId: string): Promise<any[]>;
+  getParkingPermitsByOrg(organizationId: string): Promise<any[]>;
+  getParkingViolationsByOrg(organizationId: string): Promise<any[]>;
+  getParkingTowingLogByOrg(organizationId: string): Promise<any[]>;
+  getParkingGarageAccessByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 4: Packages
+  getPackageLogByOrg(organizationId: string): Promise<any[]>;
+  getPackageAwaitingPickupByOrg(organizationId: string): Promise<any[]>;
+  getPackageLockerStatusByOrg(organizationId: string): Promise<any[]>;
+  getPackageCarrierSummaryByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 4: Access Control
+  getKeyInventoryByOrg(organizationId: string): Promise<any[]>;
+  getAccessCardsByOrg(organizationId: string): Promise<any[]>;
+  getSmartLocksByOrg(organizationId: string): Promise<any[]>;
+  getAccessLogsByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 4: Safety
+  getIncidentReportsByOrg(organizationId: string): Promise<any[]>;
+  getPatrolLogsByOrg(organizationId: string): Promise<any[]>;
+  getCameraSystemsByOrg(organizationId: string): Promise<any[]>;
+  getFireSafetyByOrg(organizationId: string): Promise<any[]>;
+
+  // Phase 4: Pest Control
+  getPestTreatmentScheduleByOrg(organizationId: string): Promise<any[]>;
+  getPestActiveReportsByOrg(organizationId: string): Promise<any[]>;
+  getPestUnitHistoryByOrg(organizationId: string): Promise<any[]>;
+  getPestVendorsByOrg(organizationId: string): Promise<any[]>;
+  getPestPreventionProgramsByOrg(organizationId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2748,6 +2818,125 @@ export class DatabaseStorage implements IStorage {
 
   async getCommunityProgramsByOrg(organizationId: string): Promise<any[]> {
     return db.select().from(communityPrograms).where(eq(communityPrograms.organizationId, organizationId));
+  }
+
+  // Phase 4: Inspections
+  async getInspectionsScheduledByOrg(organizationId: string) {
+    return db.select().from(inspectionsScheduled).where(eq(inspectionsScheduled.organizationId, organizationId));
+  }
+
+  async getInspectionResultsByOrg(organizationId: string) {
+    return db.select().from(inspectionResults).where(eq(inspectionResults.organizationId, organizationId));
+  }
+
+  async getInspectionUnitConditionsByOrg(organizationId: string) {
+    return db.select().from(inspectionUnitConditions).where(eq(inspectionUnitConditions.organizationId, organizationId));
+  }
+
+  // Phase 4: Amenities
+  async getAmenityListByOrg(organizationId: string) {
+    return db.select().from(amenityList).where(eq(amenityList.organizationId, organizationId));
+  }
+
+  async getAmenityReservationsByOrg(organizationId: string) {
+    return db.select().from(amenityReservations).where(eq(amenityReservations.organizationId, organizationId));
+  }
+
+  async getAmenityUsageByDayByOrg(organizationId: string) {
+    return db.select().from(amenityUsageByDay).where(eq(amenityUsageByDay.organizationId, organizationId));
+  }
+
+  // Phase 4: Parking
+  async getParkingSpaceAssignmentsByOrg(organizationId: string) {
+    return db.select().from(parkingSpaceAssignments).where(eq(parkingSpaceAssignments.organizationId, organizationId));
+  }
+
+  async getParkingPermitsByOrg(organizationId: string) {
+    return db.select().from(parkingPermits).where(eq(parkingPermits.organizationId, organizationId));
+  }
+
+  async getParkingViolationsByOrg(organizationId: string) {
+    return db.select().from(parkingViolations).where(eq(parkingViolations.organizationId, organizationId));
+  }
+
+  async getParkingTowingLogByOrg(organizationId: string) {
+    return db.select().from(parkingTowingLog).where(eq(parkingTowingLog.organizationId, organizationId));
+  }
+
+  async getParkingGarageAccessByOrg(organizationId: string) {
+    return db.select().from(parkingGarageAccess).where(eq(parkingGarageAccess.organizationId, organizationId));
+  }
+
+  // Phase 4: Packages
+  async getPackageLogByOrg(organizationId: string) {
+    return db.select().from(packageLog).where(eq(packageLog.organizationId, organizationId));
+  }
+
+  async getPackageAwaitingPickupByOrg(organizationId: string) {
+    return db.select().from(packageAwaitingPickup).where(eq(packageAwaitingPickup.organizationId, organizationId));
+  }
+
+  async getPackageLockerStatusByOrg(organizationId: string) {
+    return db.select().from(packageLockerStatus).where(eq(packageLockerStatus.organizationId, organizationId));
+  }
+
+  async getPackageCarrierSummaryByOrg(organizationId: string) {
+    return db.select().from(packageCarrierSummary).where(eq(packageCarrierSummary.organizationId, organizationId));
+  }
+
+  // Phase 4: Access Control
+  async getKeyInventoryByOrg(organizationId: string) {
+    return db.select().from(keyInventory).where(eq(keyInventory.organizationId, organizationId));
+  }
+
+  async getAccessCardsByOrg(organizationId: string) {
+    return db.select().from(accessCards).where(eq(accessCards.organizationId, organizationId));
+  }
+
+  async getSmartLocksByOrg(organizationId: string) {
+    return db.select().from(smartLocks).where(eq(smartLocks.organizationId, organizationId));
+  }
+
+  async getAccessLogsByOrg(organizationId: string) {
+    return db.select().from(accessLogs).where(eq(accessLogs.organizationId, organizationId));
+  }
+
+  // Phase 4: Safety
+  async getIncidentReportsByOrg(organizationId: string) {
+    return db.select().from(incidentReports).where(eq(incidentReports.organizationId, organizationId));
+  }
+
+  async getPatrolLogsByOrg(organizationId: string) {
+    return db.select().from(patrolLogs).where(eq(patrolLogs.organizationId, organizationId));
+  }
+
+  async getCameraSystemsByOrg(organizationId: string) {
+    return db.select().from(cameraSystems).where(eq(cameraSystems.organizationId, organizationId));
+  }
+
+  async getFireSafetyByOrg(organizationId: string) {
+    return db.select().from(fireSafety).where(eq(fireSafety.organizationId, organizationId));
+  }
+
+  // Phase 4: Pest Control
+  async getPestTreatmentScheduleByOrg(organizationId: string) {
+    return db.select().from(pestTreatmentSchedule).where(eq(pestTreatmentSchedule.organizationId, organizationId));
+  }
+
+  async getPestActiveReportsByOrg(organizationId: string) {
+    return db.select().from(pestActiveReports).where(eq(pestActiveReports.organizationId, organizationId));
+  }
+
+  async getPestUnitHistoryByOrg(organizationId: string) {
+    return db.select().from(pestUnitHistory).where(eq(pestUnitHistory.organizationId, organizationId));
+  }
+
+  async getPestVendorsByOrg(organizationId: string) {
+    return db.select().from(pestVendors).where(eq(pestVendors.organizationId, organizationId));
+  }
+
+  async getPestPreventionProgramsByOrg(organizationId: string) {
+    return db.select().from(pestPreventionPrograms).where(eq(pestPreventionPrograms.organizationId, organizationId));
   }
 }
 

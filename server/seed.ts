@@ -19,6 +19,15 @@ import {
   vendorInvoices,
   merchants,
   merchantTransactions,
+  parkingSpaceAssignments,
+  parkingPermits,
+  parkingViolations,
+  parkingTowingLog,
+  parkingGarageAccess,
+  incidentReports,
+  patrolLogs,
+  cameraSystems,
+  fireSafety,
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -1071,7 +1080,114 @@ export async function seedDatabase() {
   ]);
   console.log("7 community programs seeded");
 
+  // === Phase 4: Parking Seed Data ===
+  await db.delete(parkingSpaceAssignments).where(eq(parkingSpaceAssignments.organizationId, orgId));
+  await db.delete(parkingPermits).where(eq(parkingPermits.organizationId, orgId));
+  await db.delete(parkingViolations).where(eq(parkingViolations.organizationId, orgId));
+  await db.delete(parkingTowingLog).where(eq(parkingTowingLog.organizationId, orgId));
+  await db.delete(parkingGarageAccess).where(eq(parkingGarageAccess.organizationId, orgId));
+
+  await db.insert(parkingSpaceAssignments).values([
+    { organizationId: orgId, space: "A-101", type: "Covered", tenant: "Sarah Chen", unit: "4B", vehicle: "2023 Tesla Model 3 (Silver)", plate: "7ABC123", monthly: "$150", expires: "Dec 31, 2026" },
+    { organizationId: orgId, space: "A-102", type: "Covered", tenant: "James Wilson", unit: "2A", vehicle: "2022 Honda Accord (Black)", plate: "8DEF456", monthly: "$150", expires: "Dec 31, 2026" },
+    { organizationId: orgId, space: "B-205", type: "Uncovered", tenant: "Maria Santos", unit: "6C", vehicle: "2021 Toyota RAV4 (White)", plate: "3GHI789", monthly: "$75", expires: "Jun 30, 2026" },
+    { organizationId: orgId, space: "G-012", type: "Garage", tenant: "Robert Kim", unit: "8A", vehicle: "2024 BMW X5 (Blue)", plate: "9JKL012", monthly: "$225", expires: "Dec 31, 2026" },
+    { organizationId: orgId, space: "R-001", type: "Reserved", tenant: "Property Manager", unit: "Office", vehicle: "2023 Ford Explorer (Gray)", plate: "MGMT01", monthly: "$0", expires: "N/A" },
+    { organizationId: orgId, space: "B-310", type: "Uncovered", tenant: "Emily Davis", unit: "5D", vehicle: "2020 Subaru Outback (Green)", plate: "4MNO345", monthly: "$75", expires: "Mar 31, 2026" },
+    { organizationId: orgId, space: "G-015", type: "Garage", tenant: "Michael Brown", unit: "3C", vehicle: "2022 Audi Q7 (Black)", plate: "5PQR678", monthly: "$225", expires: "Dec 31, 2026" },
+  ]);
+  console.log("7 parking space assignments seeded");
+
+  await db.insert(parkingPermits).values([
+    { organizationId: orgId, permitId: "PRK-2401", type: "Resident", vehicle: "2023 Tesla Model 3", plate: "7ABC123", unit: "4B", issued: "Jan 1, 2026", expires: "Dec 31, 2026", status: "Active" },
+    { organizationId: orgId, permitId: "PRK-2402", type: "Visitor", vehicle: "2019 Honda Civic (Red)", plate: "VIS-001", unit: "4B", issued: "Feb 18, 2026", expires: "Feb 21, 2026", status: "Expiring" },
+    { organizationId: orgId, permitId: "PRK-2403", type: "Contractor", vehicle: "2022 Ford Transit (White)", plate: "CTR-100", unit: "N/A", issued: "Feb 15, 2026", expires: "Feb 28, 2026", status: "Active" },
+    { organizationId: orgId, permitId: "PRK-2404", type: "Temporary", vehicle: "2024 U-Haul Truck", plate: "UHL-999", unit: "7A", issued: "Feb 20, 2026", expires: "Feb 22, 2026", status: "Active" },
+    { organizationId: orgId, permitId: "PRK-2405", type: "Resident", vehicle: "2021 Hyundai Sonata", plate: "6STU901", unit: "9B", issued: "Jan 1, 2026", expires: "Dec 31, 2026", status: "Active" },
+    { organizationId: orgId, permitId: "PRK-2406", type: "Visitor", vehicle: "2020 Chevy Malibu (Gray)", plate: "VIS-002", unit: "2A", issued: "Feb 10, 2026", expires: "Feb 13, 2026", status: "Expired" },
+  ]);
+  console.log("6 parking permits seeded");
+
+  await db.insert(parkingViolations).values([
+    { organizationId: orgId, violationId: "VIO-001", date: "Feb 20, 2026", space: "B-220", plate: "ABC-1234", type: "Unauthorized", fine: "$75", status: "Open", notes: "Red sedan parked without permit" },
+    { organizationId: orgId, violationId: "VIO-002", date: "Feb 19, 2026", space: "A-105", plate: "XYZ-5678", type: "Expired Permit", fine: "$50", status: "Warning Issued", notes: "Blue SUV with expired permit" },
+    { organizationId: orgId, violationId: "VIO-003", date: "Feb 18, 2026", space: "G-008", plate: "DEF-9012", type: "Wrong Space", fine: "$50", status: "Resolved", notes: "White truck in wrong assigned space" },
+    { organizationId: orgId, violationId: "VIO-004", date: "Feb 17, 2026", space: "B-301", plate: "Unknown", type: "Abandoned", fine: "$100", status: "Tow Scheduled", notes: "Gray sedan abandoned 7+ days" },
+    { organizationId: orgId, violationId: "VIO-005", date: "Feb 16, 2026", space: "R-003", plate: "GHI-3456", type: "Unauthorized", fine: "$75", status: "Open", notes: "Black coupe in reserved space" },
+  ]);
+  console.log("5 parking violations seeded");
+
+  await db.insert(parkingTowingLog).values([
+    { organizationId: orgId, towId: "TOW-001", date: "Feb 17, 2026", plate: "Unknown", space: "B-301", reason: "Abandoned 7+ days", company: "Metro Towing", status: "Completed", cost: "$185" },
+    { organizationId: orgId, towId: "TOW-002", date: "Feb 14, 2026", plate: "JKL-7890", space: "A-110", reason: "Unauthorized parking", company: "Metro Towing", status: "Completed", cost: "$185" },
+    { organizationId: orgId, towId: "TOW-003", date: "Feb 10, 2026", plate: "MNO-1234", space: "Fire Lane", reason: "Fire lane violation", company: "Quick Tow LLC", status: "Completed", cost: "$225" },
+    { organizationId: orgId, towId: "TOW-004", date: "Feb 8, 2026", plate: "PQR-5678", space: "B-215", reason: "Expired permit (30+ days)", company: "Metro Towing", status: "Disputed", cost: "$185" },
+    { organizationId: orgId, towId: "TOW-005", date: "Feb 5, 2026", plate: "STU-9012", space: "HC-002", reason: "Handicap violation", company: "Quick Tow LLC", status: "Completed", cost: "$350" },
+  ]);
+  console.log("5 parking towing log entries seeded");
+
+  await db.insert(parkingGarageAccess).values([
+    { organizationId: orgId, device: "GAR-001", location: "Main Gate - Entry", status: "Online", lastPing: "Feb 21, 10:32 AM", battery: 95, firmware: "v3.2.1" },
+    { organizationId: orgId, device: "GAR-002", location: "Main Gate - Exit", status: "Online", lastPing: "Feb 21, 10:30 AM", battery: 88, firmware: "v3.2.1" },
+    { organizationId: orgId, device: "GAR-003", location: "Level 2 Entry", status: "Online", lastPing: "Feb 21, 10:28 AM", battery: 72, firmware: "v3.1.0" },
+    { organizationId: orgId, device: "GAR-004", location: "Level 3 Entry", status: "Offline", lastPing: "Feb 19, 5:30 PM", battery: 15, firmware: "v3.0.2" },
+    { organizationId: orgId, device: "GAR-005", location: "Visitor Lot Gate", status: "Online", lastPing: "Feb 21, 9:45 AM", battery: 60, firmware: "v3.2.1" },
+    { organizationId: orgId, device: "GAR-006", location: "Emergency Exit", status: "Online", lastPing: "Feb 21, 7:00 AM", battery: 82, firmware: "v3.2.1" },
+  ]);
+  console.log("6 parking garage access devices seeded");
+
   console.log("Phase 3 seeding complete!");
+
+  // ====== PHASE 4: SAFETY SEED DATA ======
+  await db.delete(incidentReports).where(eq(incidentReports.organizationId, orgId));
+  await db.delete(patrolLogs).where(eq(patrolLogs.organizationId, orgId));
+  await db.delete(cameraSystems).where(eq(cameraSystems.organizationId, orgId));
+  await db.delete(fireSafety).where(eq(fireSafety.organizationId, orgId));
+
+  await db.insert(incidentReports).values([
+    { organizationId: orgId, incidentId: "INC-301", date: "Feb 19, 2026", type: "Theft", location: "Parking Garage B2", severity: "High", reportedBy: "R. Martinez", status: "Open", description: "Catalytic converter theft reported on Level B2. Vehicle owner discovered the damage at approximately 7:30 PM." },
+    { organizationId: orgId, incidentId: "INC-300", date: "Feb 18, 2026", type: "Vandalism", location: "Building A Lobby", severity: "Medium", reportedBy: "Front Desk", status: "Investigating", description: "Graffiti found on lobby wall near mailboxes. Appears to have occurred overnight." },
+    { organizationId: orgId, incidentId: "INC-299", date: "Feb 17, 2026", type: "Noise", location: "Unit 5C", severity: "Low", reportedBy: "T. Johnson", status: "Resolved", description: "Noise complaint from multiple neighbors regarding loud music after quiet hours." },
+    { organizationId: orgId, incidentId: "INC-298", date: "Feb 16, 2026", type: "Trespass", location: "Pool Area", severity: "High", reportedBy: "Camera Alert", status: "Investigating", description: "Unauthorized access to pool area after hours detected via security camera." },
+    { organizationId: orgId, incidentId: "INC-297", date: "Feb 15, 2026", type: "Medical", location: "Unit 8A", severity: "Critical", reportedBy: "K. Williams", status: "Closed", description: "Resident experienced chest pains. EMS dispatched and transported to hospital." },
+    { organizationId: orgId, incidentId: "INC-296", date: "Feb 14, 2026", type: "Fire Alarm", location: "Building B Floor 3", severity: "High", reportedBy: "System Alert", status: "Resolved", description: "Fire alarm triggered by cooking smoke. Fire department responded, false alarm confirmed." },
+    { organizationId: orgId, incidentId: "INC-295", date: "Feb 13, 2026", type: "Suspicious Activity", location: "Parking Garage B1", severity: "Medium", reportedBy: "M. Garcia", status: "Closed", description: "Suspicious individual observed loitering near vehicles. Identified as delivery driver." },
+  ]);
+  console.log("7 incident reports seeded");
+
+  await db.insert(patrolLogs).values([
+    { organizationId: orgId, patrolId: "PAT-101", date: "Feb 21, 2026", officer: "Officer Chen", route: "Perimeter Loop", startTime: "10:00 PM", endTime: "10:45 PM", findings: "All clear", status: "Completed" },
+    { organizationId: orgId, patrolId: "PAT-100", date: "Feb 21, 2026", officer: "Officer Patel", route: "Interior Sweep", startTime: "6:00 PM", endTime: "6:55 PM", findings: "Broken light in B stairwell", status: "Completed" },
+    { organizationId: orgId, patrolId: "PAT-099", date: "Feb 21, 2026", officer: "Officer Davis", route: "Night Watch", startTime: "2:00 AM", endTime: "3:00 AM", findings: "All clear", status: "Completed" },
+    { organizationId: orgId, patrolId: "PAT-098", date: "Feb 20, 2026", officer: "Officer Chen", route: "Perimeter Loop", startTime: "10:00 PM", endTime: "10:50 PM", findings: "Unlocked gate at pool", status: "Completed" },
+    { organizationId: orgId, patrolId: "PAT-097", date: "Feb 20, 2026", officer: "Officer Patel", route: "Interior Sweep", startTime: "6:00 PM", endTime: "6:48 PM", findings: "All clear", status: "Completed" },
+    { organizationId: orgId, patrolId: "PAT-096", date: "Feb 20, 2026", officer: "Officer Davis", route: "Night Watch", startTime: "2:00 AM", endTime: "3:05 AM", findings: "Suspicious vehicle reported, verified resident guest", status: "Completed" },
+  ]);
+  console.log("6 patrol logs seeded");
+
+  await db.insert(cameraSystems).values([
+    { organizationId: orgId, cameraId: "CAM-001", location: "Main Entrance", type: "PTZ", status: "Online", resolution: "4K", storage: "30 days", lastMaintenance: "Jan 15, 2026", coverage: 95 },
+    { organizationId: orgId, cameraId: "CAM-002", location: "Parking Garage B1", type: "Fixed", status: "Online", resolution: "1080p", storage: "30 days", lastMaintenance: "Jan 15, 2026", coverage: 85 },
+    { organizationId: orgId, cameraId: "CAM-003", location: "Parking Garage B2", type: "Fixed", status: "Offline", resolution: "1080p", storage: "0 days", lastMaintenance: "Dec 20, 2025", coverage: 0 },
+    { organizationId: orgId, cameraId: "CAM-004", location: "Pool Area", type: "Dome", status: "Online", resolution: "1080p", storage: "30 days", lastMaintenance: "Jan 20, 2026", coverage: 90 },
+    { organizationId: orgId, cameraId: "CAM-005", location: "Building A Lobby", type: "PTZ", status: "Online", resolution: "4K", storage: "30 days", lastMaintenance: "Jan 15, 2026", coverage: 98 },
+    { organizationId: orgId, cameraId: "CAM-006", location: "Building B Lobby", type: "PTZ", status: "Maintenance", resolution: "4K", storage: "15 days", lastMaintenance: "Feb 10, 2026", coverage: 0 },
+    { organizationId: orgId, cameraId: "CAM-007", location: "Rear Exit", type: "Fixed", status: "Online", resolution: "1080p", storage: "30 days", lastMaintenance: "Jan 18, 2026", coverage: 80 },
+  ]);
+  console.log("7 camera systems seeded");
+
+  await db.insert(fireSafety).values([
+    { organizationId: orgId, system: "Extinguisher", location: "Building A Floor 1", lastInspection: "Nov 10, 2025", nextInspection: "May 10, 2026", status: "Active", compliance: "Compliant", notes: "All extinguishers fully charged and accessible" },
+    { organizationId: orgId, system: "Sprinkler", location: "Building A", lastInspection: "Sep 15, 2025", nextInspection: "Mar 15, 2026", status: "Active", compliance: "Compliant", notes: "Annual flow test passed" },
+    { organizationId: orgId, system: "Alarm", location: "Building B", lastInspection: "Oct 1, 2025", nextInspection: "Apr 1, 2026", status: "Active", compliance: "Compliant", notes: "All detectors operational" },
+    { organizationId: orgId, system: "Exit Sign", location: "Building A Floor 3", lastInspection: "Jan 5, 2026", nextInspection: "Jul 5, 2026", status: "Active", compliance: "Compliant", notes: "Battery backup tested" },
+    { organizationId: orgId, system: "Standpipe", location: "Building B", lastInspection: "Aug 20, 2025", nextInspection: "Feb 20, 2026", status: "Needs Repair", compliance: "Non-Compliant", notes: "Pressure test failed, repair scheduled" },
+    { organizationId: orgId, system: "Extinguisher", location: "Parking Garage", lastInspection: "Dec 1, 2025", nextInspection: "Jun 1, 2026", status: "Active", compliance: "Compliant", notes: "All units inspected and tagged" },
+    { organizationId: orgId, system: "Sprinkler", location: "Building B", lastInspection: "Jul 10, 2025", nextInspection: "Jan 10, 2026", status: "Overdue", compliance: "Non-Compliant", notes: "Inspection overdue, scheduling in progress" },
+  ]);
+  console.log("7 fire safety records seeded");
+
+  console.log("Phase 4 safety seeding complete!");
 
   console.log("Database seeded successfully!");
   console.log(`- Organization: ${demoOrg.name}`);

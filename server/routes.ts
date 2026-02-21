@@ -4397,6 +4397,328 @@ Guidelines:
     }
   });
 
+  // ====== PHASE 4: INSPECTIONS API ======
+
+  app.get("/api/inspections/scheduled", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getInspectionsScheduledByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/inspections/results", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getInspectionResultsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/inspections/conditions", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getInspectionUnitConditionsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 4: AMENITIES API ======
+
+  app.get("/api/amenities/list", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getAmenityListByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/amenities/reservations", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getAmenityReservationsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/amenities/usage", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getAmenityUsageByDayByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 4: PARKING API ======
+
+  app.get("/api/parking/spaces", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getParkingSpaceAssignmentsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/parking/permits", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getParkingPermitsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/parking/violations", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getParkingViolationsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/parking/towing", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getParkingTowingLogByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/parking/garage", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getParkingGarageAccessByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 4: PACKAGES API ======
+
+  app.get("/api/packages/log", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPackageLogByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/packages/awaiting", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPackageAwaitingPickupByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/packages/lockers", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPackageLockerStatusByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/packages/carriers", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPackageCarrierSummaryByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 4: ACCESS CONTROL API ======
+
+  app.get("/api/access-control/keys", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getKeyInventoryByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/access-control/cards", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getAccessCardsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/access-control/locks", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getSmartLocksByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/access-control/logs", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getAccessLogsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 4: SAFETY API ======
+
+  app.get("/api/safety/incidents", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getIncidentReportsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/safety/patrols", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPatrolLogsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/safety/cameras", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getCameraSystemsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/safety/fire", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getFireSafetyByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 4: PEST CONTROL API ======
+
+  app.get("/api/pest-control/treatments", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPestTreatmentScheduleByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/pest-control/reports", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPestActiveReportsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/pest-control/history", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPestUnitHistoryByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/pest-control/vendors", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPestVendorsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/pest-control/prevention", requireAuth, async (req, res) => {
+    try {
+      const orgId = req.organizationId;
+      if (!orgId) return res.status(403).json({ message: "No organization" });
+      const data = await storage.getPestPreventionProgramsByOrg(orgId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -56,3 +56,20 @@ Naltos is built with an agentic-first approach, where AI agents are the primary 
 - **AI**: GPT-5 (via Replit AI Integrations)
 - **Legacy PMS Systems Integration**: AppFolio, Yardi, Buildium
 - **Payment Rails**: ACH, cards, existing PMS integrations
+
+## Recent Changes
+- **Feb 2026**: Phase 4 — Database-backed Property Operations pages (7 pages)
+  - 7 pages rewired from mock data to real database: Inspections, Amenities, Parking, Packages, Access Control, Safety, Pest Control
+  - 28 new database tables across 7 page groups
+  - 28 new storage methods with org-scoped queries
+  - 28 GET API endpoints with requireAuth middleware
+  - Seed data for all 28 tables with realistic property operations data
+  - Frontend pages use TanStack Query with loading skeletons, error states, and dynamic KPI computation
+- **Feb 2026**: Phase 3 — Database-backed Property CRM pages (remaining 5)
+  - 5 pages rewired: Move-In/Move-Out, Communications, Applications, Marketing, Community
+  - 14 new database tables, 14 storage methods, 14 API endpoints
+- **Feb 2026**: Phase 2 — Database-backed Property CRM pages (core 4)
+  - 4 pages rewired: Lease Management, Units, Maintenance Hub, Residents
+  - 7 new tables, 21 storage methods, extended units/leases tables
+- **Feb 2026**: Phase 1 — Database-backed Partner Portal, Dispute Center, Tenant Privacy
+- **Feb 2026**: Phase 0 — Platform architecture aligned with production-grade blueprint

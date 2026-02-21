@@ -2026,3 +2026,484 @@ export type TenantPet = typeof tenantPets.$inferSelect;
 export type InsertTenantPet = z.infer<typeof insertTenantPetSchema>;
 export type TenantVehicle = typeof tenantVehicles.$inferSelect;
 export type InsertTenantVehicle = z.infer<typeof insertTenantVehicleSchema>;
+
+// ========== Phase 4: Property Operations (Inspections, Amenities, Parking, Packages, Access Control, Safety, Pest Control) ==========
+
+// --- INSPECTIONS ---
+
+export const inspectionsScheduled = pgTable("inspections_scheduled", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unit: text("unit"),
+  type: text("type"),
+  inspector: text("inspector"),
+  inspectionDate: text("inspection_date"),
+  status: text("status"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const inspectionResults = pgTable("inspection_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unit: text("unit"),
+  type: text("type"),
+  inspector: text("inspector"),
+  inspectionDate: text("inspection_date"),
+  score: integer("score"),
+  issues: integer("issues"),
+  photos: integer("photos"),
+  followUp: boolean("follow_up"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const inspectionUnitConditions = pgTable("inspection_unit_conditions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unit: text("unit"),
+  lastInspection: text("last_inspection"),
+  score: integer("score"),
+  trend: text("trend"),
+  kitchen: integer("kitchen"),
+  bath: integer("bath"),
+  floors: integer("floors"),
+  walls: integer("walls"),
+  fixtures: integer("fixtures"),
+  nextDue: text("next_due"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- AMENITIES ---
+
+export const amenityList = pgTable("amenity_list", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name"),
+  iconKey: text("icon_key"),
+  category: text("category"),
+  status: text("status"),
+  capacity: text("capacity"),
+  utilization: integer("utilization"),
+  revenue: text("revenue"),
+  maintenance: text("maintenance"),
+  nextMaintenance: text("next_maintenance"),
+  hours: text("hours"),
+  rules: text("rules"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const amenityReservations = pgTable("amenity_reservations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  amenity: text("amenity"),
+  resident: text("resident"),
+  unit: text("unit"),
+  reservationDate: text("reservation_date"),
+  time: text("time"),
+  status: text("status"),
+  guests: integer("guests"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const amenityUsageByDay = pgTable("amenity_usage_by_day", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  day: text("day"),
+  gym: integer("gym"),
+  pool: integer("pool"),
+  lounge: integer("lounge"),
+  courtyard: integer("courtyard"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- PARKING ---
+
+export const parkingSpaceAssignments = pgTable("parking_space_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  space: text("space"),
+  type: text("type"),
+  tenant: text("tenant"),
+  unit: text("unit"),
+  vehicle: text("vehicle"),
+  plate: text("plate"),
+  monthly: text("monthly"),
+  expires: text("expires"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const parkingPermits = pgTable("parking_permits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  permitId: text("permit_id"),
+  type: text("type"),
+  vehicle: text("vehicle"),
+  plate: text("plate"),
+  unit: text("unit"),
+  issued: text("issued"),
+  expires: text("expires"),
+  status: text("status"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const parkingViolations = pgTable("parking_violations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  violationId: text("violation_id"),
+  date: text("date"),
+  space: text("space"),
+  plate: text("plate"),
+  type: text("type"),
+  fine: text("fine"),
+  status: text("status"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const parkingTowingLog = pgTable("parking_towing_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  towId: text("tow_id"),
+  date: text("date"),
+  plate: text("plate"),
+  space: text("space"),
+  reason: text("reason"),
+  company: text("company"),
+  status: text("status"),
+  cost: text("cost"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const parkingGarageAccess = pgTable("parking_garage_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  device: text("device"),
+  location: text("location"),
+  status: text("status"),
+  lastPing: text("last_ping"),
+  battery: integer("battery"),
+  firmware: text("firmware"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- PACKAGES ---
+
+export const packageLog = pgTable("package_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  tracking: text("tracking"),
+  carrier: text("carrier"),
+  resident: text("resident"),
+  unit: text("unit"),
+  received: text("received"),
+  status: text("status"),
+  location: text("location"),
+  signature: boolean("signature"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const packageAwaitingPickup = pgTable("package_awaiting_pickup", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  tracking: text("tracking"),
+  carrier: text("carrier"),
+  resident: text("resident"),
+  unit: text("unit"),
+  received: text("received"),
+  daysHeld: integer("days_held"),
+  location: text("location"),
+  notified: integer("notified"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const packageLockerStatus = pgTable("package_locker_status", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  locker: text("locker"),
+  size: text("size"),
+  status: text("status"),
+  resident: text("resident"),
+  unit: text("unit"),
+  loaded: text("loaded"),
+  code: text("code"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const packageCarrierSummary = pgTable("package_carrier_summary", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  carrier: text("carrier"),
+  deliveries: integer("deliveries"),
+  avgPerDay: text("avg_per_day"),
+  issues: integer("issues"),
+  rating: text("rating"),
+  lastDelivery: text("last_delivery"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- ACCESS CONTROL ---
+
+export const keyInventory = pgTable("key_inventory", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unit: text("unit"),
+  keyType: text("key_type"),
+  copies: integer("copies"),
+  assignedTo: text("assigned_to"),
+  lastIssued: text("last_issued"),
+  status: text("status"),
+  deposit: text("deposit"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const accessCards = pgTable("access_cards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  cardId: text("card_id"),
+  type: text("type"),
+  holder: text("holder"),
+  unit: text("unit"),
+  zones: text("zones"),
+  issued: text("issued"),
+  expires: text("expires"),
+  status: text("status"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const smartLocks = pgTable("smart_locks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  device: text("device"),
+  unit: text("unit"),
+  battery: integer("battery"),
+  firmware: text("firmware"),
+  status: text("status"),
+  lastAccess: text("last_access"),
+  autoLock: boolean("auto_lock"),
+  logs: integer("logs"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const accessLogs = pgTable("access_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  time: text("time"),
+  person: text("person"),
+  unit: text("unit"),
+  method: text("method"),
+  door: text("door"),
+  result: text("result"),
+  flagged: boolean("flagged"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- SAFETY ---
+
+export const incidentReports = pgTable("incident_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  incidentId: text("incident_id"),
+  date: text("date"),
+  type: text("type"),
+  location: text("location"),
+  severity: text("severity"),
+  reportedBy: text("reported_by"),
+  status: text("status"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const patrolLogs = pgTable("patrol_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  patrolId: text("patrol_id"),
+  date: text("date"),
+  officer: text("officer"),
+  route: text("route"),
+  startTime: text("start_time"),
+  endTime: text("end_time"),
+  findings: text("findings"),
+  status: text("status"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const cameraSystems = pgTable("camera_systems", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  cameraId: text("camera_id"),
+  location: text("location"),
+  type: text("type"),
+  status: text("status"),
+  resolution: text("resolution"),
+  storage: text("storage"),
+  lastMaintenance: text("last_maintenance"),
+  coverage: integer("coverage"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const fireSafety = pgTable("fire_safety", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  system: text("system"),
+  location: text("location"),
+  lastInspection: text("last_inspection"),
+  nextInspection: text("next_inspection"),
+  status: text("status"),
+  compliance: text("compliance"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- PEST CONTROL ---
+
+export const pestTreatmentSchedule = pgTable("pest_treatment_schedule", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unit: text("unit"),
+  date: text("date"),
+  type: text("type"),
+  pestType: text("pest_type"),
+  vendor: text("vendor"),
+  status: text("status"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pestActiveReports = pgTable("pest_active_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unit: text("unit"),
+  tenant: text("tenant"),
+  pestType: text("pest_type"),
+  severity: text("severity"),
+  reportedDate: text("reported_date"),
+  treatmentScheduled: text("treatment_scheduled"),
+  followUpNeeded: boolean("follow_up_needed"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pestUnitHistory = pgTable("pest_unit_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  unit: text("unit"),
+  date: text("date"),
+  type: text("type"),
+  pestType: text("pest_type"),
+  result: text("result"),
+  notes: text("notes"),
+  recurring: boolean("recurring"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pestVendors = pgTable("pest_vendors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  company: text("company"),
+  contractType: text("contract_type"),
+  serviceArea: text("service_area"),
+  responseTimeSla: text("response_time_sla"),
+  satisfactionRating: text("satisfaction_rating"),
+  contractExpiry: text("contract_expiry"),
+  monthlyCost: text("monthly_cost"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pestPreventionPrograms = pgTable("pest_prevention_programs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  programName: text("program_name"),
+  type: text("type"),
+  frequency: text("frequency"),
+  lastService: text("last_service"),
+  nextService: text("next_service"),
+  coverage: integer("coverage"),
+  effectiveness: text("effectiveness"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Phase 4 Insert Schemas
+export const insertInspectionsScheduledSchema = createInsertSchema(inspectionsScheduled).omit({ id: true, createdAt: true });
+export const insertInspectionResultsSchema = createInsertSchema(inspectionResults).omit({ id: true, createdAt: true });
+export const insertInspectionUnitConditionsSchema = createInsertSchema(inspectionUnitConditions).omit({ id: true, createdAt: true });
+export const insertAmenityListSchema = createInsertSchema(amenityList).omit({ id: true, createdAt: true });
+export const insertAmenityReservationsSchema = createInsertSchema(amenityReservations).omit({ id: true, createdAt: true });
+export const insertAmenityUsageByDaySchema = createInsertSchema(amenityUsageByDay).omit({ id: true, createdAt: true });
+export const insertParkingSpaceAssignmentsSchema = createInsertSchema(parkingSpaceAssignments).omit({ id: true, createdAt: true });
+export const insertParkingPermitsSchema = createInsertSchema(parkingPermits).omit({ id: true, createdAt: true });
+export const insertParkingViolationsSchema = createInsertSchema(parkingViolations).omit({ id: true, createdAt: true });
+export const insertParkingTowingLogSchema = createInsertSchema(parkingTowingLog).omit({ id: true, createdAt: true });
+export const insertParkingGarageAccessSchema = createInsertSchema(parkingGarageAccess).omit({ id: true, createdAt: true });
+export const insertPackageLogSchema = createInsertSchema(packageLog).omit({ id: true, createdAt: true });
+export const insertPackageAwaitingPickupSchema = createInsertSchema(packageAwaitingPickup).omit({ id: true, createdAt: true });
+export const insertPackageLockerStatusSchema = createInsertSchema(packageLockerStatus).omit({ id: true, createdAt: true });
+export const insertPackageCarrierSummarySchema = createInsertSchema(packageCarrierSummary).omit({ id: true, createdAt: true });
+export const insertKeyInventorySchema = createInsertSchema(keyInventory).omit({ id: true, createdAt: true });
+export const insertAccessCardsSchema = createInsertSchema(accessCards).omit({ id: true, createdAt: true });
+export const insertSmartLocksSchema = createInsertSchema(smartLocks).omit({ id: true, createdAt: true });
+export const insertAccessLogsSchema = createInsertSchema(accessLogs).omit({ id: true, createdAt: true });
+export const insertIncidentReportsSchema = createInsertSchema(incidentReports).omit({ id: true, createdAt: true });
+export const insertPatrolLogsSchema = createInsertSchema(patrolLogs).omit({ id: true, createdAt: true });
+export const insertCameraSystemsSchema = createInsertSchema(cameraSystems).omit({ id: true, createdAt: true });
+export const insertFireSafetySchema = createInsertSchema(fireSafety).omit({ id: true, createdAt: true });
+export const insertPestTreatmentScheduleSchema = createInsertSchema(pestTreatmentSchedule).omit({ id: true, createdAt: true });
+export const insertPestActiveReportsSchema = createInsertSchema(pestActiveReports).omit({ id: true, createdAt: true });
+export const insertPestUnitHistorySchema = createInsertSchema(pestUnitHistory).omit({ id: true, createdAt: true });
+export const insertPestVendorsSchema = createInsertSchema(pestVendors).omit({ id: true, createdAt: true });
+export const insertPestPreventionProgramsSchema = createInsertSchema(pestPreventionPrograms).omit({ id: true, createdAt: true });
+
+// Phase 4 Types
+export type InspectionsScheduled = typeof inspectionsScheduled.$inferSelect;
+export type InsertInspectionsScheduled = z.infer<typeof insertInspectionsScheduledSchema>;
+export type InspectionResult = typeof inspectionResults.$inferSelect;
+export type InsertInspectionResult = z.infer<typeof insertInspectionResultsSchema>;
+export type InspectionUnitCondition = typeof inspectionUnitConditions.$inferSelect;
+export type InsertInspectionUnitCondition = z.infer<typeof insertInspectionUnitConditionsSchema>;
+export type AmenityListItem = typeof amenityList.$inferSelect;
+export type InsertAmenityListItem = z.infer<typeof insertAmenityListSchema>;
+export type AmenityReservation = typeof amenityReservations.$inferSelect;
+export type InsertAmenityReservation = z.infer<typeof insertAmenityReservationsSchema>;
+export type AmenityUsageByDay = typeof amenityUsageByDay.$inferSelect;
+export type InsertAmenityUsageByDay = z.infer<typeof insertAmenityUsageByDaySchema>;
+export type ParkingSpaceAssignment = typeof parkingSpaceAssignments.$inferSelect;
+export type InsertParkingSpaceAssignment = z.infer<typeof insertParkingSpaceAssignmentsSchema>;
+export type ParkingPermit = typeof parkingPermits.$inferSelect;
+export type InsertParkingPermit = z.infer<typeof insertParkingPermitsSchema>;
+export type ParkingViolation = typeof parkingViolations.$inferSelect;
+export type InsertParkingViolation = z.infer<typeof insertParkingViolationsSchema>;
+export type ParkingTowingLogEntry = typeof parkingTowingLog.$inferSelect;
+export type InsertParkingTowingLogEntry = z.infer<typeof insertParkingTowingLogSchema>;
+export type ParkingGarageAccessDevice = typeof parkingGarageAccess.$inferSelect;
+export type InsertParkingGarageAccessDevice = z.infer<typeof insertParkingGarageAccessSchema>;
+export type PackageLogEntry = typeof packageLog.$inferSelect;
+export type InsertPackageLogEntry = z.infer<typeof insertPackageLogSchema>;
+export type PackageAwaitingPickupEntry = typeof packageAwaitingPickup.$inferSelect;
+export type InsertPackageAwaitingPickupEntry = z.infer<typeof insertPackageAwaitingPickupSchema>;
+export type PackageLockerStatusEntry = typeof packageLockerStatus.$inferSelect;
+export type InsertPackageLockerStatusEntry = z.infer<typeof insertPackageLockerStatusSchema>;
+export type PackageCarrierSummaryEntry = typeof packageCarrierSummary.$inferSelect;
+export type InsertPackageCarrierSummaryEntry = z.infer<typeof insertPackageCarrierSummarySchema>;
+export type KeyInventoryItem = typeof keyInventory.$inferSelect;
+export type InsertKeyInventoryItem = z.infer<typeof insertKeyInventorySchema>;
+export type AccessCard = typeof accessCards.$inferSelect;
+export type InsertAccessCard = z.infer<typeof insertAccessCardsSchema>;
+export type SmartLock = typeof smartLocks.$inferSelect;
+export type InsertSmartLock = z.infer<typeof insertSmartLocksSchema>;
+export type AccessLogEntry = typeof accessLogs.$inferSelect;
+export type InsertAccessLogEntry = z.infer<typeof insertAccessLogsSchema>;
+export type IncidentReport = typeof incidentReports.$inferSelect;
+export type InsertIncidentReport = z.infer<typeof insertIncidentReportsSchema>;
+export type PatrolLogEntry = typeof patrolLogs.$inferSelect;
+export type InsertPatrolLogEntry = z.infer<typeof insertPatrolLogsSchema>;
+export type CameraSystem = typeof cameraSystems.$inferSelect;
+export type InsertCameraSystem = z.infer<typeof insertCameraSystemsSchema>;
+export type FireSafetyItem = typeof fireSafety.$inferSelect;
+export type InsertFireSafetyItem = z.infer<typeof insertFireSafetySchema>;
+export type PestTreatmentScheduleEntry = typeof pestTreatmentSchedule.$inferSelect;
+export type InsertPestTreatmentScheduleEntry = z.infer<typeof insertPestTreatmentScheduleSchema>;
+export type PestActiveReport = typeof pestActiveReports.$inferSelect;
+export type InsertPestActiveReport = z.infer<typeof insertPestActiveReportsSchema>;
+export type PestUnitHistoryEntry = typeof pestUnitHistory.$inferSelect;
+export type InsertPestUnitHistoryEntry = z.infer<typeof insertPestUnitHistorySchema>;
+export type PestVendorEntry = typeof pestVendors.$inferSelect;
+export type InsertPestVendorEntry = z.infer<typeof insertPestVendorsSchema>;
+export type PestPreventionProgram = typeof pestPreventionPrograms.$inferSelect;
+export type InsertPestPreventionProgram = z.infer<typeof insertPestPreventionProgramsSchema>;

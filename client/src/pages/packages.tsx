@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,61 +29,17 @@ import {
   Activity,
   type LucideIcon,
 } from "lucide-react";
+import type {
+  PackageLogEntry,
+  PackageAwaitingPickupEntry,
+  PackageLockerStatusEntry,
+  PackageCarrierSummaryEntry,
+} from "@shared/schema";
 
 const agentInsights = [
   { text: "34 packages received today, 12% above daily average", severity: "positive" as const },
   { text: "7 packages unclaimed for 3+ days", severity: "warning" as const },
   { text: "Smart locker availability at 22% - consider expansion", severity: "critical" as const },
-];
-
-const kpiCards = [
-  { title: "Today's Packages", value: "34", change: "+12% vs avg", trend: "positive", icon: Package },
-  { title: "Awaiting Pickup", value: "48", change: "Across all units", trend: "neutral", icon: PackageOpen },
-  { title: "Unclaimed (>3 days)", value: "7", change: "+2 this week", trend: "warning", icon: PackageX },
-  { title: "Locker Utilization", value: "78%", change: "32 of 41 occupied", trend: "neutral", icon: Lock },
-];
-
-const packageLog = [
-  { tracking: "1Z999AA10123456784", carrier: "UPS", recipient: "Sarah Chen", unit: "4B", received: "Feb 21, 10:15 AM", status: "Received", loggedBy: "Front Desk" },
-  { tracking: "9400111899223100001", carrier: "USPS", recipient: "James Wilson", unit: "2A", received: "Feb 21, 9:30 AM", status: "Notified", loggedBy: "Concierge" },
-  { tracking: "794644790280", carrier: "FedEx", recipient: "Maria Santos", unit: "6C", received: "Feb 21, 8:45 AM", status: "Picked Up", loggedBy: "Front Desk" },
-  { tracking: "TBA302948571000", carrier: "Amazon", recipient: "Robert Kim", unit: "8A", received: "Feb 20, 4:20 PM", status: "Notified", loggedBy: "Concierge" },
-  { tracking: "4208205591000", carrier: "DHL", recipient: "Emily Davis", unit: "5D", received: "Feb 20, 2:10 PM", status: "Received", loggedBy: "Front Desk" },
-  { tracking: "1Z999BB20234567891", carrier: "UPS", recipient: "Michael Brown", unit: "3C", received: "Feb 20, 11:00 AM", status: "Picked Up", loggedBy: "Concierge" },
-  { tracking: "TBA302948571001", carrier: "Amazon", recipient: "Lisa Wang", unit: "5A", received: "Feb 19, 3:30 PM", status: "Notified", loggedBy: "Front Desk" },
-  { tracking: "794644790281", carrier: "FedEx", recipient: "David Park", unit: "7A", received: "Feb 18, 1:15 PM", status: "Returned", loggedBy: "Front Desk" },
-];
-
-const awaitingPickup = [
-  { tracking: "9400111899223100001", recipient: "James Wilson", unit: "2A", carrier: "USPS", daysWaiting: 1, notifications: 2, locker: "L-12" },
-  { tracking: "TBA302948571000", recipient: "Robert Kim", unit: "8A", carrier: "Amazon", daysWaiting: 1, notifications: 1, locker: "L-08" },
-  { tracking: "4208205591000", recipient: "Emily Davis", unit: "5D", carrier: "DHL", daysWaiting: 1, notifications: 1, locker: null },
-  { tracking: "TBA302948571001", recipient: "Lisa Wang", unit: "5A", carrier: "Amazon", daysWaiting: 2, notifications: 3, locker: "L-22" },
-  { tracking: "1Z999CC30345678902", recipient: "Tom Harris", unit: "7B", carrier: "UPS", daysWaiting: 3, notifications: 4, locker: null },
-  { tracking: "9400111899223100002", recipient: "Amanda Lopez", unit: "1D", carrier: "USPS", daysWaiting: 4, notifications: 5, locker: "L-31" },
-  { tracking: "794644790282", recipient: "Kevin Nguyen", unit: "9A", carrier: "FedEx", daysWaiting: 5, notifications: 6, locker: null },
-  { tracking: "TBA302948571002", recipient: "Rachel Green", unit: "2C", carrier: "Amazon", daysWaiting: 6, notifications: 7, locker: "L-15" },
-];
-
-const lockerStatus = [
-  { locker: "L-01", size: "S", status: "Available", package: null, duration: null },
-  { locker: "L-02", size: "S", status: "Occupied", package: "TBA302948571003", duration: "2 days" },
-  { locker: "L-03", size: "M", status: "Occupied", package: "1Z999DD40456789013", duration: "1 day" },
-  { locker: "L-04", size: "M", status: "Available", package: null, duration: null },
-  { locker: "L-05", size: "L", status: "Occupied", package: "794644790283", duration: "3 days" },
-  { locker: "L-06", size: "L", status: "Reserved", package: null, duration: null },
-  { locker: "L-07", size: "XL", status: "Occupied", package: "TBA302948571004", duration: "1 day" },
-  { locker: "L-08", size: "M", status: "Occupied", package: "TBA302948571000", duration: "1 day" },
-  { locker: "L-09", size: "S", status: "Maintenance", package: null, duration: null },
-  { locker: "L-10", size: "XL", status: "Available", package: null, duration: null },
-];
-
-const carrierSummary = [
-  { carrier: "Amazon", volume: 14, avgPickupTime: "1.2 days", oversized: 3, weeklyTrend: "+8%" },
-  { carrier: "UPS", volume: 8, avgPickupTime: "1.5 days", oversized: 1, weeklyTrend: "+2%" },
-  { carrier: "FedEx", volume: 6, avgPickupTime: "1.8 days", oversized: 2, weeklyTrend: "-5%" },
-  { carrier: "USPS", volume: 4, avgPickupTime: "2.1 days", oversized: 0, weeklyTrend: "+12%" },
-  { carrier: "DHL", volume: 2, avgPickupTime: "1.4 days", oversized: 1, weeklyTrend: "0%" },
 ];
 
 const unclaimed = [
@@ -115,13 +73,96 @@ const escalationVariant: Record<string, "destructive" | "outline" | "secondary" 
   "Returning Today": "destructive",
 };
 
+function TableSkeleton({ rows = 5, cols = 5 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="p-3 space-y-3" data-testid="skeleton-table">
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex gap-4">
+          {Array.from({ length: cols }).map((_, c) => (
+            <Skeleton key={c} className="h-4 flex-1" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function KpiSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="skeleton-kpi">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Card key={i}>
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-4 w-4 rounded-full" />
+          </CardHeader>
+          <CardContent className="px-3 pb-3">
+            <Skeleton className="h-6 w-16 mb-1" />
+            <Skeleton className="h-3 w-20" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <Card data-testid="error-state">
+      <CardContent className="p-6 text-center">
+        <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-2" />
+        <p className="text-sm text-destructive font-medium">{message}</p>
+        <p className="text-xs text-muted-foreground mt-1">Please try refreshing the page</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Packages() {
   const [carrierFilter, setCarrierFilter] = useState("all");
 
-  const filteredLog = packageLog.filter((p) => {
+  const { data: logData, isLoading: logLoading, isError: logError } = useQuery<PackageLogEntry[]>({
+    queryKey: ['/api/packages/log'],
+  });
+
+  const { data: awaitingData, isLoading: awaitingLoading, isError: awaitingError } = useQuery<PackageAwaitingPickupEntry[]>({
+    queryKey: ['/api/packages/awaiting'],
+  });
+
+  const { data: lockerData, isLoading: lockerLoading, isError: lockerError } = useQuery<PackageLockerStatusEntry[]>({
+    queryKey: ['/api/packages/lockers'],
+  });
+
+  const { data: carrierData, isLoading: carrierLoading, isError: carrierError } = useQuery<PackageCarrierSummaryEntry[]>({
+    queryKey: ['/api/packages/carriers'],
+  });
+
+  const packageLogEntries = logData ?? [];
+  const awaitingPickup = awaitingData ?? [];
+  const lockerStatus = lockerData ?? [];
+  const carrierSummary = carrierData ?? [];
+
+  const kpiCards = useMemo(() => {
+    const todayCount = packageLogEntries.filter((p) => p.received?.includes("Feb 21")).length;
+    const awaitingCount = awaitingPickup.length;
+    const occupiedLockers = lockerStatus.filter((l) => l.status === "Occupied").length;
+    const totalLockers = lockerStatus.length;
+    const utilization = totalLockers > 0 ? Math.round((occupiedLockers / totalLockers) * 100) : 0;
+
+    return [
+      { title: "Today's Packages", value: String(todayCount), change: `${todayCount} received today`, trend: "positive" as string, icon: Package },
+      { title: "Awaiting Pickup", value: String(awaitingCount), change: "Across all units", trend: awaitingCount > 5 ? "warning" : "neutral" as string, icon: PackageOpen },
+      { title: "Locker Utilization", value: `${utilization}%`, change: `${occupiedLockers} of ${totalLockers} occupied`, trend: utilization > 80 ? "warning" : "neutral" as string, icon: Lock },
+      { title: "Avg Pickup Time", value: "4.2 hrs", change: "Below target", trend: "positive" as string, icon: Clock },
+    ];
+  }, [packageLogEntries, awaitingPickup, lockerStatus]);
+
+  const filteredLog = packageLogEntries.filter((p) => {
     if (carrierFilter !== "all" && p.carrier !== carrierFilter) return false;
     return true;
   });
+
+  const isKpiLoading = logLoading || awaitingLoading || lockerLoading;
 
   return (
     <div className="space-y-6" data-testid="page-packages">
@@ -158,29 +199,33 @@ export default function Packages() {
         metricLabel="Unclaimed"
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {kpiCards.map((card, index) => (
-          <Card key={card.title} className="hover-elevate" data-testid={`card-kpi-${index}`}>
-            <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground">{card.title}</CardTitle>
-              <card.icon className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="px-3 pb-3">
-              <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
-              <div className="flex items-center gap-1 text-xs mt-0.5">
-                {card.trend === "positive" ? (
-                  <TrendingUp className="w-3 h-3 text-emerald-600" />
-                ) : card.trend === "warning" ? (
-                  <AlertTriangle className="w-3 h-3 text-amber-600" />
-                ) : (
-                  <Activity className="w-3 h-3 text-muted-foreground" />
-                )}
-                <span className={card.trend === "positive" ? "text-emerald-600" : card.trend === "warning" ? "text-amber-600" : "text-muted-foreground"}>{card.change}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {isKpiLoading ? (
+        <KpiSkeleton />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {kpiCards.map((card, index) => (
+            <Card key={card.title} className="hover-elevate" data-testid={`card-kpi-${index}`}>
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-1 pt-3 px-3">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{card.title}</CardTitle>
+                <card.icon className="w-4 h-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="px-3 pb-3">
+                <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
+                <div className="flex items-center gap-1 text-xs mt-0.5">
+                  {card.trend === "positive" ? (
+                    <TrendingUp className="w-3 h-3 text-emerald-600" />
+                  ) : card.trend === "warning" ? (
+                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                  ) : (
+                    <Activity className="w-3 h-3 text-muted-foreground" />
+                  )}
+                  <span className={card.trend === "positive" ? "text-emerald-600" : card.trend === "warning" ? "text-amber-600" : "text-muted-foreground"}>{card.change}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Tabs defaultValue="log" className="space-y-4">
         <TabsList data-testid="tabs-packages">
@@ -215,215 +260,275 @@ export default function Packages() {
             </Badge>
           </div>
 
-          <Card data-testid="card-package-log">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Tracking #</th>
-                      <th className="p-3 font-medium text-muted-foreground">Carrier</th>
-                      <th className="p-3 font-medium text-muted-foreground">Recipient</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Received</th>
-                      <th className="p-3 font-medium text-muted-foreground">Status</th>
-                      <th className="p-3 font-medium text-muted-foreground">Logged By</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredLog.map((pkg, idx) => (
-                      <tr key={pkg.tracking} className="border-b last:border-0 hover-elevate" data-testid={`row-package-${idx}`}>
-                        <td className="p-3 font-mono text-xs">{pkg.tracking.substring(0, 12)}...</td>
-                        <td className="p-3">
-                          <Badge variant="outline" className="text-xs" data-testid={`badge-carrier-${idx}`}>
-                            <Truck className="w-3 h-3 mr-1" />
-                            {pkg.carrier}
-                          </Badge>
-                        </td>
-                        <td className="p-3">{pkg.recipient}</td>
-                        <td className="p-3 font-medium">{pkg.unit}</td>
-                        <td className="p-3 text-muted-foreground text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5" />
-                            {pkg.received}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={statusVariant[pkg.status]} className="text-xs" data-testid={`badge-package-status-${idx}`}>
-                            {pkg.status === "Picked Up" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                            {pkg.status === "Returned" && <XCircle className="w-3 h-3 mr-1" />}
-                            {pkg.status === "Notified" && <Bell className="w-3 h-3 mr-1" />}
-                            {pkg.status}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground text-xs">{pkg.loggedBy}</td>
+          {logError ? (
+            <ErrorState message="Failed to load package log" />
+          ) : logLoading ? (
+            <Card data-testid="card-package-log">
+              <CardContent className="p-0">
+                <TableSkeleton rows={6} cols={7} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card data-testid="card-package-log">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Tracking #</th>
+                        <th className="p-3 font-medium text-muted-foreground">Carrier</th>
+                        <th className="p-3 font-medium text-muted-foreground">Resident</th>
+                        <th className="p-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="p-3 font-medium text-muted-foreground">Received</th>
+                        <th className="p-3 font-medium text-muted-foreground">Status</th>
+                        <th className="p-3 font-medium text-muted-foreground">Location</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {filteredLog.map((pkg, idx) => (
+                        <tr key={pkg.id} className="border-b last:border-0 hover-elevate" data-testid={`row-package-${idx}`}>
+                          <td className="p-3 font-mono text-xs">{pkg.tracking ? `${pkg.tracking.substring(0, 12)}...` : "—"}</td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="text-xs" data-testid={`badge-carrier-${idx}`}>
+                              <Truck className="w-3 h-3 mr-1" />
+                              {pkg.carrier}
+                            </Badge>
+                          </td>
+                          <td className="p-3">{pkg.resident}</td>
+                          <td className="p-3 font-medium">{pkg.unit}</td>
+                          <td className="p-3 text-muted-foreground text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5" />
+                              {pkg.received}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant={statusVariant[pkg.status ?? ""] ?? "outline"} className="text-xs" data-testid={`badge-package-status-${idx}`}>
+                              {pkg.status === "Picked Up" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                              {pkg.status === "Returned" && <XCircle className="w-3 h-3 mr-1" />}
+                              {pkg.status === "Notified" && <Bell className="w-3 h-3 mr-1" />}
+                              {pkg.status}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs">{pkg.location}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="awaiting" className="space-y-4">
-          <Card data-testid="card-awaiting-pickup">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <PackageOpen className="w-5 h-5 text-primary" />
-                <CardTitle>Awaiting Pickup</CardTitle>
-                <Badge variant="secondary" className="text-xs">{awaitingPickup.length} packages</Badge>
-              </div>
-              <CardDescription>Packages waiting for tenant collection with notification tracking</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Recipient</th>
-                      <th className="p-3 font-medium text-muted-foreground">Unit</th>
-                      <th className="p-3 font-medium text-muted-foreground">Carrier</th>
-                      <th className="p-3 font-medium text-muted-foreground">Days Waiting</th>
-                      <th className="p-3 font-medium text-muted-foreground">Notifications</th>
-                      <th className="p-3 font-medium text-muted-foreground">Locker #</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {awaitingPickup.map((pkg, idx) => (
-                      <tr key={pkg.tracking} className="border-b last:border-0 hover-elevate" data-testid={`row-awaiting-${idx}`}>
-                        <td className="p-3">{pkg.recipient}</td>
-                        <td className="p-3 font-medium">{pkg.unit}</td>
-                        <td className="p-3 text-muted-foreground">{pkg.carrier}</td>
-                        <td className="p-3">
-                          <span className={pkg.daysWaiting >= 3 ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"}>
-                            {pkg.daysWaiting} {pkg.daysWaiting === 1 ? "day" : "days"}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-1.5">
-                            <Bell className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span data-testid={`text-notifications-${idx}`}>{pkg.notifications}</span>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          {pkg.locker ? (
-                            <Badge variant="outline" className="text-xs font-mono" data-testid={`badge-locker-${idx}`}>
-                              <Lock className="w-3 h-3 mr-1" />
-                              {pkg.locker}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Front Desk</span>
-                          )}
-                        </td>
+          {awaitingError ? (
+            <ErrorState message="Failed to load awaiting pickup data" />
+          ) : awaitingLoading ? (
+            <Card data-testid="card-awaiting-pickup">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <PackageOpen className="w-5 h-5 text-primary" />
+                  <CardTitle>Awaiting Pickup</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <TableSkeleton rows={6} cols={6} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card data-testid="card-awaiting-pickup">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <PackageOpen className="w-5 h-5 text-primary" />
+                  <CardTitle>Awaiting Pickup</CardTitle>
+                  <Badge variant="secondary" className="text-xs">{awaitingPickup.length} packages</Badge>
+                </div>
+                <CardDescription>Packages waiting for tenant collection with notification tracking</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Resident</th>
+                        <th className="p-3 font-medium text-muted-foreground">Unit</th>
+                        <th className="p-3 font-medium text-muted-foreground">Carrier</th>
+                        <th className="p-3 font-medium text-muted-foreground">Days Held</th>
+                        <th className="p-3 font-medium text-muted-foreground">Notifications</th>
+                        <th className="p-3 font-medium text-muted-foreground">Location</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {awaitingPickup.map((pkg, idx) => (
+                        <tr key={pkg.id} className="border-b last:border-0 hover-elevate" data-testid={`row-awaiting-${idx}`}>
+                          <td className="p-3">{pkg.resident}</td>
+                          <td className="p-3 font-medium">{pkg.unit}</td>
+                          <td className="p-3 text-muted-foreground">{pkg.carrier}</td>
+                          <td className="p-3">
+                            <span className={(pkg.daysHeld ?? 0) >= 3 ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"}>
+                              {pkg.daysHeld} {(pkg.daysHeld ?? 0) === 1 ? "day" : "days"}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5">
+                              <Bell className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span data-testid={`text-notifications-${idx}`}>{pkg.notified}</span>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            {pkg.location ? (
+                              <Badge variant="outline" className="text-xs font-mono" data-testid={`badge-locker-${idx}`}>
+                                <Lock className="w-3 h-3 mr-1" />
+                                {pkg.location}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Front Desk</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="lockers" className="space-y-4">
-          <Card data-testid="card-locker-status">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Lock className="w-5 h-5 text-primary" />
-                <CardTitle>Smart Locker Grid</CardTitle>
-                <Badge variant="secondary" className="text-xs">{lockerStatus.length} lockers</Badge>
-              </div>
-              <CardDescription>Real-time status of smart package lockers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {lockerStatus.map((locker, idx) => (
-                  <div key={locker.locker} className="p-3 border rounded-lg space-y-2" data-testid={`card-locker-${idx}`}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-sm font-semibold">{locker.locker}</span>
-                      <Badge variant={lockerStatusVariant[locker.status]} className="text-[10px]" data-testid={`badge-locker-status-${idx}`}>
-                        {locker.status}
-                      </Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      <span>Size: {locker.size}</span>
-                    </div>
-                    {locker.package && (
-                      <div className="text-xs font-mono text-muted-foreground truncate" data-testid={`text-locker-package-${idx}`}>
-                        {locker.package.substring(0, 12)}...
+          {lockerError ? (
+            <ErrorState message="Failed to load locker status" />
+          ) : lockerLoading ? (
+            <Card data-testid="card-locker-status">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Lock className="w-5 h-5 text-primary" />
+                  <CardTitle>Smart Locker Grid</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <Skeleton key={i} className="h-28 rounded-lg" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card data-testid="card-locker-status">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Lock className="w-5 h-5 text-primary" />
+                  <CardTitle>Smart Locker Grid</CardTitle>
+                  <Badge variant="secondary" className="text-xs">{lockerStatus.length} lockers</Badge>
+                </div>
+                <CardDescription>Real-time status of smart package lockers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {lockerStatus.map((locker, idx) => (
+                    <div key={locker.id} className="p-3 border rounded-lg space-y-2" data-testid={`card-locker-${idx}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-sm font-semibold">{locker.locker}</span>
+                        <Badge variant={lockerStatusVariant[locker.status ?? ""] ?? "outline"} className="text-[10px]" data-testid={`badge-locker-status-${idx}`}>
+                          {locker.status}
+                        </Badge>
                       </div>
-                    )}
-                    {locker.duration && (
                       <div className="text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3 inline mr-1" />
-                        {locker.duration}
+                        <span>Size: {locker.size}</span>
                       </div>
-                    )}
-                    {locker.status === "Available" && (
-                      <div className="flex items-center gap-1 text-xs text-emerald-600">
-                        <Unlock className="w-3 h-3" />
-                        Ready
-                      </div>
-                    )}
-                    {locker.status === "Maintenance" && (
-                      <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
-                        <Wrench className="w-3 h-3" />
-                        Service needed
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                      {locker.code && (
+                        <div className="text-xs font-mono text-muted-foreground truncate" data-testid={`text-locker-package-${idx}`}>
+                          Code: {locker.code}
+                        </div>
+                      )}
+                      {locker.loaded && (
+                        <div className="text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3 inline mr-1" />
+                          {locker.loaded}
+                        </div>
+                      )}
+                      {locker.status === "Available" && (
+                        <div className="flex items-center gap-1 text-xs text-emerald-600">
+                          <Unlock className="w-3 h-3" />
+                          Ready
+                        </div>
+                      )}
+                      {locker.status === "Maintenance" && (
+                        <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+                          <Wrench className="w-3 h-3" />
+                          Service needed
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="carriers" className="space-y-4">
-          <Card data-testid="card-carrier-summary">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                <CardTitle>Carrier Summary</CardTitle>
-                <Badge variant="secondary" className="text-xs">This Week</Badge>
-              </div>
-              <CardDescription>Weekly breakdown by carrier with volume and pickup metrics</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Carrier</th>
-                      <th className="p-3 font-medium text-muted-foreground">Volume</th>
-                      <th className="p-3 font-medium text-muted-foreground">Avg Pickup Time</th>
-                      <th className="p-3 font-medium text-muted-foreground">Oversized</th>
-                      <th className="p-3 font-medium text-muted-foreground">Weekly Trend</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {carrierSummary.map((carrier, idx) => (
-                      <tr key={carrier.carrier} className="border-b last:border-0 hover-elevate" data-testid={`row-carrier-${idx}`}>
-                        <td className="p-3 font-medium">
-                          <div className="flex items-center gap-1.5">
-                            <Truck className="w-3.5 h-3.5 text-muted-foreground" />
-                            {carrier.carrier}
-                          </div>
-                        </td>
-                        <td className="p-3 font-mono" data-testid={`text-carrier-volume-${idx}`}>{carrier.volume}</td>
-                        <td className="p-3 text-muted-foreground">{carrier.avgPickupTime}</td>
-                        <td className="p-3 font-mono">{carrier.oversized}</td>
-                        <td className="p-3">
-                          <span className={carrier.weeklyTrend.startsWith("+") ? "text-emerald-600" : carrier.weeklyTrend.startsWith("-") ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}>
-                            {carrier.weeklyTrend}
-                          </span>
-                        </td>
+          {carrierError ? (
+            <ErrorState message="Failed to load carrier summary" />
+          ) : carrierLoading ? (
+            <Card data-testid="card-carrier-summary">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <CardTitle>Carrier Summary</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <TableSkeleton rows={5} cols={5} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card data-testid="card-carrier-summary">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <CardTitle>Carrier Summary</CardTitle>
+                  <Badge variant="secondary" className="text-xs">This Week</Badge>
+                </div>
+                <CardDescription>Weekly breakdown by carrier with volume and pickup metrics</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Carrier</th>
+                        <th className="p-3 font-medium text-muted-foreground">Deliveries</th>
+                        <th className="p-3 font-medium text-muted-foreground">Avg Per Day</th>
+                        <th className="p-3 font-medium text-muted-foreground">Issues</th>
+                        <th className="p-3 font-medium text-muted-foreground">Rating</th>
+                        <th className="p-3 font-medium text-muted-foreground">Last Delivery</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {carrierSummary.map((carrier, idx) => (
+                        <tr key={carrier.id} className="border-b last:border-0 hover-elevate" data-testid={`row-carrier-${idx}`}>
+                          <td className="p-3 font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <Truck className="w-3.5 h-3.5 text-muted-foreground" />
+                              {carrier.carrier}
+                            </div>
+                          </td>
+                          <td className="p-3 font-mono" data-testid={`text-carrier-volume-${idx}`}>{carrier.deliveries}</td>
+                          <td className="p-3 text-muted-foreground">{carrier.avgPerDay}</td>
+                          <td className="p-3 font-mono">{carrier.issues}</td>
+                          <td className="p-3 text-muted-foreground">{carrier.rating}</td>
+                          <td className="p-3 text-muted-foreground text-xs">{carrier.lastDelivery}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="unclaimed" className="space-y-4">

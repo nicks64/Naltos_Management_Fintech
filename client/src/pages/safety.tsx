@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Shield,
   ShieldAlert,
@@ -28,57 +30,17 @@ import {
   Radio,
   type LucideIcon,
 } from "lucide-react";
+import type {
+  IncidentReport,
+  PatrolLogEntry,
+  CameraSystem,
+  FireSafetyItem,
+} from "@shared/schema";
 
 const agentInsights = [
   { text: "3 active security incidents require attention", severity: "critical" as const },
   { text: "Night patrol coverage at 94% this month", severity: "positive" as const, confidence: 0.92 },
   { text: "2 fire inspections due within 30 days", severity: "warning" as const },
-];
-
-const kpiCards = [
-  { title: "Active Incidents", value: "3", change: "+1 this week", trend: "warning", icon: ShieldAlert },
-  { title: "Monthly Incidents", value: "12", change: "-3 vs last month", trend: "positive", icon: Shield },
-  { title: "Camera Uptime", value: "98.5%", change: "+0.3%", trend: "positive", icon: Camera },
-  { title: "Fire Inspection Due", value: "2", change: "within 30 days", trend: "warning", icon: Flame },
-];
-
-const incidentReports = [
-  { id: "INC-301", date: "Feb 19, 2026", type: "Theft", location: "Parking Garage B2", reportedBy: "R. Martinez", severity: "High", status: "Open", assignedTo: "Officer Chen" },
-  { id: "INC-300", date: "Feb 18, 2026", type: "Vandalism", location: "Building A Lobby", reportedBy: "Front Desk", severity: "Medium", status: "Investigating", assignedTo: "Officer Patel" },
-  { id: "INC-299", date: "Feb 17, 2026", type: "Noise", location: "Unit 5C", reportedBy: "T. Johnson", severity: "Low", status: "Resolved", assignedTo: "Officer Davis" },
-  { id: "INC-298", date: "Feb 16, 2026", type: "Trespass", location: "Pool Area", reportedBy: "Camera Alert", severity: "High", status: "Investigating", assignedTo: "Officer Chen" },
-  { id: "INC-297", date: "Feb 15, 2026", type: "Medical", location: "Unit 8A", reportedBy: "K. Williams", severity: "Critical", status: "Closed", assignedTo: "EMS / Officer Patel" },
-  { id: "INC-296", date: "Feb 14, 2026", type: "Fire Alarm", location: "Building B Floor 3", reportedBy: "System Alert", severity: "High", status: "Resolved", assignedTo: "Officer Davis" },
-  { id: "INC-295", date: "Feb 13, 2026", type: "Suspicious Activity", location: "Parking Garage B1", reportedBy: "M. Garcia", severity: "Medium", status: "Closed", assignedTo: "Officer Chen" },
-];
-
-const patrolLogs = [
-  { officer: "Officer Chen", dateTime: "Feb 19, 10:00 PM", route: "Perimeter Loop", areasChecked: "Parking, Entrances, Pool", findings: "All clear", duration: "45 min" },
-  { officer: "Officer Patel", dateTime: "Feb 19, 6:00 PM", route: "Interior Sweep", areasChecked: "Lobbies, Hallways, Stairwells", findings: "Broken light in B stairwell", duration: "55 min" },
-  { officer: "Officer Davis", dateTime: "Feb 19, 2:00 AM", route: "Night Watch", areasChecked: "Full Property", findings: "All clear", duration: "60 min" },
-  { officer: "Officer Chen", dateTime: "Feb 18, 10:00 PM", route: "Perimeter Loop", areasChecked: "Parking, Entrances, Pool", findings: "Unlocked gate at pool", duration: "50 min" },
-  { officer: "Officer Patel", dateTime: "Feb 18, 6:00 PM", route: "Interior Sweep", areasChecked: "Lobbies, Hallways, Stairwells", findings: "All clear", duration: "48 min" },
-  { officer: "Officer Davis", dateTime: "Feb 18, 2:00 AM", route: "Night Watch", areasChecked: "Full Property", findings: "Suspicious vehicle reported, verified resident guest", duration: "65 min" },
-];
-
-const cameraSystems = [
-  { cameraId: "CAM-001", location: "Main Entrance", status: "Online", lastMaintenance: "Jan 15, 2026", recordingStatus: "Recording", storageDays: 30 },
-  { cameraId: "CAM-002", location: "Parking Garage B1", status: "Online", lastMaintenance: "Jan 15, 2026", recordingStatus: "Recording", storageDays: 30 },
-  { cameraId: "CAM-003", location: "Parking Garage B2", status: "Offline", lastMaintenance: "Dec 20, 2025", recordingStatus: "Not Recording", storageDays: 0 },
-  { cameraId: "CAM-004", location: "Pool Area", status: "Online", lastMaintenance: "Jan 20, 2026", recordingStatus: "Recording", storageDays: 30 },
-  { cameraId: "CAM-005", location: "Building A Lobby", status: "Online", lastMaintenance: "Jan 15, 2026", recordingStatus: "Recording", storageDays: 30 },
-  { cameraId: "CAM-006", location: "Building B Lobby", status: "Maintenance", lastMaintenance: "Feb 10, 2026", recordingStatus: "Not Recording", storageDays: 15 },
-  { cameraId: "CAM-007", location: "Rear Exit", status: "Online", lastMaintenance: "Jan 18, 2026", recordingStatus: "Recording", storageDays: 30 },
-];
-
-const fireSafety = [
-  { type: "Extinguisher", location: "Building A Floor 1", lastInspection: "Nov 10, 2025", nextDue: "May 10, 2026", result: "Pass", certifyingAuthority: "FireSafe Inspections" },
-  { type: "Sprinkler", location: "Building A", lastInspection: "Sep 15, 2025", nextDue: "Mar 15, 2026", result: "Pass", certifyingAuthority: "National Fire Systems" },
-  { type: "Alarm", location: "Building B", lastInspection: "Oct 1, 2025", nextDue: "Apr 1, 2026", result: "Pass", certifyingAuthority: "FireSafe Inspections" },
-  { type: "Exit Sign", location: "Building A Floor 3", lastInspection: "Jan 5, 2026", nextDue: "Jul 5, 2026", result: "Pass", certifyingAuthority: "City Fire Marshal" },
-  { type: "Standpipe", location: "Building B", lastInspection: "Aug 20, 2025", nextDue: "Feb 20, 2026", result: "Needs Repair", certifyingAuthority: "National Fire Systems" },
-  { type: "Extinguisher", location: "Parking Garage", lastInspection: "Dec 1, 2025", nextDue: "Jun 1, 2026", result: "Pass", certifyingAuthority: "FireSafe Inspections" },
-  { type: "Sprinkler", location: "Building B", lastInspection: "Jul 10, 2025", nextDue: "Jan 10, 2026", result: "Overdue", certifyingAuthority: "National Fire Systems" },
 ];
 
 const emergencyPlans = [
@@ -119,9 +81,8 @@ const cameraStatusVariant: Record<string, "destructive" | "outline" | "secondary
 };
 
 const fireResultVariant: Record<string, "destructive" | "outline" | "secondary" | "default"> = {
-  Pass: "secondary",
-  "Needs Repair": "outline",
-  Overdue: "destructive",
+  Compliant: "secondary",
+  "Non-Compliant": "destructive",
 };
 
 const priorityVariant: Record<string, "destructive" | "outline" | "secondary"> = {
@@ -131,15 +92,76 @@ const priorityVariant: Record<string, "destructive" | "outline" | "secondary"> =
   Low: "secondary",
 };
 
+function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="p-3 space-y-3" data-testid="skeleton-table">
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex gap-3">
+          {Array.from({ length: cols }).map((_, c) => (
+            <Skeleton key={c} className="h-4 flex-1" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <Card data-testid="error-state">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-2 text-destructive">
+          <XCircle className="w-5 h-5" />
+          <span className="text-sm font-medium">{message}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Safety() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
 
-  const filteredIncidents = incidentReports.filter((inc) => {
-    if (statusFilter !== "all" && inc.status !== statusFilter) return false;
-    if (severityFilter !== "all" && inc.severity !== severityFilter) return false;
-    return true;
+  const { data: incidents = [], isLoading: incidentsLoading, isError: incidentsError } = useQuery<IncidentReport[]>({
+    queryKey: ['/api/safety/incidents'],
   });
+
+  const { data: patrols = [], isLoading: patrolsLoading, isError: patrolsError } = useQuery<PatrolLogEntry[]>({
+    queryKey: ['/api/safety/patrols'],
+  });
+
+  const { data: cameras = [], isLoading: camerasLoading, isError: camerasError } = useQuery<CameraSystem[]>({
+    queryKey: ['/api/safety/cameras'],
+  });
+
+  const { data: fire = [], isLoading: fireLoading, isError: fireError } = useQuery<FireSafetyItem[]>({
+    queryKey: ['/api/safety/fire'],
+  });
+
+  const kpiCards = useMemo(() => {
+    const openIncidents = incidents.filter(i => i.status !== 'Resolved' && i.status !== 'Closed').length;
+    const patrolsToday = patrols.filter(p => p.date?.includes("Feb 21")).length;
+    const camerasOnline = cameras.filter(c => c.status === 'Online').length;
+    const fireCompliant = fire.filter(f => f.compliance === 'Compliant').length;
+
+    return [
+      { title: "Open Incidents", value: String(openIncidents), change: `${incidents.length} total`, trend: openIncidents > 0 ? "warning" : "positive", icon: ShieldAlert },
+      { title: "Patrols Today", value: String(patrolsToday), change: `${patrols.length} total logs`, trend: "positive", icon: Shield },
+      { title: "Cameras Online", value: `${camerasOnline}/${cameras.length}`, change: cameras.length > 0 ? `${Math.round((camerasOnline / cameras.length) * 100)}% uptime` : "No data", trend: camerasOnline === cameras.length ? "positive" : "warning", icon: Camera },
+      { title: "Fire Systems", value: `${fireCompliant}/${fire.length}`, change: `${fireCompliant} compliant`, trend: fireCompliant === fire.length ? "positive" : "warning", icon: Flame },
+    ];
+  }, [incidents, patrols, cameras, fire]);
+
+  const kpiLoading = incidentsLoading || patrolsLoading || camerasLoading || fireLoading;
+
+  const filteredIncidents = useMemo(() => {
+    return incidents.filter((inc) => {
+      if (statusFilter !== "all" && inc.status !== statusFilter) return false;
+      if (severityFilter !== "all" && inc.severity !== severityFilter) return false;
+      return true;
+    });
+  }, [incidents, statusFilter, severityFilter]);
 
   return (
     <div className="space-y-6" data-testid="page-safety">
@@ -184,15 +206,21 @@ export default function Safety() {
               <card.icon className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="px-3 pb-3">
-              <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
-              <div className="flex items-center gap-1 text-xs mt-0.5">
-                {card.trend === "positive" ? (
-                  <TrendingUp className="w-3 h-3 text-emerald-600" />
-                ) : (
-                  <AlertTriangle className="w-3 h-3 text-amber-600" />
-                )}
-                <span className={card.trend === "positive" ? "text-emerald-600" : "text-amber-600"}>{card.change}</span>
-              </div>
+              {kpiLoading ? (
+                <Skeleton className="h-7 w-16" data-testid={`skeleton-kpi-${index}`} />
+              ) : (
+                <>
+                  <div className="text-xl font-mono tabular-nums font-semibold" data-testid={`text-kpi-value-${index}`}>{card.value}</div>
+                  <div className="flex items-center gap-1 text-xs mt-0.5">
+                    {card.trend === "positive" ? (
+                      <TrendingUp className="w-3 h-3 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-3 h-3 text-amber-600" />
+                    )}
+                    <span className={card.trend === "positive" ? "text-emerald-600" : "text-amber-600"}>{card.change}</span>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -243,225 +271,245 @@ export default function Safety() {
             </Badge>
           </div>
 
-          <Card data-testid="card-incident-reports">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">ID</th>
-                      <th className="p-3 font-medium text-muted-foreground">Date</th>
-                      <th className="p-3 font-medium text-muted-foreground">Type</th>
-                      <th className="p-3 font-medium text-muted-foreground">Location</th>
-                      <th className="p-3 font-medium text-muted-foreground">Reported By</th>
-                      <th className="p-3 font-medium text-muted-foreground">Severity</th>
-                      <th className="p-3 font-medium text-muted-foreground">Status</th>
-                      <th className="p-3 font-medium text-muted-foreground">Assigned To</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredIncidents.map((inc, idx) => (
-                      <tr key={inc.id} className="border-b last:border-0 hover-elevate" data-testid={`row-incident-${idx}`}>
-                        <td className="p-3 font-mono text-xs">{inc.id}</td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {inc.date}
-                          </div>
-                        </td>
-                        <td className="p-3 font-medium">{inc.type}</td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5" />
-                            {inc.location}
-                          </div>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{inc.reportedBy}</td>
-                        <td className="p-3">
-                          <Badge variant={severityVariant[inc.severity]} className="text-xs" data-testid={`badge-severity-${idx}`}>
-                            {inc.severity}
-                          </Badge>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={statusVariant[inc.status]} className="text-xs" data-testid={`badge-status-${idx}`}>
-                            {inc.status}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{inc.assignedTo}</td>
+          {incidentsError ? (
+            <ErrorState message="Failed to load incident reports" />
+          ) : incidentsLoading ? (
+            <Card data-testid="card-incident-reports"><CardContent className="p-0"><TableSkeleton cols={8} /></CardContent></Card>
+          ) : (
+            <Card data-testid="card-incident-reports">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">ID</th>
+                        <th className="p-3 font-medium text-muted-foreground">Date</th>
+                        <th className="p-3 font-medium text-muted-foreground">Type</th>
+                        <th className="p-3 font-medium text-muted-foreground">Location</th>
+                        <th className="p-3 font-medium text-muted-foreground">Reported By</th>
+                        <th className="p-3 font-medium text-muted-foreground">Severity</th>
+                        <th className="p-3 font-medium text-muted-foreground">Status</th>
+                        <th className="p-3 font-medium text-muted-foreground">Description</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {filteredIncidents.map((inc, idx) => (
+                        <tr key={inc.id} className="border-b last:border-0 hover-elevate" data-testid={`row-incident-${idx}`}>
+                          <td className="p-3 font-mono text-xs">{inc.incidentId}</td>
+                          <td className="p-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {inc.date}
+                            </div>
+                          </td>
+                          <td className="p-3 font-medium">{inc.type}</td>
+                          <td className="p-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {inc.location}
+                            </div>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{inc.reportedBy}</td>
+                          <td className="p-3">
+                            <Badge variant={severityVariant[inc.severity || ""] || "outline"} className="text-xs" data-testid={`badge-severity-${idx}`}>
+                              {inc.severity}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant={statusVariant[inc.status || ""] || "outline"} className="text-xs" data-testid={`badge-status-${idx}`}>
+                              {inc.status}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">{inc.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="patrols" className="space-y-4">
-          <Card data-testid="card-patrol-logs">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Users className="w-5 h-5 text-primary" />
-                <CardTitle>Security Patrol Logs</CardTitle>
-                <Badge variant="secondary" className="text-xs">Agent-Monitored</Badge>
-              </div>
-              <CardDescription>Daily patrol records with route coverage and findings</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Officer</th>
-                      <th className="p-3 font-medium text-muted-foreground">Date/Time</th>
-                      <th className="p-3 font-medium text-muted-foreground">Route</th>
-                      <th className="p-3 font-medium text-muted-foreground">Areas Checked</th>
-                      <th className="p-3 font-medium text-muted-foreground">Findings</th>
-                      <th className="p-3 font-medium text-muted-foreground">Duration</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {patrolLogs.map((log, idx) => (
-                      <tr key={idx} className="border-b last:border-0" data-testid={`row-patrol-${idx}`}>
-                        <td className="p-3 font-medium">{log.officer}</td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5" />
-                            {log.dateTime}
-                          </div>
-                        </td>
-                        <td className="p-3">{log.route}</td>
-                        <td className="p-3 text-muted-foreground">{log.areasChecked}</td>
-                        <td className="p-3">
-                          <span className={log.findings === "All clear" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
-                            {log.findings}
-                          </span>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{log.duration}</td>
+          {patrolsError ? (
+            <ErrorState message="Failed to load patrol logs" />
+          ) : patrolsLoading ? (
+            <Card data-testid="card-patrol-logs"><CardContent className="p-0"><TableSkeleton cols={6} /></CardContent></Card>
+          ) : (
+            <Card data-testid="card-patrol-logs">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Users className="w-5 h-5 text-primary" />
+                  <CardTitle>Security Patrol Logs</CardTitle>
+                  <Badge variant="secondary" className="text-xs">Agent-Monitored</Badge>
+                </div>
+                <CardDescription>Daily patrol records with route coverage and findings</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Officer</th>
+                        <th className="p-3 font-medium text-muted-foreground">Date</th>
+                        <th className="p-3 font-medium text-muted-foreground">Route</th>
+                        <th className="p-3 font-medium text-muted-foreground">Time</th>
+                        <th className="p-3 font-medium text-muted-foreground">Findings</th>
+                        <th className="p-3 font-medium text-muted-foreground">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {patrols.map((log, idx) => (
+                        <tr key={log.id} className="border-b last:border-0" data-testid={`row-patrol-${idx}`}>
+                          <td className="p-3 font-medium">{log.officer}</td>
+                          <td className="p-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5" />
+                              {log.date}
+                            </div>
+                          </td>
+                          <td className="p-3">{log.route}</td>
+                          <td className="p-3 text-muted-foreground">{log.startTime} - {log.endTime}</td>
+                          <td className="p-3">
+                            <span className={log.findings === "All clear" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
+                              {log.findings}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="secondary" className="text-xs" data-testid={`badge-patrol-status-${idx}`}>
+                              {log.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="cameras" className="space-y-4">
-          <Card data-testid="card-camera-systems">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Camera className="w-5 h-5 text-primary" />
-                <CardTitle>Camera System Inventory</CardTitle>
-                <Badge variant="secondary" className="text-xs">{cameraSystems.filter(c => c.status === "Online").length}/{cameraSystems.length} Online</Badge>
-              </div>
-              <CardDescription>Surveillance camera status, maintenance, and recording overview</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Camera ID</th>
-                      <th className="p-3 font-medium text-muted-foreground">Location</th>
-                      <th className="p-3 font-medium text-muted-foreground">Status</th>
-                      <th className="p-3 font-medium text-muted-foreground">Last Maintenance</th>
-                      <th className="p-3 font-medium text-muted-foreground">Recording</th>
-                      <th className="p-3 font-medium text-muted-foreground">Storage (Days)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cameraSystems.map((cam, idx) => (
-                      <tr key={cam.cameraId} className="border-b last:border-0" data-testid={`row-camera-${idx}`}>
-                        <td className="p-3 font-mono text-xs">{cam.cameraId}</td>
-                        <td className="p-3 font-medium">
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                            {cam.location}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={cameraStatusVariant[cam.status]} className="text-xs" data-testid={`badge-camera-status-${idx}`}>
-                            {cam.status === "Online" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                            {cam.status === "Offline" && <XCircle className="w-3 h-3 mr-1" />}
-                            {cam.status}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{cam.lastMaintenance}</td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-1.5">
-                            <Radio className={`w-3.5 h-3.5 ${cam.recordingStatus === "Recording" ? "text-emerald-600" : "text-red-600"}`} />
-                            <span className={cam.recordingStatus === "Recording" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
-                              {cam.recordingStatus}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{cam.storageDays}</td>
+          {camerasError ? (
+            <ErrorState message="Failed to load camera systems" />
+          ) : camerasLoading ? (
+            <Card data-testid="card-camera-systems"><CardContent className="p-0"><TableSkeleton cols={6} /></CardContent></Card>
+          ) : (
+            <Card data-testid="card-camera-systems">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Camera className="w-5 h-5 text-primary" />
+                  <CardTitle>Camera System Inventory</CardTitle>
+                  <Badge variant="secondary" className="text-xs">{cameras.filter(c => c.status === "Online").length}/{cameras.length} Online</Badge>
+                </div>
+                <CardDescription>Surveillance camera status, maintenance, and recording overview</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">Camera ID</th>
+                        <th className="p-3 font-medium text-muted-foreground">Location</th>
+                        <th className="p-3 font-medium text-muted-foreground">Type</th>
+                        <th className="p-3 font-medium text-muted-foreground">Status</th>
+                        <th className="p-3 font-medium text-muted-foreground">Resolution</th>
+                        <th className="p-3 font-medium text-muted-foreground">Last Maintenance</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {cameras.map((cam, idx) => (
+                        <tr key={cam.id} className="border-b last:border-0" data-testid={`row-camera-${idx}`}>
+                          <td className="p-3 font-mono text-xs">{cam.cameraId}</td>
+                          <td className="p-3 font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                              {cam.location}
+                            </div>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{cam.type}</td>
+                          <td className="p-3">
+                            <Badge variant={cameraStatusVariant[cam.status || ""] || "outline"} className="text-xs" data-testid={`badge-camera-status-${idx}`}>
+                              {cam.status === "Online" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                              {cam.status === "Offline" && <XCircle className="w-3 h-3 mr-1" />}
+                              {cam.status}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{cam.resolution}</td>
+                          <td className="p-3 text-muted-foreground">{cam.lastMaintenance}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="fire" className="space-y-4">
-          <Card data-testid="card-fire-safety">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Flame className="w-5 h-5 text-primary" />
-                <CardTitle>Fire Safety Inspections</CardTitle>
-                <Badge variant="secondary" className="text-xs">Compliance Tracking</Badge>
-              </div>
-              <CardDescription>Fire safety equipment inspection records and certification status</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="p-3 font-medium text-muted-foreground">Type</th>
-                      <th className="p-3 font-medium text-muted-foreground">Location</th>
-                      <th className="p-3 font-medium text-muted-foreground">Last Inspection</th>
-                      <th className="p-3 font-medium text-muted-foreground">Next Due</th>
-                      <th className="p-3 font-medium text-muted-foreground">Result</th>
-                      <th className="p-3 font-medium text-muted-foreground">Certifying Authority</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fireSafety.map((item, idx) => (
-                      <tr key={idx} className="border-b last:border-0" data-testid={`row-fire-${idx}`}>
-                        <td className="p-3 font-medium">{item.type}</td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5" />
-                            {item.location}
-                          </div>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{item.lastInspection}</td>
-                        <td className="p-3 text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {item.nextDue}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Badge variant={fireResultVariant[item.result]} className="text-xs" data-testid={`badge-fire-result-${idx}`}>
-                            {item.result === "Pass" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                            {item.result === "Needs Repair" && <AlertTriangle className="w-3 h-3 mr-1" />}
-                            {item.result === "Overdue" && <XCircle className="w-3 h-3 mr-1" />}
-                            {item.result}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-muted-foreground">{item.certifyingAuthority}</td>
+          {fireError ? (
+            <ErrorState message="Failed to load fire safety data" />
+          ) : fireLoading ? (
+            <Card data-testid="card-fire-safety"><CardContent className="p-0"><TableSkeleton cols={6} /></CardContent></Card>
+          ) : (
+            <Card data-testid="card-fire-safety">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Flame className="w-5 h-5 text-primary" />
+                  <CardTitle>Fire Safety Inspections</CardTitle>
+                  <Badge variant="secondary" className="text-xs">Compliance Tracking</Badge>
+                </div>
+                <CardDescription>Fire safety equipment inspection records and certification status</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-3 font-medium text-muted-foreground">System</th>
+                        <th className="p-3 font-medium text-muted-foreground">Location</th>
+                        <th className="p-3 font-medium text-muted-foreground">Last Inspection</th>
+                        <th className="p-3 font-medium text-muted-foreground">Next Inspection</th>
+                        <th className="p-3 font-medium text-muted-foreground">Compliance</th>
+                        <th className="p-3 font-medium text-muted-foreground">Notes</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {fire.map((item, idx) => (
+                        <tr key={item.id} className="border-b last:border-0" data-testid={`row-fire-${idx}`}>
+                          <td className="p-3 font-medium">{item.system}</td>
+                          <td className="p-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {item.location}
+                            </div>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{item.lastInspection}</td>
+                          <td className="p-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {item.nextInspection}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant={fireResultVariant[item.compliance || ""] || "outline"} className="text-xs" data-testid={`badge-fire-result-${idx}`}>
+                              {item.compliance === "Compliant" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                              {item.compliance === "Non-Compliant" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                              {item.compliance}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">{item.notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="emergency" className="space-y-4">
