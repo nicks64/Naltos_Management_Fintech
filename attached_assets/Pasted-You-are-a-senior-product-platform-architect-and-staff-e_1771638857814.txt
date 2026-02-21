@@ -1,0 +1,109 @@
+You are a senior product + platform architect and staff engineer. 
+Design a production-ready, compliance-aware, multi-tenant SaaS platform for multifamily “rent + incentives + savings + payments + marketplace” with multiple portals and multiple user types (operators, tenants, vendors, merchants, partners). 
+
+GOAL
+Produce a complete implementation-grade blueprint: requirements, user roles, auth/permissions, workflows, data model, APIs, system architecture, compliance constraints, audit controls, and a phased delivery plan. Assume the platform must scale from pilot → national scale.
+
+CONTEXT
+This platform serves multifamily owners/operators and their tenants.
+Core wedge: “Turn rent into incentives + savings outcomes.” 
+Over time: enable tenants to transact with merchants (marketplace), and enable vendors (multifamily service providers) to operate through a vendor portal.
+
+CRITICAL REQUIREMENT
+There will be multiple types of userbases and authentications:
+- Operators (ownership groups, property managers)
+- Tenants (renters)
+- Vendors (service providers who work with the property: plumbers, HVAC, cleaners, landscapers, security, pest control, contractors, etc.)
+- Merchants (retail/service businesses tenants purchase from, potentially offering offers/cashback)
+- Internal admins and support
+- Partners (insurance providers, mortgage partners, investment vehicle partners, etc.)
+Design portal separation, authentication, and authorization carefully across these groups.
+
+ASSUMPTIONS
+- Multi-tenant SaaS: many operator organizations; each org has properties, units, tenants.
+- Must support role-based access control (RBAC) and optionally attribute-based access control (ABAC) for fine-grained permissions.
+- Must support SSO for operators/vendors/merchants where needed (SAML/OIDC), and passwordless for tenants optional.
+- Must support audit logs, event logs, and strong data separation between organizations.
+- Must be compliant-aware: avoid providing regulated services directly; integrate via licensed/regulated partners when needed.
+
+DELIVERABLE FORMAT (Follow EXACTLY)
+1) Executive summary (1–2 paragraphs)
+2) Portal map (list every portal, who uses it, what it contains)
+3) User roles & permissions model
+   - Define roles per portal
+   - Permission matrix (role → actions)
+   - Tenant isolation rules and cross-org access constraints
+4) Authentication & identity architecture
+   - Identity provider strategy (single IdP vs separate realms)
+   - MFA rules, session management, risk controls
+   - Invite flows & onboarding flows by persona
+   - Account linking (e.g., tenant becomes merchant owner, vendor becomes tenant) handling
+5) Core workflows (detailed step-by-step)
+   - Operator workflows (setup property, onboard tenants, view incentives, handle disputes, reporting)
+   - Tenant workflows (join property, pay rent, earn rewards, savings, redeem, move units, move properties)
+   - Vendor workflows (get invited, accept jobs, submit bids, invoices, compliance docs, receive payouts)
+   - Merchant workflows (onboard, publish offers, track transactions, dispute handling, payouts)
+   - Partner workflows (insurance/mortgage/investment partners: data access, lead routing, compliance)
+   For EACH workflow: include states, edge cases, error handling, and required UI screens.
+6) Vendor types & merchant types taxonomy
+   - Enumerate vendor categories for multifamily and their unique portal needs
+   - Enumerate merchant categories tenants transact with and unique needs
+   - Identify what differs: onboarding docs, licensing, pricing, invoicing, service area, refunds, etc.
+7) Data model (implementation-grade)
+   - List entities + key fields (Org, Property, Unit, Lease, Tenant, Payment, Ledger, IncentiveRule, SavingsAccount (partner-managed), Vendor, WorkOrder, Invoice, Merchant, Offer, Transaction, Payout, AuditLog, Consent, PartnerLead, etc.)
+   - Relationships & cardinality
+   - Data partition strategy for multi-tenancy
+8) APIs & event architecture
+   - API endpoints grouped by portal
+   - Webhooks for partners
+   - Event-driven flows (payment posted, incentive earned, offer redeemed, work order completed)
+   - Idempotency, retries, reconciliation
+9) Compliance & legal guardrails (do NOT handwave)
+   - Identify regulated areas: payments (money transmitter), stored value, stablecoin, banking-as-a-service, investment products, insurance, mortgage lead generation, credit reporting, privacy laws, TCPA messaging if SMS used, KYC/AML if applicable
+   - Provide a “safe MVP path” that minimizes licensing exposure by using regulated partners
+   - Define consent requirements, privacy-by-design, data minimization, retention policies
+   - Explain auditability requirements and data access governance
+   - Provide disclaimers: this is not legal advice, but give concrete engineering implications
+10) Security architecture
+   - Threat model highlights (cross-tenant data leakage, privilege escalation, account takeover, vendor fraud, merchant fraud)
+   - Controls: encryption, key management, secrets, logging, anomaly detection, rate limiting
+   - Secure file uploads (vendor docs), PII handling, SOC2 readiness checklist
+11) Scalability & reliability
+   - Target load assumptions (200k tenants, payments spikes 1st–5th of month)
+   - Architecture choices (monolith first vs modular, queueing, caching)
+   - Observability: metrics, traces, logs
+12) Implementation plan
+   - Phase 0: prototype hardening
+   - Phase 1: MVP for pilot (exact scope)
+   - Phase 2: vendor portal
+   - Phase 3: merchant marketplace
+   - Phase 4+: partner monetization, analytics
+   Include staffing plan, milestones, and acceptance criteria for each phase.
+
+SPECIAL DESIGN RULES
+- Any feature that touches funds, yield, investment, or insurance must be partner-led unless there is a licensing plan.
+- For tenant “savings”: treat as a ledger + partner-managed account. Platform should not custody funds unless compliant.
+- Every action that can affect money or access must generate an audit log record.
+- Separate “identity” from “profile” so a user can have multiple personas (tenant + vendor owner + operator employee).
+- Include a portal-level boundary: a vendor should not see any other property’s data unless invited/assigned.
+- Merchants should only see their own transactions/offers and aggregated insights, not tenant personal data unless consented.
+- Include dispute workflows: rent disputes, merchant disputes, vendor invoice disputes.
+- Include “consent capture” and “data sharing preferences” for tenants.
+
+TECH STACK PREFERENCES
+Recommend a pragmatic stack:
+- Backend: TypeScript (NestJS/Express) or Python (FastAPI) + Postgres
+- Auth: Auth0/Cognito/Clerk/Keycloak (recommend one with enterprise SSO)
+- Payments: Stripe, Adyen, or property payment rails integration (abstract)
+- Eventing: SQS/Kafka/PubSub, plus outbox pattern
+- Infra: AWS or GCP, containerized, IaC (Terraform)
+But you may propose alternatives with rationale.
+
+OUTPUT QUALITY BAR
+Be very specific. Avoid generic advice. 
+When listing workflows, provide concrete steps and decision points.
+When listing entities, include example key fields.
+When describing compliance, list the engineering controls required.
+When unsure, propose safe defaults and call out assumptions.
+
+NOW DO THE WORK.
