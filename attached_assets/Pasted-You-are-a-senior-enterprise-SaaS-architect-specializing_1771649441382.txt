@@ -1,0 +1,216 @@
+You are a senior enterprise SaaS architect specializing in multi-organization, multi-persona platforms with strict RBAC/ABAC, auditability, and workflow automation.
+
+We are extending an existing multifamily SaaS platform to support complex persona hierarchies across:
+
+- Property Management Organizations
+- Individual Properties
+- Vendors (service providers)
+- Merchants (tenant-facing retail/service businesses)
+- Financial/Insurance/Investment Partners
+- Internal Platform Staff
+- AI/Agentic systems acting on behalf of users
+
+GOAL
+Design a production-ready persona and authorization architecture that supports real-world organizational complexity inside multifamily operations and associated ecosystem participants.
+
+IMPORTANT CONTEXT
+This platform must empower property employees using agentic systems (AI copilots, automated workflows, predictive alerts, automated decision suggestions).
+
+Organizations will have multiple internal personas with different operational scopes.
+
+We must:
+- Avoid privilege escalation
+- Prevent cross-tenant data leakage
+- Maintain strict audit logs
+- Support delegation
+- Support impersonation (controlled support cases)
+- Support workflow approvals
+
+DELIVERABLE FORMAT (Follow EXACTLY)
+
+1) High-Level Persona Taxonomy
+   Break down personas across:
+   A) Property Management Organization
+   B) Individual Property-Level Staff
+   C) Vendor Organization
+   D) Merchant Organization
+   E) Financial / Insurance / Investment Partners
+   F) Internal Platform Staff
+   G) AI/Agentic System Personas
+
+2) Property Management Persona Hierarchy
+   Define roles and responsibilities for:
+   - Owner / Principal
+   - Asset Manager
+   - Portfolio Manager
+   - Regional Manager
+   - Property Manager
+   - Assistant Property Manager
+   - Leasing Agent
+   - Maintenance Supervisor
+   - Maintenance Technician
+   - Accounting / Bookkeeper
+   - Compliance Officer
+   - Collections Specialist
+   - Risk / Insurance Coordinator
+   - Data / Analytics User
+   - Executive Viewer (read-only)
+   
+   For EACH role:
+   - Scope of access (Org-level, Portfolio-level, Property-level, Unit-level)
+   - Key permissions
+   - Workflows they initiate
+   - Approvals required
+   - AI/Agent tools they can use
+
+3) Vendor Organization Personas
+   Vendors are companies providing services to properties.
+   Define:
+   - Vendor Owner
+   - Vendor Operations Manager
+   - Field Technician
+   - Billing Administrator
+   - Compliance Officer (vendor side)
+   
+   For EACH:
+   - Access boundaries
+   - Work order lifecycle visibility
+   - Invoice submission rights
+   - Document upload requirements (insurance, licensing, W-9, etc.)
+   - Payout visibility
+
+4) Merchant Organization Personas
+   Merchants are tenant-facing businesses integrated into the tenant marketplace.
+   Define:
+   - Merchant Owner
+   - Merchant Operations Manager
+   - Merchant Marketing Manager
+   - Merchant Staff (limited dashboard)
+   - Merchant Finance / Payout Manager
+
+   For EACH:
+   - Offer creation rights
+   - Campaign targeting permissions
+   - Transaction visibility limits
+   - Payout access controls
+   - Dispute handling workflow
+
+5) Partner Organization Personas
+   For:
+   - Insurance partners
+   - Mortgage partners
+   - Investment product partners
+   - Banking-as-a-service partners
+
+   Define:
+   - Partner Admin
+   - Partner Analyst
+   - Compliance / Audit Role
+   - API System User
+
+   Define:
+   - What data they can access
+   - Consent gating requirements
+   - Reporting constraints
+   - Lead routing controls
+   - Data export restrictions
+
+6) AI / Agentic Personas (Critical)
+   Design AI as first-class system actors with controlled authority.
+   Define:
+   - AI Copilot (advisory only)
+   - AI Auto-Action Agent (restricted action executor)
+   - AI Risk Detection Agent
+   - AI Collections Agent
+   - AI Maintenance Routing Agent
+   - AI Fraud Detection Agent
+   
+   For EACH:
+   - What actions they can take autonomously
+   - What requires human approval
+   - Logging and explainability requirements
+   - Kill-switch / override controls
+   - Bias monitoring considerations
+
+7) Authorization Model Design
+   Must include:
+   - Multi-tenant isolation strategy
+   - Org_ID, Property_ID, Unit_ID scoping
+   - Role-Based Access Control (RBAC)
+   - Attribute-Based Access Control (ABAC)
+   - Delegated authority model
+   - Temporary role elevation model
+   - Approval chains (2-step approval for sensitive actions)
+   - Impersonation protocol (internal support only)
+
+8) Cross-Organization Interaction Rules
+   Define:
+   - How a vendor sees only assigned properties
+   - How a merchant sees only aggregated tenant data
+   - How a partner accesses data only after consent
+   - How disputes escalate across org boundaries
+   - How data sharing agreements are enforced technically
+
+9) Workflow Matrix
+   Provide structured workflows for:
+   - Rent collection oversight
+   - Tenant delinquency escalation
+   - Maintenance request lifecycle
+   - Vendor job bidding
+   - Vendor invoice approval
+   - Merchant offer redemption
+   - Savings milestone trigger
+   - Partner lead generation
+   - Compliance audit review
+   - Fraud alert investigation
+
+   Include:
+   - Initiator persona
+   - Required approvals
+   - Data visibility changes
+   - Event logs generated
+
+10) Audit & Governance Layer
+   Define:
+   - Immutable audit log requirements
+   - Who can view audit logs
+   - Log retention policy
+   - Action traceability
+   - Regulatory defensibility controls
+
+11) Security Threat Model by Persona
+   Analyze risks such as:
+   - Rogue property employee
+   - Fraudulent vendor
+   - Merchant abusing tenant data
+   - Insider data scraping
+   - AI acting beyond permission
+   - Account takeover
+
+   Provide technical mitigation strategies.
+
+12) Enterprise-Readiness Enhancements
+   Include:
+   - SCIM provisioning
+   - Enterprise SSO
+   - IP allowlisting
+   - Role templates
+   - Custom permission sets
+   - SOC2 alignment checklist
+   - Data residency support
+
+13) UX Considerations for Multi-Persona Users
+   - One login, multiple persona switching
+   - Context switching between orgs
+   - Clear scope indicators in UI
+   - Preventing dangerous actions via UI friction
+   - AI suggestions clearly labeled vs actions
+
+QUALITY BAR
+Be concrete.
+Avoid generic advice.
+Assume real enterprise customers.
+Design for auditability and legal defensibility.
+Design for scaling to 500k+ users across thousands of properties.
+
+NOW PRODUCE A DETAILED ENTERPRISE-GRADE MULTI-PERSONA BLUEPRINT.

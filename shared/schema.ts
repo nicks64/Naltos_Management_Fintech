@@ -5,6 +5,8 @@ import { z } from "zod";
 
 // Enums
 export const userRoleEnum = pgEnum("user_role", ["Admin", "PropertyManager", "CFO", "Analyst", "Tenant", "Vendor", "Merchant"]);
+export const personaTypeEnum = pgEnum("persona_type", ["operator", "tenant", "vendor", "merchant", "partner", "support"]);
+export const personaStatusEnum = pgEnum("persona_status", ["active", "suspended", "invited"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["pending", "paid", "overdue", "partial"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["ACH", "Card", "Check", "Wire"]);
 export const pmsProviderEnum = pgEnum("pms_provider", ["AppFolio", "Yardi", "Buildium"]);
@@ -61,6 +63,53 @@ export const magicCodes = pgTable("magic_codes", {
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").default(false).notNull(),
 });
+
+// ====== MULTI-PERSONA IDENTITY SYSTEM ======
+
+export const identities = pgTable("identities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  phone: text("phone"),
+  passwordHash: text("password_hash").notNull(),
+  displayName: text("display_name").notNull(),
+  avatarUrl: text("avatar_url"),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  phoneVerified: boolean("phone_verified").default(false).notNull(),
+  lastLoginAt: timestamp("last_login_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const identityPersonas = pgTable("identity_personas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  identityId: varchar("identity_id").notNull().references(() => identities.id, { onDelete: "cascade" }),
+  personaType: personaTypeEnum("persona_type").notNull(),
+  orgId: varchar("org_id").references(() => organizations.id, { onDelete: "cascade" }),
+  roleDetail: text("role_detail").notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
+  status: personaStatusEnum("status").notNull().default("active"),
+  invitedByPersonaId: varchar("invited_by_persona_id"),
+  label: text("label"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  identityPersonaTypeOrgIdx: uniqueIndex("identity_personas_identity_type_org_idx").on(table.identityId, table.personaType, table.orgId),
+}));
+
+export const tenantPersonaLinks = pgTable("tenant_persona_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  personaId: varchar("persona_id").notNull().references(() => identityPersonas.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "set null" }),
+  unitId: varchar("unit_id").references(() => units.id, { onDelete: "set null" }),
+  leaseId: varchar("lease_id"),
+  status: text("status").default("active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  personaTenantIdx: uniqueIndex("tenant_persona_links_persona_tenant_idx").on(table.personaId, table.tenantId),
+}));
+
+export const insertIdentitySchema = createInsertSchema(identities).omit({ id: true, createdAt: true });
+export const insertIdentityPersonaSchema = createInsertSchema(identityPersonas).omit({ id: true, createdAt: true });
+export const insertTenantPersonaLinkSchema = createInsertSchema(tenantPersonaLinks).omit({ id: true, createdAt: true });
 
 // Properties
 export const properties = pgTable("properties", {
@@ -323,6 +372,7 @@ export const vendorUserLinks = pgTable("vendor_user_links", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   vendorId: varchar("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }),
+  personaId: varchar("persona_id").references(() => identityPersonas.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   userVendorIdx: uniqueIndex("vendor_user_links_user_vendor_idx").on(table.userId, table.vendorId),
@@ -406,6 +456,7 @@ export const merchantUserLinks = pgTable("merchant_user_links", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   merchantId: varchar("merchant_id").notNull().references(() => merchants.id, { onDelete: "cascade" }),
+  personaId: varchar("persona_id").references(() => identityPersonas.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   userMerchantIdx: uniqueIndex("merchant_user_links_user_merchant_idx").on(table.userId, table.merchantId),
@@ -1210,6 +1261,7 @@ export const partnerUserLinks = pgTable("partner_user_links", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   partnerOrgId: varchar("partner_org_id").notNull().references(() => partnerOrganizations.id, { onDelete: "cascade" }),
+  personaId: varchar("persona_id").references(() => identityPersonas.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   userPartnerIdx: uniqueIndex("partner_user_links_user_partner_idx").on(table.userId, table.partnerOrgId),
@@ -2507,3 +2559,13 @@ export type PestVendorEntry = typeof pestVendors.$inferSelect;
 export type InsertPestVendorEntry = z.infer<typeof insertPestVendorsSchema>;
 export type PestPreventionProgram = typeof pestPreventionPrograms.$inferSelect;
 export type InsertPestPreventionProgram = z.infer<typeof insertPestPreventionProgramsSchema>;
+
+// Identity & Persona types
+export type Identity = typeof identities.$inferSelect;
+export type InsertIdentity = z.infer<typeof insertIdentitySchema>;
+export type IdentityPersona = typeof identityPersonas.$inferSelect;
+export type InsertIdentityPersona = z.infer<typeof insertIdentityPersonaSchema>;
+export type TenantPersonaLink = typeof tenantPersonaLinks.$inferSelect;
+export type InsertTenantPersonaLink = z.infer<typeof insertTenantPersonaLinkSchema>;
+export type PersonaType = "operator" | "tenant" | "vendor" | "merchant" | "partner" | "support";
+export type PersonaStatus = "active" | "suspended" | "invited";

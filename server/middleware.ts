@@ -1,114 +1,157 @@
 import type { Request, Response, NextFunction } from "express";
-import type { UserRole } from "@shared/schema";
+import type { UserRole, PersonaType } from "@shared/schema";
 import type { IStorage } from "./storage";
 
-// Extend Express Request to include user info and vendor context
 declare global {
   namespace Express {
     interface Request {
       userId?: string;
       organizationId?: string;
       userRole?: UserRole;
-      tenantId?: string; // For tenant-role users: their tenant ID
-      vendorUserId?: string; // For vendor users: their user ID
-      vendorIds?: string[]; // For vendor users: all accessible vendor record IDs via vendor_user_links
-      merchantUserId?: string; // For merchant users: their user ID
-      merchantIds?: string[]; // For merchant users: all accessible merchant record IDs via merchant_user_links
+      tenantId?: string;
+      vendorUserId?: string;
+      vendorIds?: string[];
+      merchantUserId?: string;
+      merchantIds?: string[];
+      identityId?: string;
+      personaId?: string;
+      personaType?: PersonaType;
+      roleDetail?: string;
     }
   }
 }
 
-// Middleware to ensure user is authenticated (checks session)
+const PERSONA_TO_ROLE_MAP: Record<string, Record<string, UserRole>> = {
+  operator: { admin: "Admin", manager: "PropertyManager", cfo: "CFO", analyst: "Analyst" },
+  tenant: { primary: "Tenant", co_tenant: "Tenant", guarantor: "Tenant" },
+  vendor: { admin: "Vendor", tech: "Vendor" },
+  merchant: { admin: "Merchant", staff: "Merchant" },
+  partner: { admin: "Admin", agent: "Analyst" },
+  support: { admin: "Admin", agent: "Analyst" },
+};
+
+export function personaToLegacyRole(personaType: string, roleDetail: string): UserRole {
+  return PERSONA_TO_ROLE_MAP[personaType]?.[roleDetail] || "Analyst";
+}
+
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
+  if (!req.session.userId && !req.session.identityId) {
     return res.status(401).json({ error: "Authentication required" });
   }
-  
-  // Store session data in request for easy access
-  req.userId = req.session.userId;
-  req.userRole = req.session.userRole as UserRole;
-  req.organizationId = req.session.organizationId;
-  
+
+  if (req.session.personaId) {
+    req.identityId = req.session.identityId;
+    req.personaId = req.session.personaId;
+    req.personaType = req.session.personaType as PersonaType;
+    req.roleDetail = req.session.roleDetail;
+    req.organizationId = req.session.organizationId;
+    req.userRole = personaToLegacyRole(req.session.personaType || "", req.session.roleDetail || "");
+    req.userId = req.session.userId;
+  } else {
+    req.userId = req.session.userId;
+    req.userRole = req.session.userRole as UserRole;
+    req.organizationId = req.session.organizationId;
+  }
+
   next();
 }
 
-// RBAC middleware to check if user has required role (uses session, not headers)
 export function requireRole(...allowedRoles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    // First ensure authenticated
-    if (!req.session.userId || !req.session.userRole) {
+    if (!req.session.userId && !req.session.identityId) {
       return res.status(401).json({ error: "Authentication required" });
     }
-    
-    const userRole = req.session.userRole as UserRole;
-    
+
+    let userRole: UserRole;
+    if (req.session.personaId) {
+      userRole = personaToLegacyRole(req.session.personaType || "", req.session.roleDetail || "");
+      req.identityId = req.session.identityId;
+      req.personaId = req.session.personaId;
+      req.personaType = req.session.personaType as PersonaType;
+      req.roleDetail = req.session.roleDetail;
+    } else {
+      userRole = req.session.userRole as UserRole;
+    }
+
     if (!allowedRoles.includes(userRole)) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: "Access denied",
         message: `This endpoint requires one of: ${allowedRoles.join(", ")}. Your role: ${userRole}`
       });
     }
-    
-    // Store session data in request for easy access
+
     req.userId = req.session.userId;
     req.userRole = userRole;
     req.organizationId = req.session.organizationId;
-    req.tenantId = req.session.tenantId; // For tenant users
-    
+    req.tenantId = req.session.tenantId;
+
     next();
   };
 }
 
-// Middleware to extract organization ID (uses session, not headers)
 export function extractOrganizationId(req: Request, res: Response, next: NextFunction) {
-  // Skip for auth routes, vendor-specific routes, and merchant-specific routes
-  if (req.path.includes("/auth/") || 
-      req.path.startsWith("/api/vendor-auth") || 
+  if (req.path.includes("/auth/") ||
+      req.path.startsWith("/api/vendor-auth") ||
       req.path.startsWith("/api/vendor/") ||
       req.path.startsWith("/api/merchant-auth") ||
-      req.path.startsWith("/api/merchant/")) {
+      req.path.startsWith("/api/merchant/") ||
+      req.path.startsWith("/api/identity")) {
     return next();
   }
-  
-  // Use session data if available
+
   if (req.session.organizationId) {
     req.organizationId = req.session.organizationId;
     req.userId = req.session.userId;
-    req.userRole = req.session.userRole as UserRole;
+    if (req.session.personaId) {
+      req.userRole = personaToLegacyRole(req.session.personaType || "", req.session.roleDetail || "");
+    } else {
+      req.userRole = req.session.userRole as UserRole;
+    }
   }
-  
+
   next();
 }
 
-// Middleware for vendor-specific routes - validates vendor session and loads vendor links
-// SECURITY: Revalidates vendor links on EVERY request to ensure immediate revocation when links are removed
 export function requireVendor(storage: IStorage) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // 1. Check authenticated session
-    if (!req.session.userId) {
+    if (!req.session.userId && !req.session.identityId) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    // 2. Verify role is Vendor
-    if (req.session.userRole !== "Vendor") {
-      return res.status(403).json({ error: "Vendor access required" });
+    if (req.session.personaType) {
+      if (req.session.personaType !== "vendor") {
+        return res.status(403).json({ error: "Vendor access required" });
+      }
+      const linkedVendorIds = req.session.personaId
+        ? await storage.getVendorIdsByPersona(req.session.personaId)
+        : [];
+      if (linkedVendorIds.length === 0) {
+        const fallbackIds = req.session.userId ? await storage.getVendorUserLinks(req.session.userId) : [];
+        if (fallbackIds.length === 0) {
+          return res.status(409).json({
+            error: "No vendor access",
+            message: "Your account has not been linked to any vendors yet."
+          });
+        }
+        req.vendorIds = fallbackIds;
+      } else {
+        req.vendorIds = linkedVendorIds;
+      }
+    } else {
+      if (req.session.userRole !== "Vendor") {
+        return res.status(403).json({ error: "Vendor access required" });
+      }
+      const linkedVendorIds = await storage.getVendorUserLinks(req.session.userId!);
+      if (linkedVendorIds.length === 0) {
+        return res.status(409).json({
+          error: "No vendor access",
+          message: "Your account has not been linked to any vendors yet."
+        });
+      }
+      req.vendorIds = linkedVendorIds;
     }
 
-    // 3. ALWAYS query vendor_user_links to get current linked vendors (no caching)
-    // This ensures vendor access is revoked immediately when links are removed
-    const linkedVendorIds = await storage.getVendorUserLinks(req.session.userId);
-    
-    // 4. Check if vendor has any linked vendors
-    if (linkedVendorIds.length === 0) {
-      return res.status(409).json({ 
-        error: "No vendor access",
-        message: "Your account has not been linked to any vendors yet. Please contact your property manager."
-      });
-    }
-
-    // 5. Attach vendor data to request for easy access in route handlers
     req.vendorUserId = req.session.userId;
-    req.vendorIds = linkedVendorIds;
     req.userId = req.session.userId;
     req.userRole = "Vendor";
 
@@ -116,35 +159,46 @@ export function requireVendor(storage: IStorage) {
   };
 }
 
-// Middleware for merchant-specific routes - validates merchant session and loads merchant links
-// SECURITY: Revalidates merchant links on EVERY request to ensure immediate revocation when links are removed
 export function requireMerchant(storage: IStorage) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // 1. Check authenticated session
-    if (!req.session.userId) {
+    if (!req.session.userId && !req.session.identityId) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    // 2. Verify role is Merchant
-    if (req.session.userRole !== "Merchant") {
-      return res.status(403).json({ error: "Merchant access required" });
+    if (req.session.personaType) {
+      if (req.session.personaType !== "merchant") {
+        return res.status(403).json({ error: "Merchant access required" });
+      }
+      const linkedMerchantIds = req.session.personaId
+        ? await storage.getMerchantIdsByPersona(req.session.personaId)
+        : [];
+      if (linkedMerchantIds.length === 0) {
+        const fallbackIds = req.session.userId ? await storage.getMerchantUserLinks(req.session.userId) : [];
+        if (fallbackIds.length === 0) {
+          return res.status(409).json({
+            error: "No merchant access",
+            message: "Your account has not been linked to any merchants yet."
+          });
+        }
+        req.merchantIds = fallbackIds;
+      } else {
+        req.merchantIds = linkedMerchantIds;
+      }
+    } else {
+      if (req.session.userRole !== "Merchant") {
+        return res.status(403).json({ error: "Merchant access required" });
+      }
+      const linkedMerchantIds = await storage.getMerchantUserLinks(req.session.userId!);
+      if (linkedMerchantIds.length === 0) {
+        return res.status(409).json({
+          error: "No merchant access",
+          message: "Your account has not been linked to any merchants yet."
+        });
+      }
+      req.merchantIds = linkedMerchantIds;
     }
 
-    // 3. ALWAYS query merchant_user_links to get current linked merchants (no caching)
-    // This ensures merchant access is revoked immediately when links are removed
-    const linkedMerchantIds = await storage.getMerchantUserLinks(req.session.userId);
-    
-    // 4. Check if merchant has any linked merchants
-    if (linkedMerchantIds.length === 0) {
-      return res.status(409).json({ 
-        error: "No merchant access",
-        message: "Your account has not been linked to any merchants yet. Please contact your property manager."
-      });
-    }
-
-    // 5. Attach merchant data to request for easy access in route handlers
     req.merchantUserId = req.session.userId;
-    req.merchantIds = linkedMerchantIds;
     req.userId = req.session.userId;
     req.userRole = "Merchant";
 

@@ -44,6 +44,9 @@ import {
   consentRecords,
   partnerAccessLogs,
   activityEvents,
+  identities,
+  identityPersonas,
+  tenantPersonaLinks,
   type User,
   type InsertUser,
   type Organization,
@@ -103,6 +106,12 @@ import {
   type InsertPartnerAccessLog,
   type ActivityEvent,
   type InsertActivityEvent,
+  type Identity,
+  type InsertIdentity,
+  type IdentityPersona,
+  type InsertIdentityPersona,
+  type TenantPersonaLink,
+  type InsertTenantPersonaLink,
   maintenanceWorkOrders,
   maintenancePreventiveTasks,
   unitTurns,
@@ -175,6 +184,28 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+
+  // Identity methods (multi-persona)
+  getIdentityById(id: string): Promise<Identity | undefined>;
+  getIdentityByEmail(email: string): Promise<Identity | undefined>;
+  createIdentity(identity: InsertIdentity): Promise<Identity>;
+  updateIdentityLastLogin(id: string): Promise<void>;
+  
+  // Persona methods
+  getPersonaById(id: string): Promise<IdentityPersona | undefined>;
+  getPersonasByIdentityId(identityId: string): Promise<IdentityPersona[]>;
+  createPersona(persona: InsertIdentityPersona): Promise<IdentityPersona>;
+  updatePersonaDefault(personaId: string, identityId: string): Promise<void>;
+  
+  // Tenant persona links
+  getTenantPersonaLinks(personaId: string): Promise<TenantPersonaLink[]>;
+  createTenantPersonaLink(link: InsertTenantPersonaLink): Promise<TenantPersonaLink>;
+  
+  // Vendor persona links
+  getVendorIdsByPersona(personaId: string): Promise<string[]>;
+  
+  // Merchant persona links  
+  getMerchantIdsByPersona(personaId: string): Promise<string[]>;
 
   // Organization methods
   getOrganization(id: string): Promise<Organization | undefined>;
@@ -2937,6 +2968,64 @@ export class DatabaseStorage implements IStorage {
 
   async getPestPreventionProgramsByOrg(organizationId: string) {
     return db.select().from(pestPreventionPrograms).where(eq(pestPreventionPrograms.organizationId, organizationId));
+  }
+
+  // Identity methods (multi-persona)
+  async getIdentityById(id: string): Promise<Identity | undefined> {
+    const [identity] = await db.select().from(identities).where(eq(identities.id, id));
+    return identity;
+  }
+
+  async getIdentityByEmail(email: string): Promise<Identity | undefined> {
+    const [identity] = await db.select().from(identities).where(eq(identities.email, email));
+    return identity;
+  }
+
+  async createIdentity(identity: InsertIdentity): Promise<Identity> {
+    const [created] = await db.insert(identities).values(identity).returning();
+    return created;
+  }
+
+  async updateIdentityLastLogin(id: string): Promise<void> {
+    await db.update(identities).set({ lastLoginAt: new Date() }).where(eq(identities.id, id));
+  }
+
+  async getPersonaById(id: string): Promise<IdentityPersona | undefined> {
+    const [persona] = await db.select().from(identityPersonas).where(eq(identityPersonas.id, id));
+    return persona;
+  }
+
+  async getPersonasByIdentityId(identityId: string): Promise<IdentityPersona[]> {
+    return db.select().from(identityPersonas).where(and(eq(identityPersonas.identityId, identityId), eq(identityPersonas.status, "active")));
+  }
+
+  async createPersona(persona: InsertIdentityPersona): Promise<IdentityPersona> {
+    const [created] = await db.insert(identityPersonas).values(persona).returning();
+    return created;
+  }
+
+  async updatePersonaDefault(personaId: string, identityId: string): Promise<void> {
+    await db.update(identityPersonas).set({ isDefault: false }).where(eq(identityPersonas.identityId, identityId));
+    await db.update(identityPersonas).set({ isDefault: true }).where(eq(identityPersonas.id, personaId));
+  }
+
+  async getTenantPersonaLinks(personaId: string): Promise<TenantPersonaLink[]> {
+    return db.select().from(tenantPersonaLinks).where(eq(tenantPersonaLinks.personaId, personaId));
+  }
+
+  async createTenantPersonaLink(link: InsertTenantPersonaLink): Promise<TenantPersonaLink> {
+    const [created] = await db.insert(tenantPersonaLinks).values(link).returning();
+    return created;
+  }
+
+  async getVendorIdsByPersona(personaId: string): Promise<string[]> {
+    const links = await db.select().from(vendorUserLinks).where(eq(vendorUserLinks.personaId, personaId));
+    return links.map(l => l.vendorId);
+  }
+
+  async getMerchantIdsByPersona(personaId: string): Promise<string[]> {
+    const links = await db.select().from(merchantUserLinks).where(eq(merchantUserLinks.personaId, personaId));
+    return links.map(l => l.merchantId);
   }
 }
 

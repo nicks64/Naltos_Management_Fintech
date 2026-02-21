@@ -58,6 +58,14 @@ Naltos is built with an agentic-first approach, where AI agents are the primary 
 - **Payment Rails**: ACH, cards, existing PMS integrations
 
 ## Recent Changes
+- **Feb 2026**: Phase 5 — Multi-Persona Identity System
+  - Schema: identities, identity_personas, tenant_persona_links tables; persona_id on vendor/merchant/partner link tables
+  - 12+ storage methods for identity/persona CRUD operations
+  - Middleware: requireAuth/requireRole/requireVendor/requireMerchant support dual-mode sessions (legacy user-role + identity-persona)
+  - API: /api/identity/login, /api/identity/select-persona, /api/identity/switch-persona, /api/identity/personas
+  - Frontend: auth-context with persona state, PersonaPicker page, PersonaSwitcher header dropdown
+  - Demo: multi@demo.com (code: 000000) has 3 personas (tenant, vendor admin, property manager)
+  - Architecture: one identity per email → many personas → domain-specific link tables; personaType+roleDetail → UserRole mapping
 - **Feb 2026**: Phase 4 — Database-backed Property Operations pages (7 pages)
   - 7 pages rewired from mock data to real database: Inspections, Amenities, Parking, Packages, Access Control, Safety, Pest Control
   - 28 new database tables across 7 page groups

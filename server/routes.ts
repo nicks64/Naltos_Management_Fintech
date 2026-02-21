@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import bcrypt from "bcrypt";
 import OpenAI from "openai";
-import { requireAuth, requireRole, extractOrganizationId, requireVendor, requireMerchant } from "./middleware";
+import { requireAuth, requireRole, extractOrganizationId, requireVendor, requireMerchant, personaToLegacyRole } from "./middleware";
 import { db } from "./db";
 import { organizations } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -644,6 +644,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Apply organization ID extraction middleware globally
   app.use("/api", extractOrganizationId);
+
+  // ============ Identity Auth Routes (Multi-Persona) ============
+
+  app.post("/api/identity/login", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const magicCode = await storage.getMagicCode(email, code);
+      if (!magicCode) {
+        return res.status(401).json({ error: "Invalid magic code" });
+      }
+      if (new Date() > magicCode.expiresAt) {
+        return res.status(401).json({ error: "Magic code expired" });
+      }
+
+      const demoEmails = ["demo@naltos.com", "tenant@demo.com", "vendor@demo.com", "merchant@demo.com", "partner@demo.com", "multi@demo.com"];
+      if (!demoEmails.includes(email)) {
+        await storage.markMagicCodeUsed(magicCode.id);
+      }
+
+      const identity = await storage.getIdentityByEmail(email);
+      if (!identity) {
+        return res.status(404).json({ error: "No identity found for this email. Use standard login." });
+      }
+
+      const personas = await storage.getPersonasByIdentityId(identity.id);
+      if (personas.length === 0) {
+        return res.status(404).json({ error: "No active personas found." });
+      }
+
+      await storage.updateIdentityLastLogin(identity.id);
+
+      if (personas.length === 1) {
+        const persona = personas[0];
+        const legacyRole = personaToLegacyRole(persona.personaType, persona.roleDetail);
+
+        const user = await storage.getUserByEmail(email);
+
+        await new Promise<void>((resolve, reject) => {
+          req.session.regenerate((err) => { if (err) reject(err); else resolve(); });
+        });
+
+        req.session.identityId = identity.id;
+        req.session.personaId = persona.id;
+        req.session.personaType = persona.personaType;
+        req.session.roleDetail = persona.roleDetail;
+        req.session.organizationId = persona.orgId || "";
+        req.session.userId = user?.id || identity.id;
+        req.session.userRole = legacyRole;
+
+        const organization = persona.orgId ? await storage.getOrganization(persona.orgId) : null;
+
+        return res.json({
+          identity: { id: identity.id, email: identity.email, displayName: identity.displayName },
+          persona,
+          user: user || { id: identity.id, email: identity.email, role: legacyRole, organizationId: persona.orgId },
+          organization,
+          requiresSelection: false,
+        });
+      }
+
+      res.json({
+        identity: { id: identity.id, email: identity.email, displayName: identity.displayName },
+        personas: personas.map(p => ({
+          ...p,
+          legacyRole: personaToLegacyRole(p.personaType, p.roleDetail),
+        })),
+        requiresSelection: true,
+      });
+    } catch (error: any) {
+      console.error("Identity login error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/identity/select-persona", async (req, res) => {
+    try {
+      const { identityId, personaId } = req.body;
+      if (!identityId || !personaId) {
+        return res.status(400).json({ error: "identityId and personaId are required" });
+      }
+
+      const identity = await storage.getIdentityById(identityId);
+      if (!identity) {
+        return res.status(404).json({ error: "Identity not found" });
+      }
+
+      const persona = await storage.getPersonaById(personaId);
+      if (!persona || persona.identityId !== identityId) {
+        return res.status(403).json({ error: "Invalid persona selection" });
+      }
+      if (persona.status !== "active") {
+        return res.status(403).json({ error: "Persona is not active" });
+      }
+
+      const legacyRole = personaToLegacyRole(persona.personaType, persona.roleDetail);
+      const user = await storage.getUserByEmail(identity.email);
+
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => { if (err) reject(err); else resolve(); });
+      });
+
+      req.session.identityId = identity.id;
+      req.session.personaId = persona.id;
+      req.session.personaType = persona.personaType;
+      req.session.roleDetail = persona.roleDetail;
+      req.session.organizationId = persona.orgId || "";
+      req.session.userId = user?.id || identity.id;
+      req.session.userRole = legacyRole;
+
+      if (persona.personaType === "tenant" && user?.tenantId) {
+        req.session.tenantId = user.tenantId;
+      }
+
+      const organization = persona.orgId ? await storage.getOrganization(persona.orgId) : null;
+
+      res.json({
+        identity: { id: identity.id, email: identity.email, displayName: identity.displayName },
+        persona,
+        user: user || { id: identity.id, email: identity.email, role: legacyRole, organizationId: persona.orgId },
+        organization,
+      });
+    } catch (error: any) {
+      console.error("Persona selection error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/identity/switch-persona", requireAuth, async (req, res) => {
+    try {
+      const identityId = req.session.identityId;
+      if (!identityId) {
+        return res.status(400).json({ error: "No identity session. Use standard login." });
+      }
+
+      const { personaId } = req.body;
+      if (!personaId) {
+        return res.status(400).json({ error: "personaId is required" });
+      }
+
+      const persona = await storage.getPersonaById(personaId);
+      if (!persona || persona.identityId !== identityId) {
+        return res.status(403).json({ error: "Invalid persona" });
+      }
+      if (persona.status !== "active") {
+        return res.status(403).json({ error: "Persona is not active" });
+      }
+
+      const identity = await storage.getIdentityById(identityId);
+      if (!identity) {
+        return res.status(404).json({ error: "Identity not found" });
+      }
+
+      const legacyRole = personaToLegacyRole(persona.personaType, persona.roleDetail);
+      const user = await storage.getUserByEmail(identity.email);
+
+      req.session.personaId = persona.id;
+      req.session.personaType = persona.personaType;
+      req.session.roleDetail = persona.roleDetail;
+      req.session.organizationId = persona.orgId || "";
+      req.session.userRole = legacyRole;
+
+      if (persona.personaType === "tenant" && user?.tenantId) {
+        req.session.tenantId = user.tenantId;
+      }
+
+      const organization = persona.orgId ? await storage.getOrganization(persona.orgId) : null;
+
+      res.json({
+        identity: { id: identity.id, email: identity.email, displayName: identity.displayName },
+        persona,
+        user: user || { id: identity.id, email: identity.email, role: legacyRole, organizationId: persona.orgId },
+        organization,
+      });
+    } catch (error: any) {
+      console.error("Persona switch error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/identity/personas", requireAuth, async (req, res) => {
+    try {
+      const identityId = req.session.identityId;
+      if (!identityId) {
+        return res.json({ personas: [] });
+      }
+
+      const personas = await storage.getPersonasByIdentityId(identityId);
+      res.json({
+        currentPersonaId: req.session.personaId,
+        personas: personas.map(p => ({
+          ...p,
+          legacyRole: personaToLegacyRole(p.personaType, p.roleDetail),
+        })),
+      });
+    } catch (error: any) {
+      console.error("Get personas error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // ============ Seed Route (Demo Only - Admin Access Required) ============
   app.post("/api/seed", requireAuth, requireRole("Admin"), async (req, res) => {

@@ -9,10 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/queryClient";
 import { Building2, Loader2 } from "lucide-react";
+import PersonaPicker from "@/pages/persona-picker";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { setAuth } = useAuth();
+  const { setAuth, setIdentityAuth } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState<"business" | "tenant" | "vendor" | "merchant" | "partner">("business");
@@ -21,6 +22,9 @@ export default function Login() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginCode, setLoginCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+
+  const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+  const [pickerData, setPickerData] = useState<{ identityId: string; displayName: string; email: string; personas: any[] } | null>(null);
 
   // Signup state
   const [signupEmail, setSignupEmail] = useState("");
@@ -87,6 +91,47 @@ export default function Login() {
       toast({
         title: "Demo Login Failed",
         description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMultiPersonaDemo = async () => {
+    setLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/identity/login", {
+        email: "multi@demo.com",
+        code: "000000",
+      });
+      
+      if (response.requiresSelection) {
+        setPickerData({
+          identityId: response.identity.id,
+          displayName: response.identity.displayName,
+          email: response.identity.email,
+          personas: response.personas,
+        });
+        setShowPersonaPicker(true);
+      } else {
+        setIdentityAuth(
+          response.identity,
+          response.persona,
+          response.user,
+          response.organization,
+          [response.persona]
+        );
+        const redirectPath = response.persona.personaType === "tenant" ? "/tenant/home" :
+                            response.persona.personaType === "vendor" ? "/vendor-portal" :
+                            response.persona.personaType === "merchant" ? "/merchant-portal" :
+                            "/dashboard";
+        setLocation(redirectPath);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Could not login.",
         variant: "destructive",
       });
     } finally {
@@ -215,6 +260,18 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  if (showPersonaPicker && pickerData) {
+    return (
+      <PersonaPicker
+        identityId={pickerData.identityId}
+        displayName={pickerData.displayName}
+        email={pickerData.email}
+        personas={pickerData.personas}
+        onComplete={() => setShowPersonaPicker(false)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -392,6 +449,16 @@ export default function Login() {
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Use Demo Organization
+                </Button>
+                <Button
+                  onClick={handleMultiPersonaDemo}
+                  variant="outline"
+                  className="w-full"
+                  disabled={loading}
+                  data-testid="button-multi-persona-demo"
+                >
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Multi-Persona Demo (3 roles)
                 </Button>
               </CardFooter>
             </Card>

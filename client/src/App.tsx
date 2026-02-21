@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ActivityFeed } from "@/components/activity-feed";
 import { AgentCommandCenter, AgentTriggerButton } from "@/components/agent-command-center";
 import { LogOut, ShieldAlert, Building2, Brain } from "lucide-react";
+import { PersonaSwitcher } from "@/components/persona-switcher";
 
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -212,6 +213,7 @@ function AppContent() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <PersonaSwitcher />
             <AgentTriggerButton onClick={() => setAgentOpen(!agentOpen)} isOpen={agentOpen} portalMode="vendor" unreadInsights={2} />
             <ActivityFeed />
             <ThemeToggle />
@@ -256,6 +258,7 @@ function AppContent() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <PersonaSwitcher />
             <AgentTriggerButton onClick={() => setAgentOpen(!agentOpen)} isOpen={agentOpen} portalMode="merchant" unreadInsights={1} />
             <ActivityFeed />
             <ThemeToggle />
@@ -324,6 +327,7 @@ function AppContent() {
           <header className="flex items-center justify-between gap-2 px-4 py-2 border-b">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2 flex-wrap">
+              <PersonaSwitcher />
               {!isTenant && (
                 <AgentTriggerButton onClick={() => setAgentOpen(!agentOpen)} isOpen={agentOpen} portalMode="business" unreadInsights={3} />
               )}

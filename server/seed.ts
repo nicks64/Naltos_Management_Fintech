@@ -15,6 +15,7 @@ import {
   magicCodes,
   cryptoWallets,
   cryptoTransactions,
+  cryptoTreasuryDeployments,
   vendors,
   vendorInvoices,
   merchants,
@@ -28,6 +29,9 @@ import {
   patrolLogs,
   cameraSystems,
   fireSafety,
+  identities,
+  identityPersonas,
+  tenantPersonaLinks,
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -62,13 +66,61 @@ export async function seedDatabase() {
     }).returning();
   }
 
+  // ====== IDENTITY/PERSONA BACKFILL ======
+  // Clean up existing identity data for demo users ONLY (scoped, not global)
+  const demoEmails = ["demo@naltos.com", "tenant@demo.com", "vendor@demo.com", "merchant@demo.com", "partner@demo.com", "multi@demo.com"];
+  const demoIdentities = await db.select({ id: identities.id }).from(identities).where(inArray(identities.email, demoEmails));
+  const demoIdentityIds = demoIdentities.map(i => i.id);
+  if (demoIdentityIds.length > 0) {
+    await db.delete(tenantPersonaLinks).where(inArray(tenantPersonaLinks.personaId,
+      db.select({ id: identityPersonas.id }).from(identityPersonas).where(inArray(identityPersonas.identityId, demoIdentityIds))
+    ));
+    await db.delete(identityPersonas).where(inArray(identityPersonas.identityId, demoIdentityIds));
+    await db.delete(identities).where(inArray(identities.id, demoIdentityIds));
+  }
+
+  // Create identity for admin user
+  const [adminIdentity] = await db.insert(identities).values({
+    email: "demo@naltos.com",
+    passwordHash: hashedPassword,
+    displayName: "Demo Admin",
+    emailVerified: true,
+  }).returning();
+
+  const [adminPersona] = await db.insert(identityPersonas).values({
+    identityId: adminIdentity.id,
+    personaType: "operator",
+    orgId: demoOrg.id,
+    roleDetail: "admin",
+    isDefault: true,
+    status: "active",
+    label: "Naltos Demo Properties",
+  }).returning();
+
   // NOW delete existing data ONLY for this organization (in correct dependency order)
   // This preserves other organizations and their data
+  
+  // Delete vendor invoices and vendors
+  const orgVendors = await db.select({ id: vendors.id }).from(vendors).where(eq(vendors.organizationId, demoOrg.id));
+  const vendorIds = orgVendors.map(v => v.id);
+  if (vendorIds.length > 0) {
+    await db.delete(vendorInvoices).where(inArray(vendorInvoices.vendorId, vendorIds));
+    await db.delete(vendors).where(inArray(vendors.id, vendorIds));
+  }
+  
+  // Delete merchant transactions and merchants
+  const orgMerchants = await db.select({ id: merchants.id }).from(merchants).where(eq(merchants.organizationId, demoOrg.id));
+  const merchantIds = orgMerchants.map(m => m.id);
+  if (merchantIds.length > 0) {
+    await db.delete(merchantTransactions).where(inArray(merchantTransactions.merchantId, merchantIds));
+    await db.delete(merchants).where(inArray(merchants.id, merchantIds));
+  }
   
   // Delete bank ledger FIRST (it references payments via matchedPaymentId)
   await db.delete(bankLedger).where(eq(bankLedger.organizationId, demoOrg.id));
   
-  // Delete crypto data (transactions first, then wallets)
+  // Delete crypto data (deployments first, then transactions, then wallets)
+  await db.delete(cryptoTreasuryDeployments).where(eq(cryptoTreasuryDeployments.organizationId, demoOrg.id));
   const orgWallets = await db.select().from(cryptoWallets).where(eq(cryptoWallets.organizationId, demoOrg.id));
   const walletIds = orgWallets.map(w => w.id);
   if (walletIds.length > 0) {
@@ -155,6 +207,24 @@ export async function seedDatabase() {
     expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
     used: false,
   });
+
+  // Create identity for tenant user
+  const [tenantIdentity] = await db.insert(identities).values({
+    email: "tenant@demo.com",
+    passwordHash: hashedPassword,
+    displayName: "Sarah Davis",
+    emailVerified: true,
+  }).returning();
+
+  const [tenantPersona] = await db.insert(identityPersonas).values({
+    identityId: tenantIdentity.id,
+    personaType: "tenant",
+    orgId: demoOrg.id,
+    roleDetail: "primary",
+    isDefault: true,
+    status: "active",
+    label: "Sunset Gardens",
+  }).returning();
 
   // Create organization settings
   await db.insert(organizationSettings).values({
@@ -656,13 +726,13 @@ export async function seedDatabase() {
   console.log("Seeding merchants...");
   const merchantData = [
     { name: "Whole Foods Market", category: "Grocery" as const, settlementDays: 2, yieldRate: "5.50" },
-    { name: "Target", category: "Shopping" as const, settlementDays: 3, yieldRate: "5.50" },
-    { name: "Chipotle Mexican Grill", category: "Restaurants" as const, settlementDays: 1, yieldRate: "5.50" },
+    { name: "Target", category: "Retail" as const, settlementDays: 3, yieldRate: "5.50" },
+    { name: "Chipotle Mexican Grill", category: "Dining" as const, settlementDays: 1, yieldRate: "5.50" },
     { name: "AMC Theatres", category: "Entertainment" as const, settlementDays: 2, yieldRate: "5.50" },
     { name: "Shell Gas Station", category: "Services" as const, settlementDays: 1, yieldRate: "5.50" },
-    { name: "Starbucks", category: "Restaurants" as const, settlementDays: 1, yieldRate: "5.50" },
-    { name: "Amazon", category: "Shopping" as const, settlementDays: 3, yieldRate: "5.50" },
-    { name: "Uber", category: "Transportation" as const, settlementDays: 2, yieldRate: "5.50" },
+    { name: "Starbucks", category: "Coffee" as const, settlementDays: 1, yieldRate: "5.50" },
+    { name: "Amazon", category: "Retail" as const, settlementDays: 3, yieldRate: "5.50" },
+    { name: "Uber", category: "Services" as const, settlementDays: 2, yieldRate: "5.50" },
   ];
 
   const seededMerchants = await db.insert(merchants).values(
@@ -791,6 +861,24 @@ export async function seedDatabase() {
     console.log("Created magic code for merchant demo user");
   }
 
+  // Create identity for merchant demo user
+  const [merchantIdentity] = await db.insert(identities).values({
+    email: "merchant@demo.com",
+    passwordHash: hashedPassword,
+    displayName: "Local Brew Co",
+    emailVerified: true,
+  }).returning();
+
+  const [merchantPersona] = await db.insert(identityPersonas).values({
+    identityId: merchantIdentity.id,
+    personaType: "merchant",
+    orgId: null,
+    roleDetail: "admin",
+    isDefault: true,
+    status: "active",
+    label: "Merchant Portal",
+  }).returning();
+
   // ============ Vendor Portal Demo User ============
   console.log("Seeding demo vendor user...");
   
@@ -862,6 +950,84 @@ export async function seedDatabase() {
     });
     console.log("Created magic code for vendor demo user");
   }
+
+  // Create identity for vendor demo user
+  const [vendorIdentity] = await db.insert(identities).values({
+    email: "vendor@demo.com",
+    passwordHash: hashedPassword,
+    displayName: "Mike's Plumbing",
+    emailVerified: true,
+  }).returning();
+
+  const [vendorPersona] = await db.insert(identityPersonas).values({
+    identityId: vendorIdentity.id,
+    personaType: "vendor",
+    orgId: null,
+    roleDetail: "admin",
+    isDefault: true,
+    status: "active",
+    label: "Vendor Portal",
+  }).returning();
+
+  // ====== MULTI-PERSONA DEMO USER ======
+  // This user demonstrates the persona picker: same email is both a tenant AND vendor admin
+  let multiUser = (await db.select().from(users).where(eq(users.email, "multi@demo.com")))[0];
+  if (!multiUser) {
+    [multiUser] = await db.insert(users).values({
+      email: "multi@demo.com",
+      password: hashedPassword,
+      organizationId: demoOrg.id,
+      role: "Tenant",
+    }).returning();
+  }
+
+  await db.delete(magicCodes).where(eq(magicCodes.email, "multi@demo.com"));
+  await db.insert(magicCodes).values({
+    email: "multi@demo.com",
+    code: "000000",
+    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    used: false,
+  });
+
+  const [multiIdentity] = await db.insert(identities).values({
+    email: "multi@demo.com",
+    passwordHash: hashedPassword,
+    displayName: "Jane Smith",
+    emailVerified: true,
+  }).returning();
+
+  // Jane as a tenant at Sunset Gardens
+  const [multiTenantPersona] = await db.insert(identityPersonas).values({
+    identityId: multiIdentity.id,
+    personaType: "tenant",
+    orgId: demoOrg.id,
+    roleDetail: "primary",
+    isDefault: true,
+    status: "active",
+    label: "Sunset Gardens · Unit SG-001",
+  }).returning();
+
+  // Jane also as a vendor admin
+  await db.insert(identityPersonas).values({
+    identityId: multiIdentity.id,
+    personaType: "vendor",
+    orgId: null,
+    roleDetail: "admin",
+    isDefault: false,
+    status: "active",
+    label: "Smith Maintenance LLC",
+  });
+
+  // Jane also as a Property Manager at a different org context
+  await db.insert(identityPersonas).values({
+    identityId: multiIdentity.id,
+    personaType: "operator",
+    orgId: demoOrg.id,
+    roleDetail: "manager",
+    isDefault: false,
+    status: "active",
+    label: "Naltos Demo Properties",
+  });
 
   // ============ PHASE 3: SEED DATA ============
   console.log("Seeding Phase 3 data...");
@@ -1202,4 +1368,5 @@ export async function seedDatabase() {
   console.log(`- Payments: 220`);
   console.log(`- Vendors: ${seededVendors.length}`);
   console.log(`- Vendor invoices: ${seededInvoices.length}`);
+  console.log(`- Multi-persona demo: multi@demo.com (code: 000000) - has 3 personas`);
 }
