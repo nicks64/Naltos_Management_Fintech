@@ -46,6 +46,13 @@ import VendorPerformance from "@/pages/vendor-performance";
 import VendorCompliance from "@/pages/vendor-compliance";
 import MerchantOnboarding from "@/pages/merchant-onboarding";
 import MerchantRewards from "@/pages/merchant-rewards";
+import Maintenance from "@/pages/maintenance";
+import Communications from "@/pages/communications";
+import Inspections from "@/pages/inspections";
+import Amenities from "@/pages/amenities";
+import Marketing from "@/pages/marketing";
+import Applications from "@/pages/applications";
+import Community from "@/pages/community";
 
 // Tenant pages
 import TenantPaymentCalendar from "@/pages/tenant/payment-calendar";
@@ -375,6 +382,27 @@ function AppContent() {
                 </Route>
                 <Route path="/merchant-rewards">
                   {ProtectedRouteRenderer(MerchantRewards, "/merchant-rewards")}
+                </Route>
+                <Route path="/maintenance">
+                  {ProtectedRouteRenderer(Maintenance, "/maintenance")}
+                </Route>
+                <Route path="/communications">
+                  {ProtectedRouteRenderer(Communications, "/communications")}
+                </Route>
+                <Route path="/inspections">
+                  {ProtectedRouteRenderer(Inspections, "/inspections")}
+                </Route>
+                <Route path="/amenities">
+                  {ProtectedRouteRenderer(Amenities, "/amenities")}
+                </Route>
+                <Route path="/marketing">
+                  {ProtectedRouteRenderer(Marketing, "/marketing")}
+                </Route>
+                <Route path="/applications">
+                  {ProtectedRouteRenderer(Applications, "/applications")}
+                </Route>
+                <Route path="/community">
+                  {ProtectedRouteRenderer(Community, "/community")}
                 </Route>
                 <Route path="/settings">
                   {ProtectedRouteRenderer(Settings, "/settings")}

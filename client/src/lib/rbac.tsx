@@ -33,6 +33,14 @@ const pageAccessRules: Record<string, UserRole[]> = {
   "/merchant-onboarding": ["Admin", "PropertyManager"],
   "/merchant-rewards": ["Admin", "PropertyManager", "CFO"],
 
+  "/maintenance": ["Admin", "PropertyManager"],
+  "/communications": ["Admin", "PropertyManager"],
+  "/inspections": ["Admin", "PropertyManager"],
+  "/marketing": ["Admin", "PropertyManager"],
+  "/applications": ["Admin", "PropertyManager"],
+  "/amenities": ["Admin", "PropertyManager"],
+  "/community": ["Admin", "PropertyManager"],
+
   "/tenant/home": ["Tenant"],
   "/tenant/payment-calendar": ["Tenant"],
   "/tenant/wallet": ["Tenant"],

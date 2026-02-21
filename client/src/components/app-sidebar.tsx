@@ -31,6 +31,13 @@ import {
   MessageSquare,
   Radio,
   Cpu,
+  Wrench,
+  Mail,
+  ClipboardList,
+  Gem,
+  Megaphone,
+  FileCheck,
+  Heart,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -97,7 +104,20 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    label: "Operations",
+    label: "Property CRM",
+    layerTag: "CRM",
+    items: [
+      { title: "Maintenance Hub", url: "/maintenance", icon: Wrench, roles: ["Admin", "PropertyManager"] },
+      { title: "Communications", url: "/communications", icon: Mail, roles: ["Admin", "PropertyManager"] },
+      { title: "Inspections", url: "/inspections", icon: ClipboardList, roles: ["Admin", "PropertyManager"] },
+      { title: "Marketing & Listings", url: "/marketing", icon: Megaphone, roles: ["Admin", "PropertyManager"] },
+      { title: "Applications", url: "/applications", icon: FileCheck, roles: ["Admin", "PropertyManager"] },
+      { title: "Amenities", url: "/amenities", icon: Gem, roles: ["Admin", "PropertyManager"] },
+      { title: "Community & Events", url: "/community", icon: Heart, roles: ["Admin", "PropertyManager"] },
+    ],
+  },
+  {
+    label: "Asset Performance",
     layerTag: "OPS",
     items: [
       { title: "Rent Stability", url: "/rent-stability", icon: ShieldCheck, roles: ["Admin", "PropertyManager", "CFO", "Analyst"] },
