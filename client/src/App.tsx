@@ -53,6 +53,22 @@ import Amenities from "@/pages/amenities";
 import Marketing from "@/pages/marketing";
 import Applications from "@/pages/applications";
 import Community from "@/pages/community";
+import LeaseManagement from "@/pages/lease-management";
+import Residents from "@/pages/residents";
+import MoveInOut from "@/pages/move-in-out";
+import Units from "@/pages/units";
+import Budgeting from "@/pages/budgeting";
+import Accounts from "@/pages/accounts";
+import Compliance from "@/pages/compliance";
+import Utilities from "@/pages/utilities";
+import Parking from "@/pages/parking";
+import Packages from "@/pages/packages";
+import AccessControl from "@/pages/access-control";
+import Safety from "@/pages/safety";
+import PestControl from "@/pages/pest-control";
+import Portfolio from "@/pages/portfolio";
+import CapitalProjects from "@/pages/capital-projects";
+import Procurement from "@/pages/procurement";
 
 // Tenant pages
 import TenantPaymentCalendar from "@/pages/tenant/payment-calendar";
@@ -403,6 +419,54 @@ function AppContent() {
                 </Route>
                 <Route path="/community">
                   {ProtectedRouteRenderer(Community, "/community")}
+                </Route>
+                <Route path="/lease-management">
+                  {ProtectedRouteRenderer(LeaseManagement, "/lease-management")}
+                </Route>
+                <Route path="/residents">
+                  {ProtectedRouteRenderer(Residents, "/residents")}
+                </Route>
+                <Route path="/move-in-out">
+                  {ProtectedRouteRenderer(MoveInOut, "/move-in-out")}
+                </Route>
+                <Route path="/units">
+                  {ProtectedRouteRenderer(Units, "/units")}
+                </Route>
+                <Route path="/budgeting">
+                  {ProtectedRouteRenderer(Budgeting, "/budgeting")}
+                </Route>
+                <Route path="/accounts">
+                  {ProtectedRouteRenderer(Accounts, "/accounts")}
+                </Route>
+                <Route path="/compliance">
+                  {ProtectedRouteRenderer(Compliance, "/compliance")}
+                </Route>
+                <Route path="/utilities">
+                  {ProtectedRouteRenderer(Utilities, "/utilities")}
+                </Route>
+                <Route path="/parking">
+                  {ProtectedRouteRenderer(Parking, "/parking")}
+                </Route>
+                <Route path="/packages">
+                  {ProtectedRouteRenderer(Packages, "/packages")}
+                </Route>
+                <Route path="/access-control">
+                  {ProtectedRouteRenderer(AccessControl, "/access-control")}
+                </Route>
+                <Route path="/safety">
+                  {ProtectedRouteRenderer(Safety, "/safety")}
+                </Route>
+                <Route path="/pest-control">
+                  {ProtectedRouteRenderer(PestControl, "/pest-control")}
+                </Route>
+                <Route path="/portfolio">
+                  {ProtectedRouteRenderer(Portfolio, "/portfolio")}
+                </Route>
+                <Route path="/capital-projects">
+                  {ProtectedRouteRenderer(CapitalProjects, "/capital-projects")}
+                </Route>
+                <Route path="/procurement">
+                  {ProtectedRouteRenderer(Procurement, "/procurement")}
                 </Route>
                 <Route path="/settings">
                   {ProtectedRouteRenderer(Settings, "/settings")}
