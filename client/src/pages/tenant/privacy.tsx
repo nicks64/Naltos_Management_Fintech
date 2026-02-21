@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ShieldCheck,
   User,
@@ -23,99 +25,31 @@ import {
   History,
   Lock,
 } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { ConsentRecord, PartnerAccessLog } from "@shared/schema";
 
-interface DataCategory {
-  id: string;
-  name: string;
-  description: string;
-  sharedWith: string[];
-  enabled: boolean;
-  lastUpdated: string;
-  icon: typeof ShieldCheck;
-}
+const categoryIconMap: Record<string, typeof ShieldCheck> = {
+  "Personal Information": User,
+  "Payment History": CreditCard,
+  "Lease Information": FileText,
+  "Maintenance Requests": Wrench,
+  "Community Activity": Users,
+  "Financial Profile": PiggyBank,
+};
 
-const initialCategories: DataCategory[] = [
-  {
-    id: "personal",
-    name: "Personal Information",
-    description: "Your name, email address, and phone number",
-    sharedWith: ["Property Manager"],
-    enabled: true,
-    lastUpdated: "2026-02-15",
-    icon: User,
-  },
-  {
-    id: "payment",
-    name: "Payment History",
-    description: "Rent payment records, amounts, and dates",
-    sharedWith: ["Credit bureaus (for credit building)", "Insurance partners"],
-    enabled: true,
-    lastUpdated: "2026-02-10",
-    icon: CreditCard,
-  },
-  {
-    id: "lease",
-    name: "Lease Information",
-    description: "Lease terms, dates, and rental agreement details",
-    sharedWith: ["Property Manager", "Legal"],
-    enabled: true,
-    lastUpdated: "2026-01-28",
-    icon: FileText,
-  },
-  {
-    id: "maintenance",
-    name: "Maintenance Requests",
-    description: "Service requests, work orders, and repair history",
-    sharedWith: ["Assigned vendors only"],
-    enabled: true,
-    lastUpdated: "2026-02-18",
-    icon: Wrench,
-  },
-  {
-    id: "community",
-    name: "Community Activity",
-    description: "Event participation, amenity bookings, and community engagement",
-    sharedWith: ["Event organizers"],
-    enabled: false,
-    lastUpdated: "2026-01-05",
-    icon: Users,
-  },
-  {
-    id: "financial",
-    name: "Financial Profile",
-    description: "Income verification, credit score, and financial health indicators",
-    sharedWith: ["Mortgage partners", "Investment partners"],
-    enabled: false,
-    lastUpdated: "2026-01-12",
-    icon: PiggyBank,
-  },
-];
-
-const consentHistory = [
-  { id: "ch1", date: "2026-02-15", action: "Updated", category: "Personal Information", sharedWith: "Property Manager", method: "App", status: "Active" },
-  { id: "ch2", date: "2026-02-10", action: "Granted", category: "Payment History", sharedWith: "Credit bureaus", method: "App", status: "Active" },
-  { id: "ch3", date: "2026-01-28", action: "Granted", category: "Lease Information", sharedWith: "Property Manager, Legal", method: "Email", status: "Active" },
-  { id: "ch4", date: "2026-01-20", action: "Revoked", category: "Community Activity", sharedWith: "Event organizers", method: "App", status: "Revoked" },
-  { id: "ch5", date: "2026-01-12", action: "Revoked", category: "Financial Profile", sharedWith: "Mortgage partners", method: "App", status: "Revoked" },
-  { id: "ch6", date: "2025-12-01", action: "Granted", category: "Community Activity", sharedWith: "Event organizers", method: "In-Person", status: "Expired" },
-  { id: "ch7", date: "2025-11-15", action: "Granted", category: "Maintenance Requests", sharedWith: "Assigned vendors", method: "App", status: "Active" },
-  { id: "ch8", date: "2025-10-20", action: "Granted", category: "Personal Information", sharedWith: "Property Manager", method: "Email", status: "Active" },
-];
-
-const partnerAccess = [
-  { id: "pa1", name: "Experian Credit Bureau", type: "Credit Bureau", dataAccessed: "Payment History", accessDate: "2026-02-12", purpose: "Credit score building", consentRef: "CON-2026-0210", active: true },
-  { id: "pa2", name: "SafeRent Insurance", type: "Insurance", dataAccessed: "Payment History, Lease Information", accessDate: "2026-02-08", purpose: "Renters insurance underwriting", consentRef: "CON-2026-0128", active: true },
-  { id: "pa3", name: "HomeReady Mortgage", type: "Mortgage", dataAccessed: "Financial Profile", accessDate: "2026-01-15", purpose: "Mortgage pre-qualification", consentRef: "CON-2026-0112", active: false },
-  { id: "pa4", name: "PropertyVest Capital", type: "Investment", dataAccessed: "Financial Profile, Payment History", accessDate: "2026-01-10", purpose: "Investment eligibility assessment", consentRef: "CON-2025-1201", active: false },
-  { id: "pa5", name: "FixIt Pro Services", type: "Vendor", dataAccessed: "Maintenance Requests", accessDate: "2026-02-18", purpose: "Service request fulfillment", consentRef: "CON-2025-1115", active: true },
-];
+const getCategoryIcon = (category: string) => {
+  return categoryIconMap[category] || ShieldCheck;
+};
 
 const actionBadgeStyle = (action: string) => {
   switch (action) {
+    case "granted":
     case "Granted":
       return { backgroundColor: "hsl(var(--tenant-success) / 0.1)", color: "hsl(var(--tenant-success))" };
+    case "revoked":
     case "Revoked":
       return { backgroundColor: "hsl(0 84% 60% / 0.1)", color: "hsl(0 84% 50%)" };
+    case "updated":
     case "Updated":
       return { backgroundColor: "hsl(var(--tenant-primary) / 0.1)", color: "hsl(var(--tenant-primary))" };
     default:
@@ -125,10 +59,13 @@ const actionBadgeStyle = (action: string) => {
 
 const statusBadgeStyle = (status: string) => {
   switch (status) {
+    case "active":
     case "Active":
       return { backgroundColor: "hsl(var(--tenant-success) / 0.1)", color: "hsl(var(--tenant-success))" };
+    case "revoked":
     case "Revoked":
       return { backgroundColor: "hsl(0 84% 60% / 0.1)", color: "hsl(0 84% 50%)" };
+    case "expired":
     case "Expired":
       return { backgroundColor: "hsl(var(--tenant-muted))", color: "hsl(var(--tenant-muted-foreground))" };
     default:
@@ -136,28 +73,61 @@ const statusBadgeStyle = (status: string) => {
   }
 };
 
+const formatStatus = (status: string) => {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
+
+const formatAction = (action: string) => {
+  return action.charAt(0).toUpperCase() + action.slice(1);
+};
+
+const formatDate = (dateStr: string | Date) => {
+  const d = new Date(dateStr);
+  return d.toISOString().split("T")[0];
+};
+
 export default function TenantPrivacy() {
-  const [categories, setCategories] = useState(initialCategories);
   const [activeTab, setActiveTab] = useState("sharing");
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [thirdPartySharing, setThirdPartySharing] = useState(true);
   const [analyticsParticipation, setAnalyticsParticipation] = useState(true);
   const [dataRetention, setDataRetention] = useState("3yr");
-  const [partners, setPartners] = useState(partnerAccess);
 
-  const enabledCount = categories.filter((c) => c.enabled).length;
+  const { data: consents = [], isLoading: consentsLoading } = useQuery<ConsentRecord[]>({
+    queryKey: ['/api/tenant/consents'],
+  });
 
-  const handleToggleCategory = (id: string) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, enabled: !c.enabled, lastUpdated: "2026-02-21" } : c))
-    );
+  const { data: partnerLogs = [], isLoading: partnersLoading } = useQuery<PartnerAccessLog[]>({
+    queryKey: ['/api/tenant/partner-access'],
+  });
+
+  const toggleConsentMutation = useMutation({
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
+      return apiRequest("PATCH", `/api/tenant/consents/${id}`, { enabled });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tenant/consents'] });
+    },
+  });
+
+  const enabledCount = consents.filter((c) => c.enabled).length;
+
+  const handleToggleCategory = (id: string, currentEnabled: boolean) => {
+    toggleConsentMutation.mutate({ id, enabled: !currentEnabled });
   };
 
-  const handleRevokePartner = (id: string) => {
-    setPartners((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, active: false } : p))
-    );
-  };
+  const uniqueCategories = consents.reduce<ConsentRecord[]>((acc, record) => {
+    const existing = acc.find((r) => r.category === record.category);
+    if (!existing) {
+      acc.push(record);
+    } else {
+      if (new Date(record.createdAt) > new Date(existing.createdAt)) {
+        const idx = acc.indexOf(existing);
+        acc[idx] = record;
+      }
+    }
+    return acc;
+  }, []);
 
   return (
     <div className="space-y-6" data-testid="page-tenant-privacy">
@@ -178,32 +148,42 @@ export default function TenantPrivacy() {
         style={{ backgroundColor: "hsl(var(--tenant-card))", borderColor: "hsl(var(--tenant-card-border))", borderRadius: "var(--tenant-radius-lg)", boxShadow: "var(--tenant-shadow-md)" }}
       >
         <CardContent className="p-5">
-          <div className="flex items-center gap-4 flex-wrap" data-testid="card-privacy-score">
-            <div className="p-3 rounded-lg" style={{ backgroundColor: "hsl(var(--tenant-primary) / 0.1)" }}>
-              <Eye className="w-6 h-6" style={{ color: "hsl(var(--tenant-primary))" }} />
+          {consentsLoading ? (
+            <div className="flex items-center gap-4">
+              <Skeleton className="w-12 h-12 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Sharing Overview</p>
-              <p className="text-sm" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                {enabledCount} of {categories.length} categories shared
-              </p>
+          ) : (
+            <div className="flex items-center gap-4 flex-wrap" data-testid="card-privacy-score">
+              <div className="p-3 rounded-lg" style={{ backgroundColor: "hsl(var(--tenant-primary) / 0.1)" }}>
+                <Eye className="w-6 h-6" style={{ color: "hsl(var(--tenant-primary))" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Sharing Overview</p>
+                <p className="text-sm" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                  {enabledCount} of {uniqueCategories.length} categories shared
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {uniqueCategories.map((c) => (
+                  <div
+                    key={c.id}
+                    className="w-3 h-3 rounded-full"
+                    title={`${c.category}: ${c.enabled ? "Shared" : "Not shared"}`}
+                    style={{
+                      backgroundColor: c.enabled
+                        ? "hsl(var(--tenant-success))"
+                        : "hsl(var(--tenant-muted-foreground) / 0.3)",
+                    }}
+                    data-testid={`dot-category-${c.id}`}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {categories.map((c) => (
-                <div
-                  key={c.id}
-                  className="w-3 h-3 rounded-full"
-                  title={`${c.name}: ${c.enabled ? "Shared" : "Not shared"}`}
-                  style={{
-                    backgroundColor: c.enabled
-                      ? "hsl(var(--tenant-success))"
-                      : "hsl(var(--tenant-muted-foreground) / 0.3)",
-                  }}
-                  data-testid={`dot-category-${c.id}`}
-                />
-              ))}
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -228,58 +208,86 @@ export default function TenantPrivacy() {
         </TabsList>
 
         <TabsContent value="sharing" className="space-y-4 mt-4">
-          {categories.map((category) => (
-            <Card
-              key={category.id}
-              className="border"
-              style={{ backgroundColor: "hsl(var(--tenant-card))", borderColor: "hsl(var(--tenant-card-border))", borderRadius: "var(--tenant-radius-lg)" }}
-              data-testid={`card-category-${category.id}`}
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="p-2 rounded-lg flex-shrink-0" style={{ backgroundColor: category.enabled ? "hsl(var(--tenant-primary) / 0.1)" : "hsl(var(--tenant-muted))" }}>
-                      <category.icon className="w-5 h-5" style={{ color: category.enabled ? "hsl(var(--tenant-primary))" : "hsl(var(--tenant-muted-foreground))" }} />
+          {consentsLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card
+                key={i}
+                className="border"
+                style={{ backgroundColor: "hsl(var(--tenant-card))", borderColor: "hsl(var(--tenant-card-border))", borderRadius: "var(--tenant-radius-lg)" }}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="w-9 h-9 rounded-lg flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-3 w-64" />
+                      <Skeleton className="h-3 w-32" />
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>{category.name}</p>
-                        <Badge
-                          variant="secondary"
-                          className="text-xs"
-                          style={category.enabled
-                            ? { backgroundColor: "hsl(var(--tenant-success) / 0.1)", color: "hsl(var(--tenant-success))" }
-                            : { backgroundColor: "hsl(var(--tenant-muted))", color: "hsl(var(--tenant-muted-foreground))" }
-                          }
-                          data-testid={`badge-status-${category.id}`}
-                        >
-                          {category.enabled ? "Shared" : "Not Shared"}
-                        </Badge>
-                      </div>
-                      <p className="text-sm mt-1" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>{category.description}</p>
-                      <div className="flex items-center gap-1 mt-2 flex-wrap">
-                        <span className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Shared with:</span>
-                        {category.sharedWith.map((sw) => (
-                          <Badge key={sw} variant="outline" className="text-xs" data-testid={`badge-shared-${category.id}-${sw.replace(/\s+/g, "-").toLowerCase()}`}>
-                            {sw}
-                          </Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs mt-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
-                        <Clock className="w-3 h-3 inline mr-1" />
-                        Last updated: {category.lastUpdated}
-                      </p>
-                    </div>
+                    <Skeleton className="w-10 h-5 rounded-full" />
                   </div>
-                  <Switch
-                    checked={category.enabled}
-                    onCheckedChange={() => handleToggleCategory(category.id)}
-                    data-testid={`switch-category-${category.id}`}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            uniqueCategories.map((record) => {
+              const IconComp = getCategoryIcon(record.category);
+              return (
+                <Card
+                  key={record.id}
+                  className="border"
+                  style={{ backgroundColor: "hsl(var(--tenant-card))", borderColor: "hsl(var(--tenant-card-border))", borderRadius: "var(--tenant-radius-lg)" }}
+                  data-testid={`card-category-${record.id}`}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="p-2 rounded-lg flex-shrink-0" style={{ backgroundColor: record.enabled ? "hsl(var(--tenant-primary) / 0.1)" : "hsl(var(--tenant-muted))" }}>
+                          <IconComp className="w-5 h-5" style={{ color: record.enabled ? "hsl(var(--tenant-primary))" : "hsl(var(--tenant-muted-foreground))" }} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>{record.category}</p>
+                            <Badge
+                              variant="secondary"
+                              className="text-xs"
+                              style={record.enabled
+                                ? { backgroundColor: "hsl(var(--tenant-success) / 0.1)", color: "hsl(var(--tenant-success))" }
+                                : { backgroundColor: "hsl(var(--tenant-muted))", color: "hsl(var(--tenant-muted-foreground))" }
+                              }
+                              data-testid={`badge-status-${record.id}`}
+                            >
+                              {record.enabled ? "Shared" : "Not Shared"}
+                            </Badge>
+                          </div>
+                          {record.description && (
+                            <p className="text-sm mt-1" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>{record.description}</p>
+                          )}
+                          <div className="flex items-center gap-1 mt-2 flex-wrap">
+                            <span className="text-xs" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>Shared with:</span>
+                            {record.sharedWith.split(",").map((sw) => (
+                              <Badge key={sw.trim()} variant="outline" className="text-xs" data-testid={`badge-shared-${record.id}-${sw.trim().replace(/\s+/g, "-").toLowerCase()}`}>
+                                {sw.trim()}
+                              </Badge>
+                            ))}
+                          </div>
+                          <p className="text-xs mt-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>
+                            <Clock className="w-3 h-3 inline mr-1" />
+                            Last updated: {formatDate(record.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={record.enabled}
+                        onCheckedChange={() => handleToggleCategory(record.id, record.enabled)}
+                        disabled={toggleConsentMutation.isPending}
+                        data-testid={`switch-category-${record.id}`}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
@@ -294,43 +302,51 @@ export default function TenantPrivacy() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm" data-testid="table-consent-history">
-                  <thead>
-                    <tr className="border-b" style={{ borderColor: "hsl(var(--tenant-card-border))" }}>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Date</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Action</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Category</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Shared With</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Method</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {consentHistory.map((entry) => (
-                      <tr
-                        key={entry.id}
-                        className="border-b last:border-b-0"
-                        style={{ borderColor: "hsl(var(--tenant-card-border))" }}
-                        data-testid={`row-consent-${entry.id}`}
-                      >
-                        <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-foreground))" }}>{entry.date}</td>
-                        <td className="py-3 px-2">
-                          <Badge variant="secondary" className="text-xs" style={actionBadgeStyle(entry.action)}>{entry.action}</Badge>
-                        </td>
-                        <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-foreground))" }}>{entry.category}</td>
-                        <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>{entry.sharedWith}</td>
-                        <td className="py-3 px-2">
-                          <Badge variant="outline" className="text-xs">{entry.method}</Badge>
-                        </td>
-                        <td className="py-3 px-2">
-                          <Badge variant="secondary" className="text-xs" style={statusBadgeStyle(entry.status)}>{entry.status}</Badge>
-                        </td>
+              {consentsLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" data-testid="table-consent-history">
+                    <thead>
+                      <tr className="border-b" style={{ borderColor: "hsl(var(--tenant-card-border))" }}>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Date</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Action</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Category</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Shared With</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Method</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {consents.map((entry) => (
+                        <tr
+                          key={entry.id}
+                          className="border-b last:border-b-0"
+                          style={{ borderColor: "hsl(var(--tenant-card-border))" }}
+                          data-testid={`row-consent-${entry.id}`}
+                        >
+                          <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-foreground))" }}>{formatDate(entry.createdAt)}</td>
+                          <td className="py-3 px-2">
+                            <Badge variant="secondary" className="text-xs" style={actionBadgeStyle(entry.action)}>{formatAction(entry.action)}</Badge>
+                          </td>
+                          <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-foreground))" }}>{entry.category}</td>
+                          <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>{entry.sharedWith}</td>
+                          <td className="py-3 px-2">
+                            <Badge variant="outline" className="text-xs">{entry.method || "App"}</Badge>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Badge variant="secondary" className="text-xs" style={statusBadgeStyle(entry.status)}>{formatStatus(entry.status)}</Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -490,64 +506,63 @@ export default function TenantPrivacy() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm" data-testid="table-partner-access">
-                  <thead>
-                    <tr className="border-b" style={{ borderColor: "hsl(var(--tenant-card-border))" }}>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Partner</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Type</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Data Accessed</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Access Date</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Purpose</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Consent Ref</th>
-                      <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {partners.map((partner) => (
-                      <tr
-                        key={partner.id}
-                        className="border-b last:border-b-0"
-                        style={{ borderColor: "hsl(var(--tenant-card-border))" }}
-                        data-testid={`row-partner-${partner.id}`}
-                      >
-                        <td className="py-3 px-2 font-medium" style={{ color: "hsl(var(--tenant-foreground))" }}>{partner.name}</td>
-                        <td className="py-3 px-2">
-                          <Badge variant="outline" className="text-xs">{partner.type}</Badge>
-                        </td>
-                        <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>{partner.dataAccessed}</td>
-                        <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-foreground))" }}>{partner.accessDate}</td>
-                        <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>{partner.purpose}</td>
-                        <td className="py-3 px-2">
-                          <Badge variant="secondary" className="text-xs font-mono">{partner.consentRef}</Badge>
-                        </td>
-                        <td className="py-3 px-2">
-                          {partner.active ? (
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-xs" style={{ backgroundColor: "hsl(var(--tenant-success) / 0.1)", color: "hsl(var(--tenant-success))" }}>
-                                Active
-                              </Badge>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRevokePartner(partner.id)}
-                                data-testid={`button-revoke-${partner.id}`}
-                                style={{ borderColor: "hsl(0 84% 60% / 0.5)", color: "hsl(0 84% 50%)" }}
-                              >
-                                Revoke
-                              </Button>
-                            </div>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs" style={{ backgroundColor: "hsl(var(--tenant-muted))", color: "hsl(var(--tenant-muted-foreground))" }}>
-                              Revoked
-                            </Badge>
-                          )}
-                        </td>
+              {partnersLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" data-testid="table-partner-access">
+                    <thead>
+                      <tr className="border-b" style={{ borderColor: "hsl(var(--tenant-card-border))" }}>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Partner</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Type</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Data Accessed</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Access Date</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Purpose</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Consent Ref</th>
+                        <th className="text-left py-3 px-2 font-semibold" style={{ color: "hsl(var(--tenant-foreground))" }}>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {partnerLogs.map((partner) => (
+                        <tr
+                          key={partner.id}
+                          className="border-b last:border-b-0"
+                          style={{ borderColor: "hsl(var(--tenant-card-border))" }}
+                          data-testid={`row-partner-${partner.id}`}
+                        >
+                          <td className="py-3 px-2 font-medium" style={{ color: "hsl(var(--tenant-foreground))" }}>{partner.partnerName}</td>
+                          <td className="py-3 px-2">
+                            <Badge variant="outline" className="text-xs">{partner.partnerType}</Badge>
+                          </td>
+                          <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>{partner.dataAccessed}</td>
+                          <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-foreground))" }}>{formatDate(partner.accessDate)}</td>
+                          <td className="py-3 px-2" style={{ color: "hsl(var(--tenant-muted-foreground))" }}>{partner.purpose}</td>
+                          <td className="py-3 px-2">
+                            <Badge variant="secondary" className="text-xs font-mono">{partner.consentRef || "-"}</Badge>
+                          </td>
+                          <td className="py-3 px-2">
+                            {partner.active ? (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs" style={{ backgroundColor: "hsl(var(--tenant-success) / 0.1)", color: "hsl(var(--tenant-success))" }}>
+                                  Active
+                                </Badge>
+                              </div>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs" style={{ backgroundColor: "hsl(var(--tenant-muted))", color: "hsl(var(--tenant-muted-foreground))" }}>
+                                Revoked
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

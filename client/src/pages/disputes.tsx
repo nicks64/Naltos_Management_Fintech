@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AINudgeCard, AgentInsightStrip } from "@/components/ai-nudge-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Dispute, DisputeTimeline } from "@shared/schema";
 import {
   Scale,
   AlertTriangle,
@@ -41,330 +44,200 @@ const agentInsights = [
   { text: "AI suggests auto-resolution for 2 low-risk disputes", severity: "positive" as const },
 ];
 
-const kpiCards = [
-  { title: "Open Disputes", value: "14", change: "+3 this week", trend: "warning" as const, icon: Scale },
-  { title: "Avg Resolution Time", value: "6.2d", change: "-1.1d vs last month", trend: "positive" as const, icon: Timer },
-  { title: "SLA Compliance", value: "87%", change: "+4%", trend: "positive" as const, icon: CheckCircle2 },
-  { title: "Escalation Rate", value: "12%", change: "-2%", trend: "positive" as const, icon: TrendingDown },
-];
+type DisputeType = "rent" | "vendor" | "merchant";
+type DisputeStatus = "open" | "under_review" | "escalated" | "mediation" | "resolved" | "closed";
+type DisputePriority = "critical" | "high" | "medium" | "low";
 
-type DisputeType = "Rent" | "Vendor" | "Merchant";
-type DisputeStatus = "Open" | "Under Review" | "Escalated" | "Mediation" | "Resolved" | "Closed";
-type DisputePriority = "Critical" | "High" | "Medium" | "Low";
-
-interface Dispute {
-  id: string;
-  type: DisputeType;
-  filedBy: string;
-  against: string;
-  property: string;
-  unit: string;
-  amount: number;
-  status: DisputeStatus;
-  priority: DisputePriority;
-  filedDate: string;
-  slaDeadline: string;
-  category: string;
-  description: string;
-  mediator?: string;
-  evidenceCount: number;
-  timeline: { date: string; action: string }[];
-  workOrderRef?: string;
-  originalAmount?: number;
-  vendorResponse?: string;
-  transactionRef?: string;
-  merchantName?: string;
-  resolutionType?: string;
-  resolutionTime?: number;
-  satisfactionScore?: number;
-}
-
-const disputes: Dispute[] = [
-  {
-    id: "DSP-1001",
-    type: "Rent",
-    filedBy: "Sarah Mitchell",
-    against: "Oakwood Properties",
-    property: "Oakwood Apartments",
-    unit: "3A",
-    amount: 425,
-    status: "Open",
-    priority: "High",
-    filedDate: "Feb 10, 2026",
-    slaDeadline: "Feb 24, 2026",
-    category: "Charge Accuracy",
-    description: "Incorrect late fee charged despite on-time payment via ACH",
-    mediator: "Maria Santos",
-    evidenceCount: 3,
-    timeline: [
-      { date: "Feb 10, 2026", action: "Dispute filed by tenant" },
-      { date: "Feb 11, 2026", action: "Assigned to Maria Santos" },
-      { date: "Feb 13, 2026", action: "Payment records requested" },
-    ],
-  },
-  {
-    id: "DSP-1002",
-    type: "Rent",
-    filedBy: "James Park",
-    against: "Oakwood Properties",
-    property: "Oakwood Apartments",
-    unit: "7B",
-    amount: 1200,
-    status: "Escalated",
-    priority: "Critical",
-    filedDate: "Jan 28, 2026",
-    slaDeadline: "Feb 18, 2026",
-    category: "Deposit Deduction",
-    description: "Disputed security deposit deductions for pre-existing damage",
-    mediator: "Brian Cooper",
-    evidenceCount: 7,
-    timeline: [
-      { date: "Jan 28, 2026", action: "Dispute filed by tenant" },
-      { date: "Jan 29, 2026", action: "Assigned to Brian Cooper" },
-      { date: "Feb 3, 2026", action: "Move-in inspection photos reviewed" },
-      { date: "Feb 10, 2026", action: "Escalated - conflicting evidence" },
-    ],
-  },
-  {
-    id: "DSP-1003",
-    type: "Rent",
-    filedBy: "Priya Patel",
-    against: "Oakwood Properties",
-    property: "Riverside Complex",
-    unit: "5C",
-    amount: 850,
-    status: "Under Review",
-    priority: "Medium",
-    filedDate: "Feb 5, 2026",
-    slaDeadline: "Feb 26, 2026",
-    category: "Maintenance Abatement",
-    description: "Rent abatement request due to 2-week HVAC outage in winter",
-    mediator: "Maria Santos",
-    evidenceCount: 4,
-    timeline: [
-      { date: "Feb 5, 2026", action: "Dispute filed by tenant" },
-      { date: "Feb 6, 2026", action: "Maintenance logs pulled" },
-      { date: "Feb 8, 2026", action: "HVAC contractor statement received" },
-    ],
-  },
-  {
-    id: "DSP-1004",
-    type: "Vendor",
-    filedBy: "Oakwood Properties",
-    against: "ABC Maintenance Co.",
-    property: "Oakwood Apartments",
-    unit: "Common",
-    amount: 3200,
-    status: "Open",
-    priority: "High",
-    filedDate: "Feb 12, 2026",
-    slaDeadline: "Feb 26, 2026",
-    category: "Overcharge",
-    description: "Invoice $3,200 exceeds approved PO of $1,800 for lobby renovation",
-    evidenceCount: 5,
-    workOrderRef: "WO-4521",
-    originalAmount: 1800,
-    vendorResponse: "Pending",
-    timeline: [
-      { date: "Feb 12, 2026", action: "Dispute filed against vendor" },
-      { date: "Feb 13, 2026", action: "PO and invoice comparison generated" },
-    ],
-  },
-  {
-    id: "DSP-1005",
-    type: "Vendor",
-    filedBy: "Oakwood Properties",
-    against: "QuickFix Plumbing",
-    property: "Riverside Complex",
-    unit: "Building B",
-    amount: 1450,
-    status: "Mediation",
-    priority: "Medium",
-    filedDate: "Jan 20, 2026",
-    slaDeadline: "Feb 20, 2026",
-    category: "Incomplete Work",
-    description: "Plumbing repair incomplete - recurring leak in units 2A, 2B after service",
-    evidenceCount: 6,
-    workOrderRef: "WO-4498",
-    originalAmount: 1450,
-    vendorResponse: "Disputed",
-    timeline: [
-      { date: "Jan 20, 2026", action: "Dispute filed against vendor" },
-      { date: "Jan 22, 2026", action: "Re-inspection scheduled" },
-      { date: "Jan 28, 2026", action: "Vendor denied responsibility" },
-      { date: "Feb 1, 2026", action: "Escalated to mediation" },
-    ],
-  },
-  {
-    id: "DSP-1006",
-    type: "Vendor",
-    filedBy: "Oakwood Properties",
-    against: "ABC Maintenance Co.",
-    property: "Oakwood Apartments",
-    unit: "Parking Garage",
-    amount: 2100,
-    status: "Under Review",
-    priority: "Low",
-    filedDate: "Feb 8, 2026",
-    slaDeadline: "Mar 1, 2026",
-    category: "Unauthorized Charge",
-    description: "Unauthorized additional materials charge not in original scope",
-    evidenceCount: 2,
-    workOrderRef: "WO-4510",
-    originalAmount: 950,
-    vendorResponse: "Acknowledged",
-    timeline: [
-      { date: "Feb 8, 2026", action: "Dispute filed against vendor" },
-      { date: "Feb 10, 2026", action: "Vendor acknowledged discrepancy" },
-    ],
-  },
-  {
-    id: "DSP-1007",
-    type: "Merchant",
-    filedBy: "Lisa Chen",
-    against: "GreenClean Laundry",
-    property: "Oakwood Apartments",
-    unit: "2D",
-    amount: 89,
-    status: "Open",
-    priority: "Low",
-    filedDate: "Feb 14, 2026",
-    slaDeadline: "Feb 28, 2026",
-    category: "Unauthorized Charge",
-    description: "Double charge for laundry service on Feb 12",
-    evidenceCount: 2,
-    transactionRef: "TXN-88421",
-    merchantName: "GreenClean Laundry",
-    timeline: [
-      { date: "Feb 14, 2026", action: "Dispute filed by tenant" },
-      { date: "Feb 15, 2026", action: "Transaction records pulled" },
-    ],
-  },
-  {
-    id: "DSP-1008",
-    type: "Merchant",
-    filedBy: "Marcus Johnson",
-    against: "FreshBite Cafe",
-    property: "Oakwood Apartments",
-    unit: "4A",
-    amount: 156,
-    status: "Under Review",
-    priority: "Medium",
-    filedDate: "Feb 6, 2026",
-    slaDeadline: "Feb 20, 2026",
-    category: "Service Not Received",
-    description: "Catering order charged but never delivered for unit event",
-    evidenceCount: 3,
-    transactionRef: "TXN-87955",
-    merchantName: "FreshBite Cafe",
-    timeline: [
-      { date: "Feb 6, 2026", action: "Dispute filed by tenant" },
-      { date: "Feb 7, 2026", action: "Merchant contacted for delivery proof" },
-      { date: "Feb 10, 2026", action: "Merchant unable to provide proof" },
-    ],
-  },
-  {
-    id: "DSP-1009",
-    type: "Merchant",
-    filedBy: "Rachel Torres",
-    against: "PetCare Plus",
-    property: "Riverside Complex",
-    unit: "1B",
-    amount: 275,
-    status: "Resolved",
-    priority: "Medium",
-    filedDate: "Jan 15, 2026",
-    slaDeadline: "Jan 29, 2026",
-    category: "Quality Complaint",
-    description: "Pet grooming service resulted in injury, vet bills incurred",
-    evidenceCount: 5,
-    transactionRef: "TXN-86102",
-    merchantName: "PetCare Plus",
-    resolutionType: "Full Refund",
-    resolutionTime: 11,
-    satisfactionScore: 4,
-    timeline: [
-      { date: "Jan 15, 2026", action: "Dispute filed by tenant" },
-      { date: "Jan 16, 2026", action: "Vet records and photos submitted" },
-      { date: "Jan 20, 2026", action: "Merchant accepted responsibility" },
-      { date: "Jan 26, 2026", action: "Full refund issued" },
-    ],
-  },
-  {
-    id: "DSP-1010",
-    type: "Rent",
-    filedBy: "Kevin Williams",
-    against: "Oakwood Properties",
-    property: "Oakwood Apartments",
-    unit: "6C",
-    amount: 200,
-    status: "Resolved",
-    priority: "Low",
-    filedDate: "Jan 10, 2026",
-    slaDeadline: "Jan 24, 2026",
-    category: "Late Fee",
-    description: "Late fee disputed due to bank processing delay with documentation",
-    evidenceCount: 2,
-    mediator: "Brian Cooper",
-    resolutionType: "Credit",
-    resolutionTime: 5,
-    satisfactionScore: 5,
-    timeline: [
-      { date: "Jan 10, 2026", action: "Dispute filed by tenant" },
-      { date: "Jan 11, 2026", action: "Bank statement reviewed" },
-      { date: "Jan 15, 2026", action: "Credit applied to account" },
-    ],
-  },
-];
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const formatStatus = (s: string) => {
+  if (s === "under_review") return "Under Review";
+  return capitalize(s);
+};
+const formatType = (s: string) => capitalize(s);
+const formatPriority = (s: string) => capitalize(s);
 
 const statusVariant: Record<DisputeStatus, "destructive" | "outline" | "secondary" | "default"> = {
-  Open: "outline",
-  "Under Review": "default",
-  Escalated: "destructive",
-  Mediation: "outline",
-  Resolved: "secondary",
-  Closed: "secondary",
+  open: "outline",
+  under_review: "default",
+  escalated: "destructive",
+  mediation: "outline",
+  resolved: "secondary",
+  closed: "secondary",
 };
 
 const priorityVariant: Record<DisputePriority, "destructive" | "outline" | "secondary" | "default"> = {
-  Critical: "destructive",
-  High: "destructive",
-  Medium: "outline",
-  Low: "secondary",
+  critical: "destructive",
+  high: "destructive",
+  medium: "outline",
+  low: "secondary",
 };
 
 const typeIcon: Record<DisputeType, LucideIcon> = {
-  Rent: Users,
-  Vendor: Truck,
-  Merchant: Store,
+  rent: Users,
+  vendor: Truck,
+  merchant: Store,
 };
 
-const statusDistribution = [
-  { status: "Open", count: 4, color: "bg-blue-500" },
-  { status: "Under Review", count: 3, color: "bg-amber-500" },
-  { status: "Escalated", count: 1, color: "bg-red-500" },
-  { status: "Mediation", count: 1, color: "bg-violet-500" },
-  { status: "Resolved", count: 2, color: "bg-emerald-500" },
-];
-
-const resolvedDisputes = disputes.filter((d) => d.status === "Resolved" || d.status === "Closed");
-
-const resolutionMetrics = {
-  avgResolutionDays: 6.2,
-  avgSatisfaction: 4.3,
-  totalResolved: 28,
-  thisMonth: 5,
+const statusColors: Record<string, string> = {
+  open: "bg-blue-500",
+  under_review: "bg-amber-500",
+  escalated: "bg-red-500",
+  mediation: "bg-violet-500",
+  resolved: "bg-emerald-500",
+  closed: "bg-slate-500",
 };
+
+function formatDate(dateStr: string | Date | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function computeResolutionDays(createdAt: string | Date, resolvedAt: string | Date | null | undefined): number | null {
+  if (!resolvedAt) return null;
+  const start = new Date(createdAt);
+  const end = new Date(resolvedAt);
+  return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-80 mt-2" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-1 pt-3 px-3">
+              <Skeleton className="h-3 w-24" />
+            </CardHeader>
+            <CardContent className="px-3 pb-3">
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-3 w-28 mt-1" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <Skeleton className="h-5 w-32" />
+        </CardHeader>
+        <CardContent>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full mb-2" />
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default function DisputeCenter() {
   const [activeTab, setActiveTab] = useState("all");
-  const [typeFilter, setTypeFilter] = useState<DisputeType | "All">("All");
+  const [typeFilter, setTypeFilter] = useState<DisputeType | "all">("all");
 
-  const filteredDisputes = typeFilter === "All" ? disputes : disputes.filter((d) => d.type === typeFilter);
-  const rentDisputes = disputes.filter((d) => d.type === "Rent");
-  const vendorDisputes = disputes.filter((d) => d.type === "Vendor");
-  const merchantDisputes = disputes.filter((d) => d.type === "Merchant");
+  const { data: disputes = [], isLoading, isError } = useQuery<Dispute[]>({
+    queryKey: ["/api/disputes"],
+  });
+
+  const filteredDisputes = useMemo(
+    () => (typeFilter === "all" ? disputes : disputes.filter((d) => d.type === typeFilter)),
+    [disputes, typeFilter]
+  );
+  const rentDisputes = useMemo(() => disputes.filter((d) => d.type === "rent"), [disputes]);
+  const vendorDisputes = useMemo(() => disputes.filter((d) => d.type === "vendor"), [disputes]);
+  const merchantDisputes = useMemo(() => disputes.filter((d) => d.type === "merchant"), [disputes]);
+  const resolvedDisputes = useMemo(() => disputes.filter((d) => d.status === "resolved" || d.status === "closed"), [disputes]);
+
+  const statusDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const d of disputes) {
+      counts[d.status] = (counts[d.status] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .filter(([status]) => status !== "closed")
+      .map(([status, count]) => ({
+        status,
+        count,
+        color: statusColors[status] || "bg-gray-500",
+      }));
+  }, [disputes]);
+
   const totalStatusCount = statusDistribution.reduce((sum, s) => sum + s.count, 0);
+
+  const kpiCards = useMemo(() => {
+    const openCount = disputes.filter((d) => d.status === "open").length;
+    const resolved = disputes.filter((d) => d.resolvedAt);
+    const avgResolution = resolved.length > 0
+      ? (resolved.reduce((sum, d) => sum + (computeResolutionDays(d.createdAt, d.resolvedAt) || 0), 0) / resolved.length).toFixed(1)
+      : "0";
+    const activeDisputes = disputes.filter((d) => d.status !== "resolved" && d.status !== "closed");
+    const slaCompliant = activeDisputes.filter((d) => d.slaDeadline && new Date(d.slaDeadline) > new Date()).length;
+    const slaRate = activeDisputes.length > 0 ? Math.round((slaCompliant / activeDisputes.length) * 100) : 100;
+    const escalatedCount = disputes.filter((d) => d.status === "escalated").length;
+    const escalationRate = disputes.length > 0 ? Math.round((escalatedCount / disputes.length) * 100) : 0;
+
+    return [
+      { title: "Open Disputes", value: String(openCount), change: `${openCount} active`, trend: openCount > 0 ? "warning" as const : "positive" as const, icon: Scale },
+      { title: "Avg Resolution Time", value: `${avgResolution}d`, change: `${resolved.length} resolved`, trend: "positive" as const, icon: Timer },
+      { title: "SLA Compliance", value: `${slaRate}%`, change: `${slaCompliant}/${activeDisputes.length} on track`, trend: slaRate >= 80 ? "positive" as const : "warning" as const, icon: CheckCircle2 },
+      { title: "Escalation Rate", value: `${escalationRate}%`, change: `${escalatedCount} escalated`, trend: escalationRate <= 15 ? "positive" as const : "warning" as const, icon: TrendingDown },
+    ];
+  }, [disputes]);
+
+  const resolutionMetrics = useMemo(() => {
+    const resolved = disputes.filter((d) => d.resolvedAt);
+    const avgDays = resolved.length > 0
+      ? +(resolved.reduce((sum, d) => sum + (computeResolutionDays(d.createdAt, d.resolvedAt) || 0), 0) / resolved.length).toFixed(1)
+      : 0;
+    const scored = resolved.filter((d) => d.satisfactionScore);
+    const avgSat = scored.length > 0
+      ? +(scored.reduce((sum, d) => sum + (d.satisfactionScore || 0), 0) / scored.length).toFixed(1)
+      : 0;
+    const now = new Date();
+    const thisMonthCount = resolved.filter((d) => {
+      const ra = new Date(d.resolvedAt!);
+      return ra.getMonth() === now.getMonth() && ra.getFullYear() === now.getFullYear();
+    }).length;
+    return { avgResolutionDays: avgDays, avgSatisfaction: avgSat, totalResolved: resolved.length, thisMonth: thisMonthCount };
+  }, [disputes]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6" data-testid="page-dispute-center">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight" data-testid="text-page-title">Dispute Center</h1>
+            <p className="text-muted-foreground">Rent disputes, vendor invoice disputes, and merchant transaction disputes</p>
+          </div>
+        </div>
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6" data-testid="page-dispute-center">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight" data-testid="text-page-title">Dispute Center</h1>
+            <p className="text-muted-foreground">Rent disputes, vendor invoice disputes, and merchant transaction disputes</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-muted-foreground" data-testid="text-error-message">Unable to load disputes. Please sign in as a business user to access this page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-testid="page-dispute-center">
@@ -389,7 +262,7 @@ export default function DisputeCenter() {
 
       <AINudgeCard
         title="Auto-Resolution Candidates Identified"
-        insight="AI analysis found 2 low-risk disputes (DSP-1007, DSP-1010) eligible for auto-resolution. Both have clear evidence of duplicate charges with matching transaction records. Auto-resolving could save 4 staff-hours and improve SLA compliance by 6%."
+        insight="AI analysis found 2 low-risk disputes eligible for auto-resolution. Both have clear evidence of duplicate charges with matching transaction records. Auto-resolving could save 4 staff-hours and improve SLA compliance by 6%."
         confidence={0.93}
         severity="opportunity"
         icon={Brain}
@@ -436,15 +309,15 @@ export default function DisputeCenter() {
           <div className="flex items-center gap-2 flex-wrap">
             <Filter className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Filter by type:</span>
-            {(["All", "Rent", "Vendor", "Merchant"] as const).map((t) => (
+            {(["all", "rent", "vendor", "merchant"] as const).map((t) => (
               <Button
                 key={t}
                 variant={typeFilter === t ? "default" : "outline"}
                 size="sm"
                 onClick={() => setTypeFilter(t)}
-                data-testid={`button-filter-${t.toLowerCase()}`}
+                data-testid={`button-filter-${t}`}
               >
-                {t}
+                {t === "all" ? "All" : formatType(t)}
               </Button>
             ))}
           </div>
@@ -479,38 +352,38 @@ export default function DisputeCenter() {
                     </thead>
                     <tbody>
                       {filteredDisputes.map((d, idx) => {
-                        const TypeIcon = typeIcon[d.type];
+                        const TypeIcon = typeIcon[d.type as DisputeType];
                         return (
                           <tr key={d.id} className="border-b last:border-0 hover-elevate" data-testid={`row-dispute-${idx}`}>
-                            <td className="p-3 font-mono text-xs">{d.id}</td>
+                            <td className="p-3 font-mono text-xs">{d.disputeNumber}</td>
                             <td className="p-3">
                               <div className="flex items-center gap-1.5">
-                                <TypeIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="text-xs">{d.type}</span>
+                                {TypeIcon && <TypeIcon className="w-3.5 h-3.5 text-muted-foreground" />}
+                                <span className="text-xs">{formatType(d.type)}</span>
                               </div>
                             </td>
                             <td className="p-3 font-medium text-xs">{d.filedBy}</td>
                             <td className="p-3 text-muted-foreground text-xs">{d.against}</td>
-                            <td className="p-3 text-muted-foreground text-xs">{d.property}</td>
-                            <td className="p-3 text-muted-foreground text-xs">{d.unit}</td>
-                            <td className="p-3 font-mono tabular-nums text-xs">${d.amount.toLocaleString()}</td>
+                            <td className="p-3 text-muted-foreground text-xs">{d.propertyName || "—"}</td>
+                            <td className="p-3 text-muted-foreground text-xs">{d.unitNumber || "—"}</td>
+                            <td className="p-3 font-mono tabular-nums text-xs">${Number(d.amount).toLocaleString()}</td>
                             <td className="p-3">
-                              <Badge variant={statusVariant[d.status]} className="text-xs" data-testid={`badge-status-${idx}`}>
-                                {d.status}
+                              <Badge variant={statusVariant[d.status as DisputeStatus]} className="text-xs" data-testid={`badge-status-${idx}`}>
+                                {formatStatus(d.status)}
                               </Badge>
                             </td>
                             <td className="p-3">
-                              <Badge variant={priorityVariant[d.priority]} className="text-xs" data-testid={`badge-priority-${idx}`}>
-                                {d.priority}
+                              <Badge variant={priorityVariant[d.priority as DisputePriority]} className="text-xs" data-testid={`badge-priority-${idx}`}>
+                                {formatPriority(d.priority)}
                               </Badge>
                             </td>
                             <td className="p-3 text-muted-foreground text-xs">
                               <div className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                {d.filedDate}
+                                {formatDate(d.createdAt)}
                               </div>
                             </td>
-                            <td className="p-3 text-muted-foreground text-xs">{d.slaDeadline}</td>
+                            <td className="p-3 text-muted-foreground text-xs">{formatDate(d.slaDeadline)}</td>
                           </tr>
                         );
                       })}
@@ -531,13 +404,13 @@ export default function DisputeCenter() {
                 {statusDistribution.map((s, idx) => (
                   <div key={s.status} className="space-y-1" data-testid={`status-bar-${idx}`}>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{s.status}</span>
+                      <span className="text-muted-foreground">{formatStatus(s.status)}</span>
                       <span className="font-medium">{s.count}</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted">
                       <div
                         className={`h-2 rounded-full ${s.color}`}
-                        style={{ width: `${(s.count / totalStatusCount) * 100}%` }}
+                        style={{ width: `${totalStatusCount > 0 ? (s.count / totalStatusCount) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
@@ -580,19 +453,19 @@ export default function DisputeCenter() {
                   <tbody>
                     {rentDisputes.map((d, idx) => (
                       <tr key={d.id} className="border-b last:border-0 hover-elevate" data-testid={`row-rent-dispute-${idx}`}>
-                        <td className="p-3 font-mono text-xs">{d.id}</td>
+                        <td className="p-3 font-mono text-xs">{d.disputeNumber}</td>
                         <td className="p-3 font-medium">{d.filedBy}</td>
-                        <td className="p-3 text-muted-foreground">{d.unit}</td>
+                        <td className="p-3 text-muted-foreground">{d.unitNumber || "—"}</td>
                         <td className="p-3 text-muted-foreground text-xs">{d.category}</td>
-                        <td className="p-3 font-mono tabular-nums">${d.amount.toLocaleString()}</td>
+                        <td className="p-3 font-mono tabular-nums">${Number(d.amount).toLocaleString()}</td>
                         <td className="p-3">
-                          <Badge variant={statusVariant[d.status]} className="text-xs" data-testid={`badge-rent-status-${idx}`}>
-                            {d.status}
+                          <Badge variant={statusVariant[d.status as DisputeStatus]} className="text-xs" data-testid={`badge-rent-status-${idx}`}>
+                            {formatStatus(d.status)}
                           </Badge>
                         </td>
                         <td className="p-3">
-                          <Badge variant={priorityVariant[d.priority]} className="text-xs" data-testid={`badge-rent-priority-${idx}`}>
-                            {d.priority}
+                          <Badge variant={priorityVariant[d.priority as DisputePriority]} className="text-xs" data-testid={`badge-rent-priority-${idx}`}>
+                            {formatPriority(d.priority)}
                           </Badge>
                         </td>
                         <td className="p-3 text-muted-foreground text-xs">{d.mediator || "Unassigned"}</td>
@@ -611,43 +484,8 @@ export default function DisputeCenter() {
           </Card>
 
           <div className="grid md:grid-cols-2 gap-4">
-            {rentDisputes.filter((d) => d.status !== "Resolved" && d.status !== "Closed").slice(0, 2).map((d, idx) => (
-              <Card key={d.id} className="hover-elevate" data-testid={`card-rent-timeline-${idx}`}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <CardTitle className="text-sm">{d.id} - {d.category}</CardTitle>
-                    <Badge variant={priorityVariant[d.priority]} className="text-xs">{d.priority}</Badge>
-                  </div>
-                  <CardDescription className="text-xs">{d.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="space-y-1.5">
-                    {d.timeline.map((t, tIdx) => (
-                      <div key={tIdx} className="flex items-start gap-2 text-xs">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                        <div>
-                          <span className="text-muted-foreground">{t.date}</span>
-                          <p>{t.action}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-3 pt-2 border-t text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Paperclip className="w-3 h-3" />
-                      {d.evidenceCount} attachments
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {d.mediator}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      SLA: {d.slaDeadline}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {rentDisputes.filter((d) => d.status !== "resolved" && d.status !== "closed").slice(0, 2).map((d, idx) => (
+              <RentDisputeTimeline key={d.id} dispute={d} idx={idx} />
             ))}
           </div>
         </TabsContent>
@@ -681,21 +519,21 @@ export default function DisputeCenter() {
                   <tbody>
                     {vendorDisputes.map((d, idx) => (
                       <tr key={d.id} className="border-b last:border-0 hover-elevate" data-testid={`row-vendor-dispute-${idx}`}>
-                        <td className="p-3 font-mono text-xs">{d.id}</td>
+                        <td className="p-3 font-mono text-xs">{d.disputeNumber}</td>
                         <td className="p-3 font-medium">{d.against}</td>
-                        <td className="p-3 text-muted-foreground text-xs">{d.property}</td>
+                        <td className="p-3 text-muted-foreground text-xs">{d.propertyName || "—"}</td>
                         <td className="p-3 text-muted-foreground text-xs">{d.category}</td>
                         <td className="p-3 font-mono text-xs">
                           <div className="flex items-center gap-1">
                             <FileText className="w-3 h-3 text-muted-foreground" />
-                            {d.workOrderRef}
+                            {d.workOrderRef || "—"}
                           </div>
                         </td>
-                        <td className="p-3 font-mono tabular-nums text-muted-foreground">${d.originalAmount?.toLocaleString()}</td>
-                        <td className="p-3 font-mono tabular-nums font-medium">${d.amount.toLocaleString()}</td>
+                        <td className="p-3 font-mono tabular-nums text-muted-foreground">${d.originalAmount ? Number(d.originalAmount).toLocaleString() : "—"}</td>
+                        <td className="p-3 font-mono tabular-nums font-medium">${Number(d.amount).toLocaleString()}</td>
                         <td className="p-3">
-                          <Badge variant={statusVariant[d.status]} className="text-xs" data-testid={`badge-vendor-status-${idx}`}>
-                            {d.status}
+                          <Badge variant={statusVariant[d.status as DisputeStatus]} className="text-xs" data-testid={`badge-vendor-status-${idx}`}>
+                            {formatStatus(d.status)}
                           </Badge>
                         </td>
                         <td className="p-3">
@@ -705,7 +543,7 @@ export default function DisputeCenter() {
                             data-testid={`badge-vendor-response-${idx}`}
                           >
                             <MessageSquare className="w-3 h-3 mr-1" />
-                            {d.vendorResponse}
+                            {d.vendorResponse || "—"}
                           </Badge>
                         </td>
                       </tr>
@@ -722,20 +560,24 @@ export default function DisputeCenter() {
               <CardDescription>Original approved amounts vs disputed invoice amounts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {vendorDisputes.map((d, idx) => (
-                <div key={d.id} className="flex items-center gap-3 text-sm" data-testid={`vendor-comparison-${idx}`}>
-                  <span className="font-mono text-xs text-muted-foreground w-20">{d.id}</span>
-                  <span className="text-xs text-muted-foreground w-36 truncate">{d.against}</span>
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="font-mono tabular-nums text-xs text-muted-foreground">${d.originalAmount?.toLocaleString()}</span>
-                    <ArrowUpRight className="w-3 h-3 text-red-500" />
-                    <span className="font-mono tabular-nums text-xs font-medium">${d.amount.toLocaleString()}</span>
-                    <span className="text-xs text-red-600 dark:text-red-400">
-                      (+${((d.amount - (d.originalAmount || 0))).toLocaleString()})
-                    </span>
+              {vendorDisputes.map((d, idx) => {
+                const amount = Number(d.amount);
+                const original = d.originalAmount ? Number(d.originalAmount) : 0;
+                return (
+                  <div key={d.id} className="flex items-center gap-3 text-sm" data-testid={`vendor-comparison-${idx}`}>
+                    <span className="font-mono text-xs text-muted-foreground w-20">{d.disputeNumber}</span>
+                    <span className="text-xs text-muted-foreground w-36 truncate">{d.against}</span>
+                    <div className="flex-1 flex items-center gap-2">
+                      <span className="font-mono tabular-nums text-xs text-muted-foreground">${original.toLocaleString()}</span>
+                      <ArrowUpRight className="w-3 h-3 text-red-500" />
+                      <span className="font-mono tabular-nums text-xs font-medium">${amount.toLocaleString()}</span>
+                      <span className="text-xs text-red-600 dark:text-red-400">
+                        (+${(amount - original).toLocaleString()})
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
@@ -769,31 +611,31 @@ export default function DisputeCenter() {
                   <tbody>
                     {merchantDisputes.map((d, idx) => (
                       <tr key={d.id} className="border-b last:border-0 hover-elevate" data-testid={`row-merchant-dispute-${idx}`}>
-                        <td className="p-3 font-mono text-xs">{d.id}</td>
+                        <td className="p-3 font-mono text-xs">{d.disputeNumber}</td>
                         <td className="p-3 font-medium">{d.filedBy}</td>
                         <td className="p-3">
                           <div className="flex items-center gap-1.5">
                             <Store className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-xs">{d.merchantName}</span>
+                            <span className="text-xs">{d.merchantName || "—"}</span>
                           </div>
                         </td>
-                        <td className="p-3 font-mono text-xs text-muted-foreground">{d.transactionRef}</td>
+                        <td className="p-3 font-mono text-xs text-muted-foreground">{d.transactionRef || "—"}</td>
                         <td className="p-3 text-muted-foreground text-xs">{d.category}</td>
-                        <td className="p-3 font-mono tabular-nums">${d.amount.toLocaleString()}</td>
+                        <td className="p-3 font-mono tabular-nums">${Number(d.amount).toLocaleString()}</td>
                         <td className="p-3">
-                          <Badge variant={statusVariant[d.status]} className="text-xs" data-testid={`badge-merchant-status-${idx}`}>
-                            {d.status}
+                          <Badge variant={statusVariant[d.status as DisputeStatus]} className="text-xs" data-testid={`badge-merchant-status-${idx}`}>
+                            {formatStatus(d.status)}
                           </Badge>
                         </td>
                         <td className="p-3">
-                          <Badge variant={priorityVariant[d.priority]} className="text-xs" data-testid={`badge-merchant-priority-${idx}`}>
-                            {d.priority}
+                          <Badge variant={priorityVariant[d.priority as DisputePriority]} className="text-xs" data-testid={`badge-merchant-priority-${idx}`}>
+                            {formatPriority(d.priority)}
                           </Badge>
                         </td>
                         <td className="p-3 text-muted-foreground text-xs">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {d.filedDate}
+                            {formatDate(d.createdAt)}
                           </div>
                         </td>
                       </tr>
@@ -809,8 +651,8 @@ export default function DisputeCenter() {
               <Card key={d.id} className="hover-elevate" data-testid={`card-merchant-detail-${idx}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <CardTitle className="text-sm">{d.id}</CardTitle>
-                    <Badge variant={statusVariant[d.status]} className="text-xs">{d.status}</Badge>
+                    <CardTitle className="text-sm">{d.disputeNumber}</CardTitle>
+                    <Badge variant={statusVariant[d.status as DisputeStatus]} className="text-xs">{formatStatus(d.status)}</Badge>
                   </div>
                   <CardDescription className="text-xs">{d.description}</CardDescription>
                 </CardHeader>
@@ -818,15 +660,15 @@ export default function DisputeCenter() {
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <span className="text-muted-foreground">Merchant</span>
-                      <p className="font-medium">{d.merchantName}</p>
+                      <p className="font-medium">{d.merchantName || "—"}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Amount</span>
-                      <p className="font-mono tabular-nums font-medium">${d.amount}</p>
+                      <p className="font-mono tabular-nums font-medium">${Number(d.amount).toLocaleString()}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Transaction</span>
-                      <p className="font-mono">{d.transactionRef}</p>
+                      <p className="font-mono">{d.transactionRef || "—"}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Reason</span>
@@ -887,8 +729,17 @@ export default function DisputeCenter() {
                 <ShieldAlert className="w-4 h-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="px-3 pb-3">
-                <div className="text-xl font-mono tabular-nums font-semibold" data-testid="text-sla-met">87%</div>
-                <Progress value={87} className="h-1.5 mt-1" data-testid="progress-sla" />
+                {(() => {
+                  const activeDisputes = disputes.filter((d) => d.status !== "resolved" && d.status !== "closed");
+                  const slaCompliant = activeDisputes.filter((d) => d.slaDeadline && new Date(d.slaDeadline) > new Date()).length;
+                  const slaRate = activeDisputes.length > 0 ? Math.round((slaCompliant / activeDisputes.length) * 100) : 100;
+                  return (
+                    <>
+                      <div className="text-xl font-mono tabular-nums font-semibold" data-testid="text-sla-met">{slaRate}%</div>
+                      <Progress value={slaRate} className="h-1.5 mt-1" data-testid="progress-sla" />
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </div>
@@ -917,45 +768,48 @@ export default function DisputeCenter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {resolvedDisputes.map((d, idx) => (
-                      <tr key={d.id} className="border-b last:border-0 hover-elevate" data-testid={`row-resolved-${idx}`}>
-                        <td className="p-3 font-mono text-xs">{d.id}</td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-1.5">
-                            {d.type === "Rent" && <Users className="w-3.5 h-3.5 text-muted-foreground" />}
-                            {d.type === "Vendor" && <Truck className="w-3.5 h-3.5 text-muted-foreground" />}
-                            {d.type === "Merchant" && <Store className="w-3.5 h-3.5 text-muted-foreground" />}
-                            <span className="text-xs">{d.type}</span>
-                          </div>
-                        </td>
-                        <td className="p-3 font-medium">{d.filedBy}</td>
-                        <td className="p-3 font-mono tabular-nums">${d.amount.toLocaleString()}</td>
-                        <td className="p-3">
-                          <Badge variant="secondary" className="text-xs" data-testid={`badge-resolution-type-${idx}`}>
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                            {d.resolutionType}
-                          </Badge>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-3 h-3 text-muted-foreground" />
-                            <span className={`text-xs font-medium ${(d.resolutionTime || 0) <= 7 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
-                              {d.resolutionTime}d
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-3 h-3 ${i < (d.satisfactionScore || 0) ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`}
-                              />
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {resolvedDisputes.map((d, idx) => {
+                      const resDays = computeResolutionDays(d.createdAt, d.resolvedAt);
+                      return (
+                        <tr key={d.id} className="border-b last:border-0 hover-elevate" data-testid={`row-resolved-${idx}`}>
+                          <td className="p-3 font-mono text-xs">{d.disputeNumber}</td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5">
+                              {d.type === "rent" && <Users className="w-3.5 h-3.5 text-muted-foreground" />}
+                              {d.type === "vendor" && <Truck className="w-3.5 h-3.5 text-muted-foreground" />}
+                              {d.type === "merchant" && <Store className="w-3.5 h-3.5 text-muted-foreground" />}
+                              <span className="text-xs">{formatType(d.type)}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 font-medium">{d.filedBy}</td>
+                          <td className="p-3 font-mono tabular-nums">${Number(d.amount).toLocaleString()}</td>
+                          <td className="p-3">
+                            <Badge variant="secondary" className="text-xs" data-testid={`badge-resolution-type-${idx}`}>
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              {d.resolutionType || "Resolved"}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <span className={`text-xs font-medium ${(resDays || 0) <= 7 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                                {resDays !== null ? `${resDays}d` : "—"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-3 h-3 ${i < (d.satisfactionScore || 0) ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`}
+                                />
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -984,5 +838,54 @@ export default function DisputeCenter() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function RentDisputeTimeline({ dispute: d, idx }: { dispute: Dispute; idx: number }) {
+  const { data: disputeDetail } = useQuery<Dispute & { timeline: DisputeTimeline[] }>({
+    queryKey: ["/api/disputes", d.id],
+  });
+
+  const timeline = disputeDetail?.timeline || [];
+
+  return (
+    <Card className="hover-elevate" data-testid={`card-rent-timeline-${idx}`}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <CardTitle className="text-sm">{d.disputeNumber} - {d.category}</CardTitle>
+          <Badge variant={priorityVariant[d.priority as DisputePriority]} className="text-xs">{formatPriority(d.priority)}</Badge>
+        </div>
+        <CardDescription className="text-xs">{d.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="space-y-1.5">
+          {timeline.length > 0 ? timeline.map((t, tIdx) => (
+            <div key={t.id || tIdx} className="flex items-start gap-2 text-xs">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+              <div>
+                <span className="text-muted-foreground">{formatDate(t.createdAt)}</span>
+                <p>{t.action}</p>
+              </div>
+            </div>
+          )) : (
+            <div className="text-xs text-muted-foreground">No timeline entries yet</div>
+          )}
+        </div>
+        <div className="flex items-center gap-3 pt-2 border-t text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Paperclip className="w-3 h-3" />
+            {d.evidenceCount} attachments
+          </div>
+          <div className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {d.mediator || "Unassigned"}
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            SLA: {formatDate(d.slaDeadline)}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

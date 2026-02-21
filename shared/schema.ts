@@ -1165,6 +1165,268 @@ export type MerchantStablecoinAllocation = typeof merchantStablecoinAllocations.
 export type MerchantTreasuryAllocation = typeof merchantTreasuryAllocations.$inferSelect;
 export type MerchantUserLink = typeof merchantUserLinks.$inferSelect;
 
+// ====== PHASE 1: PARTNERS, DISPUTES, CONSENT & ACTIVITY ======
+
+// Partner Type Enum
+export const partnerTypeEnum = pgEnum("partner_type", ["insurance", "mortgage", "investment"]);
+export const partnerStatusEnum = pgEnum("partner_status", ["active", "pending", "suspended", "inactive"]);
+
+// Partner Organizations - External partners (insurance, mortgage, investment firms)
+export const partnerOrganizations = pgTable("partner_organizations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: partnerTypeEnum("type").notNull(),
+  status: partnerStatusEnum("status").notNull().default("active"),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  companyUrl: text("company_url"),
+  partnerScore: integer("partner_score").default(0), // 0-100
+  revenueShare: decimal("revenue_share", { precision: 5, scale: 2 }).default("0"),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Partner User Links - Maps partner portal users to partner organizations
+export const partnerUserLinks = pgTable("partner_user_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  partnerOrgId: varchar("partner_org_id").notNull().references(() => partnerOrganizations.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userPartnerIdx: uniqueIndex("partner_user_links_user_partner_idx").on(table.userId, table.partnerOrgId),
+}));
+
+// Partner Leads - Leads shared with partners
+export const partnerLeadStatusEnum = pgEnum("partner_lead_status", ["new", "contacted", "qualified", "proposal_sent", "converted", "declined"]);
+
+export const partnerLeads = pgTable("partner_leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  partnerOrgId: varchar("partner_org_id").notNull().references(() => partnerOrganizations.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "set null" }),
+  tenantName: text("tenant_name").notNull(),
+  propertyName: text("property_name"),
+  unitNumber: text("unit_number"),
+  leadType: partnerTypeEnum("lead_type").notNull(),
+  subtype: text("subtype"),
+  status: partnerLeadStatusEnum("status").notNull().default("new"),
+  estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Partner Compliance Items - Licenses, certifications, agreements
+export const partnerComplianceStatusEnum = pgEnum("partner_compliance_status", ["valid", "expiring", "expired", "pending"]);
+
+export const partnerComplianceItems = pgTable("partner_compliance_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  partnerOrgId: varchar("partner_org_id").notNull().references(() => partnerOrganizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  category: text("category").notNull(), // License, Certification, Agreement, Insurance, Registration
+  status: partnerComplianceStatusEnum("status").notNull().default("pending"),
+  expiryDate: timestamp("expiry_date"),
+  lastVerified: timestamp("last_verified"),
+  required: boolean("required").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Dispute Enums
+export const disputeTypeEnum = pgEnum("dispute_type", ["rent", "vendor", "merchant"]);
+export const disputeStatusEnum = pgEnum("dispute_status", ["open", "under_review", "escalated", "mediation", "resolved", "closed"]);
+export const disputePriorityEnum = pgEnum("dispute_priority", ["critical", "high", "medium", "low"]);
+
+// Disputes table
+export const disputes = pgTable("disputes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  disputeNumber: text("dispute_number").notNull(),
+  type: disputeTypeEnum("type").notNull(),
+  status: disputeStatusEnum("status").notNull().default("open"),
+  priority: disputePriorityEnum("priority").notNull().default("medium"),
+  filedBy: text("filed_by").notNull(),
+  against: text("against").notNull(),
+  propertyName: text("property_name"),
+  unitNumber: text("unit_number"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  mediator: text("mediator"),
+  slaDeadline: timestamp("sla_deadline"),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionType: text("resolution_type"),
+  resolutionNotes: text("resolution_notes"),
+  satisfactionScore: integer("satisfaction_score"),
+  evidenceCount: integer("evidence_count").default(0).notNull(),
+  // Vendor-specific
+  workOrderRef: text("work_order_ref"),
+  originalAmount: decimal("original_amount", { precision: 10, scale: 2 }),
+  vendorResponse: text("vendor_response"),
+  // Merchant-specific
+  transactionRef: text("transaction_ref"),
+  merchantName: text("merchant_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Dispute Timeline - Events/actions in a dispute's lifecycle
+export const disputeTimeline = pgTable("dispute_timeline", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  disputeId: varchar("dispute_id").notNull().references(() => disputes.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Consent Records - Tracks tenant data sharing consents
+export const consentActionEnum = pgEnum("consent_action", ["granted", "revoked", "updated"]);
+export const consentStatusEnum = pgEnum("consent_status", ["active", "revoked", "expired"]);
+
+export const consentRecords = pgTable("consent_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+  description: text("description"),
+  sharedWith: text("shared_with").notNull(),
+  action: consentActionEnum("action").notNull(),
+  status: consentStatusEnum("status").notNull().default("active"),
+  method: text("method").default("app"),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Partner Access Logs - Tracks which partners accessed tenant data
+export const partnerAccessLogs = pgTable("partner_access_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  partnerName: text("partner_name").notNull(),
+  partnerType: text("partner_type").notNull(),
+  dataAccessed: text("data_accessed").notNull(),
+  purpose: text("purpose").notNull(),
+  consentRef: text("consent_ref"),
+  active: boolean("active").default(true).notNull(),
+  accessDate: timestamp("access_date").defaultNow().notNull(),
+});
+
+// Activity Events - Unified activity feed across all portals
+export const activityEventTypeEnum = pgEnum("activity_event_type", [
+  "dispute_filed", "dispute_updated", "dispute_resolved", "dispute_escalated",
+  "lead_assigned", "lead_converted", "lead_declined",
+  "consent_granted", "consent_revoked",
+  "partner_data_accessed",
+  "compliance_renewed", "compliance_expiring",
+  "payment_received", "payment_overdue",
+  "general"
+]);
+
+export const activityEvents = pgTable("activity_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  eventType: activityEventTypeEnum("event_type").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  entityType: text("entity_type"),
+  entityId: text("entity_id"),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Relations for Phase 1 tables
+export const partnerOrganizationsRelations = relations(partnerOrganizations, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [partnerOrganizations.organizationId],
+    references: [organizations.id],
+  }),
+  leads: many(partnerLeads),
+  complianceItems: many(partnerComplianceItems),
+  userLinks: many(partnerUserLinks),
+}));
+
+export const partnerUserLinksRelations = relations(partnerUserLinks, ({ one }) => ({
+  user: one(users, {
+    fields: [partnerUserLinks.userId],
+    references: [users.id],
+  }),
+  partnerOrg: one(partnerOrganizations, {
+    fields: [partnerUserLinks.partnerOrgId],
+    references: [partnerOrganizations.id],
+  }),
+}));
+
+export const partnerLeadsRelations = relations(partnerLeads, ({ one }) => ({
+  partnerOrg: one(partnerOrganizations, {
+    fields: [partnerLeads.partnerOrgId],
+    references: [partnerOrganizations.id],
+  }),
+  organization: one(organizations, {
+    fields: [partnerLeads.organizationId],
+    references: [organizations.id],
+  }),
+  tenant: one(tenants, {
+    fields: [partnerLeads.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const partnerComplianceItemsRelations = relations(partnerComplianceItems, ({ one }) => ({
+  partnerOrg: one(partnerOrganizations, {
+    fields: [partnerComplianceItems.partnerOrgId],
+    references: [partnerOrganizations.id],
+  }),
+}));
+
+export const disputesRelations = relations(disputes, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [disputes.organizationId],
+    references: [organizations.id],
+  }),
+  timeline: many(disputeTimeline),
+}));
+
+export const disputeTimelineRelations = relations(disputeTimeline, ({ one }) => ({
+  dispute: one(disputes, {
+    fields: [disputeTimeline.disputeId],
+    references: [disputes.id],
+  }),
+}));
+
+export const consentRecordsRelations = relations(consentRecords, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [consentRecords.tenantId],
+    references: [tenants.id],
+  }),
+  organization: one(organizations, {
+    fields: [consentRecords.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const partnerAccessLogsRelations = relations(partnerAccessLogs, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [partnerAccessLogs.tenantId],
+    references: [tenants.id],
+  }),
+  organization: one(organizations, {
+    fields: [partnerAccessLogs.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const activityEventsRelations = relations(activityEvents, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [activityEvents.organizationId],
+    references: [organizations.id],
+  }),
+  user: one(users, {
+    fields: [activityEvents.userId],
+    references: [users.id],
+  }),
+}));
+
 // ====== ORCHESTRATION EVENT TIMELINE ======
 // Tracks key workflow activities across business/vendor/merchant portals for unified orchestration view
 
@@ -1319,3 +1581,46 @@ export interface CryptoTreasurySummary {
 export const insertIncentiveProgramSchema = createInsertSchema(incentivePrograms).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertIncentiveProgram = z.infer<typeof insertIncentiveProgramSchema>;
 export type IncentiveProgram = typeof incentivePrograms.$inferSelect;
+
+// Phase 1 Insert Schemas
+export const insertPartnerOrganizationSchema = createInsertSchema(partnerOrganizations).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPartnerUserLinkSchema = createInsertSchema(partnerUserLinks).omit({ id: true, createdAt: true });
+export const insertPartnerLeadSchema = createInsertSchema(partnerLeads).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPartnerComplianceItemSchema = createInsertSchema(partnerComplianceItems).omit({ id: true, createdAt: true });
+export const insertDisputeSchema = createInsertSchema(disputes).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertDisputeTimelineSchema = createInsertSchema(disputeTimeline).omit({ id: true, createdAt: true });
+export const insertConsentRecordSchema = createInsertSchema(consentRecords).omit({ id: true, createdAt: true });
+export const insertPartnerAccessLogSchema = createInsertSchema(partnerAccessLogs).omit({ id: true, accessDate: true });
+export const insertActivityEventSchema = createInsertSchema(activityEvents).omit({ id: true, createdAt: true });
+
+// Phase 1 Types
+export type PartnerOrganization = typeof partnerOrganizations.$inferSelect;
+export type InsertPartnerOrganization = z.infer<typeof insertPartnerOrganizationSchema>;
+export type PartnerUserLink = typeof partnerUserLinks.$inferSelect;
+export type InsertPartnerUserLink = z.infer<typeof insertPartnerUserLinkSchema>;
+export type PartnerLead = typeof partnerLeads.$inferSelect;
+export type InsertPartnerLead = z.infer<typeof insertPartnerLeadSchema>;
+export type PartnerComplianceItem = typeof partnerComplianceItems.$inferSelect;
+export type InsertPartnerComplianceItem = z.infer<typeof insertPartnerComplianceItemSchema>;
+export type Dispute = typeof disputes.$inferSelect;
+export type InsertDispute = z.infer<typeof insertDisputeSchema>;
+export type DisputeTimeline = typeof disputeTimeline.$inferSelect;
+export type InsertDisputeTimeline = z.infer<typeof insertDisputeTimelineSchema>;
+export type ConsentRecord = typeof consentRecords.$inferSelect;
+export type InsertConsentRecord = z.infer<typeof insertConsentRecordSchema>;
+export type PartnerAccessLog = typeof partnerAccessLogs.$inferSelect;
+export type InsertPartnerAccessLog = z.infer<typeof insertPartnerAccessLogSchema>;
+export type ActivityEvent = typeof activityEvents.$inferSelect;
+export type InsertActivityEvent = z.infer<typeof insertActivityEventSchema>;
+
+// Phase 1 Enum Types
+export type PartnerType = "insurance" | "mortgage" | "investment";
+export type PartnerStatus = "active" | "pending" | "suspended" | "inactive";
+export type PartnerLeadStatus = "new" | "contacted" | "qualified" | "proposal_sent" | "converted" | "declined";
+export type PartnerComplianceStatusType = "valid" | "expiring" | "expired" | "pending";
+export type DisputeType = "rent" | "vendor" | "merchant";
+export type DisputeStatus = "open" | "under_review" | "escalated" | "mediation" | "resolved" | "closed";
+export type DisputePriority = "critical" | "high" | "medium" | "low";
+export type ConsentAction = "granted" | "revoked" | "updated";
+export type ConsentStatus = "active" | "revoked" | "expired";
+export type ActivityEventType = "dispute_filed" | "dispute_updated" | "dispute_resolved" | "dispute_escalated" | "lead_assigned" | "lead_converted" | "lead_declined" | "consent_granted" | "consent_revoked" | "partner_data_accessed" | "compliance_renewed" | "compliance_expiring" | "payment_received" | "payment_overdue" | "general";

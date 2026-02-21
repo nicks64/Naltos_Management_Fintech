@@ -35,6 +35,15 @@ import {
   orchestrationEvents,
   merchantSettlementPreferences,
   vendorRedemptionRequests,
+  disputes,
+  disputeTimeline,
+  partnerOrganizations,
+  partnerUserLinks,
+  partnerLeads,
+  partnerComplianceItems,
+  consentRecords,
+  partnerAccessLogs,
+  activityEvents,
   type User,
   type InsertUser,
   type Organization,
@@ -78,6 +87,22 @@ import {
   type InsertMerchantSettlementPreferences,
   type VendorRedemptionRequest,
   type InsertVendorRedemptionRequest,
+  type Dispute,
+  type InsertDispute,
+  type DisputeTimeline as DisputeTimelineEntry,
+  type InsertDisputeTimeline,
+  type PartnerOrganization,
+  type InsertPartnerOrganization,
+  type PartnerLead,
+  type InsertPartnerLead,
+  type PartnerComplianceItem,
+  type InsertPartnerComplianceItem,
+  type ConsentRecord,
+  type InsertConsentRecord,
+  type PartnerAccessLog,
+  type InsertPartnerAccessLog,
+  type ActivityEvent,
+  type InsertActivityEvent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lt, gte, sql, sum, inArray, isNotNull } from "drizzle-orm";
@@ -251,6 +276,45 @@ export interface IStorage {
   listVendorRedemptionRequests(vendorId: string): Promise<VendorRedemptionRequest[]>;
   // Security: vendorId and organizationId are REQUIRED for authorization
   updateRedemptionRequestStatus(requestId: string, status: string, vendorId: string, organizationId: string): Promise<VendorRedemptionRequest>;
+
+  // ====== PHASE 1: PARTNERS, DISPUTES, CONSENT & ACTIVITY ======
+
+  // Dispute methods
+  getDisputes(organizationId: string, filters?: { type?: string; status?: string }): Promise<Dispute[]>;
+  getDispute(id: string): Promise<(Dispute & { timeline: DisputeTimelineEntry[] }) | undefined>;
+  createDispute(data: InsertDispute): Promise<Dispute>;
+  updateDisputeStatus(id: string, status: string, updates?: Partial<InsertDispute>): Promise<Dispute>;
+  addDisputeTimelineEntry(disputeId: string, action: string): Promise<DisputeTimelineEntry>;
+  getDisputeTimeline(disputeId: string): Promise<DisputeTimelineEntry[]>;
+
+  // Partner methods
+  getPartnerOrganizations(organizationId: string): Promise<PartnerOrganization[]>;
+  getPartnerOrganization(id: string): Promise<PartnerOrganization | undefined>;
+  getPartnerOrgsByUser(userId: string): Promise<PartnerOrganization[]>;
+  createPartnerOrganization(data: InsertPartnerOrganization): Promise<PartnerOrganization>;
+  createPartnerUserLink(userId: string, partnerOrgId: string): Promise<void>;
+
+  // Partner Leads methods
+  getPartnerLeads(partnerOrgId: string, filters?: { status?: string; leadType?: string }): Promise<PartnerLead[]>;
+  createPartnerLead(data: InsertPartnerLead): Promise<PartnerLead>;
+  updatePartnerLeadStatus(id: string, status: string): Promise<PartnerLead>;
+
+  // Partner Compliance methods
+  getPartnerComplianceItems(partnerOrgId: string): Promise<PartnerComplianceItem[]>;
+  createPartnerComplianceItem(data: InsertPartnerComplianceItem): Promise<PartnerComplianceItem>;
+
+  // Consent methods
+  getConsentRecords(tenantId: string, organizationId: string): Promise<ConsentRecord[]>;
+  createConsentRecord(data: InsertConsentRecord): Promise<ConsentRecord>;
+  updateConsentStatus(id: string, enabled: boolean, action: string): Promise<ConsentRecord>;
+
+  // Partner Access Log methods
+  getPartnerAccessLogs(tenantId: string, organizationId: string): Promise<PartnerAccessLog[]>;
+  createPartnerAccessLog(data: InsertPartnerAccessLog): Promise<PartnerAccessLog>;
+
+  // Activity Event methods
+  getActivityEvents(organizationId: string, filters?: { eventType?: string; limit?: number }): Promise<ActivityEvent[]>;
+  createActivityEvent(data: InsertActivityEvent): Promise<ActivityEvent>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2171,6 +2235,147 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updated;
+  }
+
+  // ====== PHASE 1: DISPUTES ======
+
+  async getDisputes(organizationId: string, filters?: { type?: string; status?: string }): Promise<Dispute[]> {
+    const conditions = [eq(disputes.organizationId, organizationId)];
+    if (filters?.type) conditions.push(eq(disputes.type, filters.type as any));
+    if (filters?.status) conditions.push(eq(disputes.status, filters.status as any));
+    return db.select().from(disputes).where(and(...conditions)).orderBy(desc(disputes.createdAt));
+  }
+
+  async getDispute(id: string): Promise<(Dispute & { timeline: DisputeTimelineEntry[] }) | undefined> {
+    const [dispute] = await db.select().from(disputes).where(eq(disputes.id, id));
+    if (!dispute) return undefined;
+    const timeline = await db.select().from(disputeTimeline).where(eq(disputeTimeline.disputeId, id)).orderBy(desc(disputeTimeline.createdAt));
+    return { ...dispute, timeline };
+  }
+
+  async createDispute(data: InsertDispute): Promise<Dispute> {
+    const [dispute] = await db.insert(disputes).values(data).returning();
+    return dispute;
+  }
+
+  async updateDisputeStatus(id: string, status: string, updates?: Partial<InsertDispute>): Promise<Dispute> {
+    const setData: any = { status: status as any, updatedAt: new Date() };
+    if (updates) Object.assign(setData, updates);
+    if (status === 'resolved' || status === 'closed') setData.resolvedAt = new Date();
+    const [updated] = await db.update(disputes).set(setData).where(eq(disputes.id, id)).returning();
+    return updated;
+  }
+
+  async addDisputeTimelineEntry(disputeId: string, action: string): Promise<DisputeTimelineEntry> {
+    const [entry] = await db.insert(disputeTimeline).values({ disputeId, action }).returning();
+    return entry;
+  }
+
+  async getDisputeTimeline(disputeId: string): Promise<DisputeTimelineEntry[]> {
+    return db.select().from(disputeTimeline).where(eq(disputeTimeline.disputeId, disputeId)).orderBy(desc(disputeTimeline.createdAt));
+  }
+
+  // ====== PHASE 1: PARTNERS ======
+
+  async getPartnerOrganizations(organizationId: string): Promise<PartnerOrganization[]> {
+    return db.select().from(partnerOrganizations).where(eq(partnerOrganizations.organizationId, organizationId)).orderBy(desc(partnerOrganizations.createdAt));
+  }
+
+  async getPartnerOrganization(id: string): Promise<PartnerOrganization | undefined> {
+    const [partner] = await db.select().from(partnerOrganizations).where(eq(partnerOrganizations.id, id));
+    return partner || undefined;
+  }
+
+  async getPartnerOrgsByUser(userId: string): Promise<PartnerOrganization[]> {
+    const links = await db.select().from(partnerUserLinks).where(eq(partnerUserLinks.userId, userId));
+    if (links.length === 0) return [];
+    const partnerOrgIds = links.map(l => l.partnerOrgId);
+    return db.select().from(partnerOrganizations).where(inArray(partnerOrganizations.id, partnerOrgIds));
+  }
+
+  async createPartnerOrganization(data: InsertPartnerOrganization): Promise<PartnerOrganization> {
+    const [partner] = await db.insert(partnerOrganizations).values(data).returning();
+    return partner;
+  }
+
+  async createPartnerUserLink(userId: string, partnerOrgId: string): Promise<void> {
+    await db.insert(partnerUserLinks).values({ userId, partnerOrgId }).onConflictDoNothing();
+  }
+
+  // ====== PHASE 1: PARTNER LEADS ======
+
+  async getPartnerLeads(partnerOrgId: string, filters?: { status?: string; leadType?: string }): Promise<PartnerLead[]> {
+    const conditions = [eq(partnerLeads.partnerOrgId, partnerOrgId)];
+    if (filters?.status) conditions.push(eq(partnerLeads.status, filters.status as any));
+    if (filters?.leadType) conditions.push(eq(partnerLeads.leadType, filters.leadType as any));
+    return db.select().from(partnerLeads).where(and(...conditions)).orderBy(desc(partnerLeads.createdAt));
+  }
+
+  async createPartnerLead(data: InsertPartnerLead): Promise<PartnerLead> {
+    const [lead] = await db.insert(partnerLeads).values(data).returning();
+    return lead;
+  }
+
+  async updatePartnerLeadStatus(id: string, status: string): Promise<PartnerLead> {
+    const [updated] = await db.update(partnerLeads).set({ status: status as any, updatedAt: new Date() }).where(eq(partnerLeads.id, id)).returning();
+    return updated;
+  }
+
+  // ====== PHASE 1: PARTNER COMPLIANCE ======
+
+  async getPartnerComplianceItems(partnerOrgId: string): Promise<PartnerComplianceItem[]> {
+    return db.select().from(partnerComplianceItems).where(eq(partnerComplianceItems.partnerOrgId, partnerOrgId)).orderBy(desc(partnerComplianceItems.createdAt));
+  }
+
+  async createPartnerComplianceItem(data: InsertPartnerComplianceItem): Promise<PartnerComplianceItem> {
+    const [item] = await db.insert(partnerComplianceItems).values(data).returning();
+    return item;
+  }
+
+  // ====== PHASE 1: CONSENT RECORDS ======
+
+  async getConsentRecords(tenantId: string, organizationId: string): Promise<ConsentRecord[]> {
+    return db.select().from(consentRecords).where(and(eq(consentRecords.tenantId, tenantId), eq(consentRecords.organizationId, organizationId))).orderBy(desc(consentRecords.createdAt));
+  }
+
+  async createConsentRecord(data: InsertConsentRecord): Promise<ConsentRecord> {
+    const [record] = await db.insert(consentRecords).values(data).returning();
+    return record;
+  }
+
+  async updateConsentStatus(id: string, enabled: boolean, action: string): Promise<ConsentRecord> {
+    const [updated] = await db.update(consentRecords).set({
+      enabled,
+      action: action as any,
+      status: enabled ? 'active' as any : 'revoked' as any,
+    }).where(eq(consentRecords.id, id)).returning();
+    return updated;
+  }
+
+  // ====== PHASE 1: PARTNER ACCESS LOGS ======
+
+  async getPartnerAccessLogs(tenantId: string, organizationId: string): Promise<PartnerAccessLog[]> {
+    return db.select().from(partnerAccessLogs).where(and(eq(partnerAccessLogs.tenantId, tenantId), eq(partnerAccessLogs.organizationId, organizationId))).orderBy(desc(partnerAccessLogs.accessDate));
+  }
+
+  async createPartnerAccessLog(data: InsertPartnerAccessLog): Promise<PartnerAccessLog> {
+    const [log] = await db.insert(partnerAccessLogs).values(data).returning();
+    return log;
+  }
+
+  // ====== PHASE 1: ACTIVITY EVENTS ======
+
+  async getActivityEvents(organizationId: string, filters?: { eventType?: string; limit?: number }): Promise<ActivityEvent[]> {
+    const conditions = [eq(activityEvents.organizationId, organizationId)];
+    if (filters?.eventType) conditions.push(eq(activityEvents.eventType, filters.eventType as any));
+    const query = db.select().from(activityEvents).where(and(...conditions)).orderBy(desc(activityEvents.createdAt));
+    if (filters?.limit) return query.limit(filters.limit);
+    return query;
+  }
+
+  async createActivityEvent(data: InsertActivityEvent): Promise<ActivityEvent> {
+    const [event] = await db.insert(activityEvents).values(data).returning();
+    return event;
   }
 }
 

@@ -3807,6 +3807,268 @@ Guidelines:
     }
   });
 
+  // ====== PHASE 1: DISPUTES API ======
+
+  app.get("/api/disputes", requireAuth, requireRole("Admin", "PropertyManager", "CFO", "Analyst"), async (req, res) => {
+    try {
+      const orgId = (req as any).organizationId;
+      const { type, status } = req.query;
+      const filters: any = {};
+      if (type) filters.type = type;
+      if (status) filters.status = status;
+      const result = await storage.getDisputes(orgId, filters);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/disputes/:id", requireAuth, async (req, res) => {
+    try {
+      const dispute = await storage.getDispute(req.params.id);
+      if (!dispute) return res.status(404).json({ error: "Dispute not found" });
+      res.json(dispute);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/disputes", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const orgId = (req as any).organizationId;
+      const dispute = await storage.createDispute({ ...req.body, organizationId: orgId });
+      await storage.addDisputeTimelineEntry(dispute.id, `Dispute ${dispute.disputeNumber} filed by ${dispute.filedBy}`);
+      await storage.createActivityEvent({
+        organizationId: orgId,
+        eventType: "dispute_filed",
+        title: `Dispute ${dispute.disputeNumber} filed`,
+        description: dispute.description,
+        entityType: "dispute",
+        entityId: dispute.id,
+      });
+      res.json(dispute);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/disputes/:id/status", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const { status, ...updates } = req.body;
+      const dispute = await storage.updateDisputeStatus(req.params.id, status, updates);
+      const actionMap: Record<string, string> = {
+        under_review: "Dispute moved to Under Review",
+        escalated: "Dispute escalated",
+        mediation: "Dispute sent to Mediation",
+        resolved: `Dispute resolved${updates.resolutionType ? ` - ${updates.resolutionType}` : ""}`,
+        closed: "Dispute closed",
+      };
+      await storage.addDisputeTimelineEntry(dispute.id, actionMap[status] || `Status changed to ${status}`);
+      const eventType = status === "resolved" ? "dispute_resolved" : status === "escalated" ? "dispute_escalated" : "dispute_updated";
+      await storage.createActivityEvent({
+        organizationId: dispute.organizationId,
+        eventType: eventType as any,
+        title: `Dispute ${dispute.disputeNumber} ${actionMap[status] || `updated to ${status}`}`,
+        entityType: "dispute",
+        entityId: dispute.id,
+      });
+      res.json(dispute);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/disputes/:id/timeline", requireAuth, async (req, res) => {
+    try {
+      const entry = await storage.addDisputeTimelineEntry(req.params.id, req.body.action);
+      res.json(entry);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/disputes/:id/timeline", requireAuth, async (req, res) => {
+    try {
+      const timeline = await storage.getDisputeTimeline(req.params.id);
+      res.json(timeline);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 1: PARTNER API ======
+
+  app.get("/api/partner/organizations", requireAuth, async (req, res) => {
+    try {
+      const partnerOrgs = await storage.getPartnerOrgsByUser(req.userId!);
+      res.json(partnerOrgs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/partner/organizations/:id", requireAuth, async (req, res) => {
+    try {
+      const org = await storage.getPartnerOrganization(req.params.id);
+      if (!org) return res.status(404).json({ error: "Partner organization not found" });
+      res.json(org);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/partner/leads", requireAuth, async (req, res) => {
+    try {
+      const partnerOrgs = await storage.getPartnerOrgsByUser(req.userId!);
+      if (partnerOrgs.length === 0) return res.json([]);
+      const { status, leadType } = req.query;
+      const filters: any = {};
+      if (status) filters.status = status;
+      if (leadType) filters.leadType = leadType;
+      const allLeads = [];
+      for (const org of partnerOrgs) {
+        const leads = await storage.getPartnerLeads(org.id, filters);
+        allLeads.push(...leads);
+      }
+      allLeads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      res.json(allLeads);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/partner/leads/:id/status", requireAuth, async (req, res) => {
+    try {
+      const updated = await storage.updatePartnerLeadStatus(req.params.id, req.body.status);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/partner/compliance", requireAuth, async (req, res) => {
+    try {
+      const partnerOrgs = await storage.getPartnerOrgsByUser(req.userId!);
+      if (partnerOrgs.length === 0) return res.json([]);
+      const allItems = [];
+      for (const org of partnerOrgs) {
+        const items = await storage.getPartnerComplianceItems(org.id);
+        allItems.push(...items);
+      }
+      res.json(allItems);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/partner/activity", requireAuth, async (req, res) => {
+    try {
+      const partnerOrgs = await storage.getPartnerOrgsByUser(req.userId!);
+      if (partnerOrgs.length === 0) return res.json([]);
+      const orgId = partnerOrgs[0].organizationId;
+      const events = await storage.getActivityEvents(orgId, { limit: 20 });
+      res.json(events);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Business-side partner management
+  app.get("/api/partners", requireAuth, requireRole("Admin", "PropertyManager"), async (req, res) => {
+    try {
+      const orgId = (req as any).organizationId;
+      const partners = await storage.getPartnerOrganizations(orgId);
+      res.json(partners);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 1: CONSENT & PRIVACY API ======
+
+  app.get("/api/tenant/consents", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const user = await storage.getUser(userId);
+      if (!user?.tenantId) return res.json([]);
+      const tenant = await storage.getTenant(user.tenantId);
+      if (!tenant) return res.json([]);
+      const records = await storage.getConsentRecords(tenant.id, tenant.organizationId);
+      res.json(records);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tenant/consents", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const user = await storage.getUser(userId);
+      if (!user?.tenantId) return res.status(400).json({ error: "No tenant linked" });
+      const tenant = await storage.getTenant(user.tenantId);
+      if (!tenant) return res.status(404).json({ error: "Tenant not found" });
+      const record = await storage.createConsentRecord({
+        ...req.body,
+        tenantId: tenant.id,
+        organizationId: tenant.organizationId,
+      });
+      await storage.createActivityEvent({
+        organizationId: tenant.organizationId,
+        eventType: record.action === "granted" ? "consent_granted" : "consent_revoked",
+        title: `Consent ${record.action} for ${record.category}`,
+        description: `Shared with: ${record.sharedWith}`,
+        entityType: "consent",
+        entityId: record.id,
+        userId: userId,
+      });
+      res.json(record);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/tenant/consents/:id", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      const action = enabled ? "granted" : "revoked";
+      const updated = await storage.updateConsentStatus(req.params.id, enabled, action);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tenant/partner-access", requireAuth, requireRole("Tenant"), async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const user = await storage.getUser(userId);
+      if (!user?.tenantId) return res.json([]);
+      const tenant = await storage.getTenant(user.tenantId);
+      if (!tenant) return res.json([]);
+      const logs = await storage.getPartnerAccessLogs(tenant.id, tenant.organizationId);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ====== PHASE 1: ACTIVITY EVENTS API ======
+
+  app.get("/api/activity-events", requireAuth, async (req, res) => {
+    try {
+      const orgId = (req as any).organizationId;
+      if (!orgId) return res.json([]);
+      const { eventType, limit } = req.query;
+      const filters: any = {};
+      if (eventType) filters.eventType = eventType;
+      if (limit) filters.limit = parseInt(limit as string);
+      const events = await storage.getActivityEvents(orgId, filters);
+      res.json(events);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
