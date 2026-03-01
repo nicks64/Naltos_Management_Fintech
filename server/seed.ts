@@ -727,12 +727,12 @@ export async function seedDatabase() {
   const merchantData = [
     { name: "Whole Foods Market", category: "Grocery" as const, settlementDays: 2, yieldRate: "5.50" },
     { name: "Target", category: "Retail" as const, settlementDays: 3, yieldRate: "5.50" },
-    { name: "Chipotle Mexican Grill", category: "Dining" as const, settlementDays: 1, yieldRate: "5.50" },
+    { name: "Chipotle Mexican Grill", category: "Restaurants" as const, settlementDays: 1, yieldRate: "5.50" },
     { name: "AMC Theatres", category: "Entertainment" as const, settlementDays: 2, yieldRate: "5.50" },
     { name: "Shell Gas Station", category: "Services" as const, settlementDays: 1, yieldRate: "5.50" },
-    { name: "Starbucks", category: "Coffee" as const, settlementDays: 1, yieldRate: "5.50" },
-    { name: "Amazon", category: "Retail" as const, settlementDays: 3, yieldRate: "5.50" },
-    { name: "Uber", category: "Services" as const, settlementDays: 2, yieldRate: "5.50" },
+    { name: "Starbucks", category: "Restaurants" as const, settlementDays: 1, yieldRate: "5.50" },
+    { name: "Amazon", category: "Shopping" as const, settlementDays: 3, yieldRate: "5.50" },
+    { name: "Uber", category: "Transportation" as const, settlementDays: 2, yieldRate: "5.50" },
   ];
 
   const seededMerchants = await db.insert(merchants).values(

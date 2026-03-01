@@ -1306,7 +1306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      req.session.userId = 0;
+      req.session.userId = "0";
       req.session.userRole = "Partner" as any;
       req.session.organizationId = null as any;
 
@@ -2767,11 +2767,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/tenant/readiness", requireAuth, requireRole("Tenant"), async (req, res) => {
     try {
-      const user = req.user as any;
-      const tenantId = user?.tenantId;
-      if (!tenantId) return res.status(404).json({ error: "Tenant record not found" });
-      
-      const tenant = await storage.getTenant(tenantId);
+      const userId = req.session.userId;
+      if (!userId) return res.status(404).json({ error: "User not authenticated" });
+
+      const users = await db.select().from(schema.users).where(eq(schema.users.id, userId));
+      const user = users[0];
+      if (!user?.tenantId) return res.status(404).json({ error: "Tenant record not found" });
+
+      const tenant = await storage.getTenant(user.tenantId);
       res.json(tenant);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
